@@ -38,20 +38,19 @@ export const userMiddleware = () => {
 
       // 3️⃣ Buscar el usuario en BD
       const userRepo = DI.em.getRepository(User)
-      const user = await userRepo.findOne({ email: decoded.email }, {
-        populate: ['minorista', 'transferencista'],
-      })
+      const user = await userRepo.findOne(
+        { email: decoded.email },
+        {
+          populate: ['minorista', 'transferencista'],
+        }
+      )
 
       if (!user) {
         return next()
       }
 
       // 4️⃣ Construir objeto requestUser
-      req.context.requestUser = new RequestUser(
-        user,
-        'authenticatedUser',
-        null
-      )
+      req.context.requestUser = new RequestUser(user, 'authenticatedUser', null)
 
       // Ejemplo: puedes inyectar directamente el rol o ID del minorista
       req.context.role = user.role

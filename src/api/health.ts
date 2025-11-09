@@ -4,12 +4,12 @@ import { logger } from '@/lib/logger'
 import { ApiResponse } from '@/lib/apiResponse'
 
 export const health = async (req: Request, res: Response) => {
-    const checks = { database: false }
-    try {
-        await DI.em.getConnection().execute('SELECT 1')
-        checks.database = true
-    } catch (error) {
-        logger.error({ err: error }, 'Database connection failed')
-    }
-    res.json(ApiResponse.success({ status: 'ok', checks }))
+  const checks = { database: false }
+  try {
+    await DI.em.getConnection().execute('SELECT 1')
+    checks.database = true
+  } catch (error) {
+    logger.error({ err: error }, 'Database connection failed')
+  }
+  res.json(ApiResponse.success({ status: 'ok', checks }))
 }

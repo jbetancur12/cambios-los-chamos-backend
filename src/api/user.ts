@@ -34,15 +34,17 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
     path: '/',
   })
 
-  res.json(ApiResponse.success({
-    message: 'Inicio de sesión exitoso',
-    user: {
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-    },
-  }))
+  res.json(
+    ApiResponse.success({
+      message: 'Inicio de sesión exitoso',
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+      },
+    })
+  )
 })
 
 // ------------------ LOGOUT ------------------
@@ -52,53 +54,67 @@ userRouter.post('/logout', requireAuth(), async (_req: Request, res: Response) =
 })
 
 // ------------------ REGISTRO ------------------
-userRouter.post('/register', requireRole(UserRole.SUPER_ADMIN), validateBody(registerSchema), async (req: Request, res: Response) => {
-  const { email, password, fullName, role } = req.body
+userRouter.post(
+  '/register',
+  requireRole(UserRole.SUPER_ADMIN),
+  validateBody(registerSchema),
+  async (req: Request, res: Response) => {
+    const { email, password, fullName, role } = req.body
 
-  const result = await userService.register({ email, password, fullName, role })
+    const result = await userService.register({ email, password, fullName, role })
 
-  if ('error' in result) {
-    return res.status(409).json(ApiResponse.conflict('Ya existe un usuario con este email', { field: 'email', value: email }))
+    if ('error' in result) {
+      return res
+        .status(409)
+        .json(ApiResponse.conflict('Ya existe un usuario con este email', { field: 'email', value: email }))
+    }
+
+    const { user, token: accessToken } = result
+
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: '/',
+    })
+
+    res.status(201).json(
+      ApiResponse.success({
+        message: 'Usuario creado exitosamente',
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+        },
+      })
+    )
   }
-
-  const { user, token: accessToken } = result
-
-  res.cookie('accessToken', accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 30 * 24 * 60 * 60 * 1000,
-    path: '/',
-  })
-
-  res.status(201).json(ApiResponse.success({
-    message: 'Usuario creado exitosamente',
-    user: {
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-    },
-  }))
-})
+)
 
 // ------------------ CAMBIAR CONTRASEÑA ------------------
-userRouter.post('/change-password', requireAuth(), validateBody(changePasswordSchema), async (req: Request, res: Response) => {
-  const user = req.context?.requestUser?.user
-  if (!user) {
-    return res.status(401).json(ApiResponse.unauthorized())
+userRouter.post(
+  '/change-password',
+  requireAuth(),
+  validateBody(changePasswordSchema),
+  async (req: Request, res: Response) => {
+    const user = req.context?.requestUser?.user
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
+    const { oldPassword, newPassword } = req.body
+
+    const success = await userService.changePassword(user, oldPassword, newPassword)
+
+    if (!success) {
+      return res.status(400).json(ApiResponse.badRequest('Contraseña actual incorrecta'))
+    }
+
+    res.json(ApiResponse.success({ message: 'Contraseña cambiada exitosamente' }))
   }
-
-  const { oldPassword, newPassword } = req.body
-
-  const success = await userService.changePassword(user, oldPassword, newPassword)
-
-  if (!success) {
-    return res.status(400).json(ApiResponse.badRequest('Contraseña actual incorrecta'))
-  }
-
-  res.json(ApiResponse.success({ message: 'Contraseña cambiada exitosamente' }))
-})
+)
 
 // ------------------ DETALLES DEL USUARIO ------------------
 userRouter.get('/me', requireAuth(), async (req: Request, res: Response) => {
@@ -107,15 +123,17 @@ userRouter.get('/me', requireAuth(), async (req: Request, res: Response) => {
     return res.status(401).json(ApiResponse.unauthorized())
   }
 
-  res.json(ApiResponse.success({
-    user: {
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-      isActive: user.isActive,
-    },
-  }))
+  res.json(
+    ApiResponse.success({
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+      },
+    })
+  )
 })
 
 export async function resetPassword(req: Request, res: Response) {
@@ -140,9 +158,11 @@ userRouter.post('/send-reset-password', validateBody(sendResetPasswordSchema), a
   try {
     await userService.sendResetPasswordEmail(email)
 
-    return res.status(200).json(ApiResponse.success({
-      message: 'Si el email existe, se ha enviado un enlace de restablecimiento.'
-    }))
+    return res.status(200).json(
+      ApiResponse.success({
+        message: 'Si el email existe, se ha enviado un enlace de restablecimiento.',
+      })
+    )
   } catch (err) {
     console.error(err)
     return res.status(500).json(ApiResponse.serverError())

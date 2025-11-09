@@ -45,13 +45,15 @@ export type SendResetPasswordInput = z.infer<typeof sendResetPasswordSchema>
 /**
  * Schema para reset de contraseña con token
  */
-export const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'El token es requerido'),
-  newPassword: z.string().min(6, 'La nueva contraseña debe tener al menos 6 caracteres'),
-  confirmNewPassword: z.string().min(6, 'La confirmación de contraseña es requerida'),
-}).refine((data) => data.newPassword === data.confirmNewPassword, {
-  message: 'Las contraseñas no coinciden',
-  path: ['confirmNewPassword'],
-})
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, 'El token es requerido'),
+    newPassword: z.string().min(6, 'La nueva contraseña debe tener al menos 6 caracteres'),
+    confirmNewPassword: z.string().min(6, 'La confirmación de contraseña es requerida'),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirmNewPassword'],
+  })
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>

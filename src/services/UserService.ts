@@ -77,11 +77,7 @@ export class UserService {
   /**
    * Cambia la contraseña de un usuario
    */
-  async changePassword(
-    user: User,
-    oldPassword: string,
-    newPassword: string
-  ): Promise<boolean> {
+  async changePassword(user: User, oldPassword: string, newPassword: string): Promise<boolean> {
     if (!checkPassword(oldPassword, user.password)) {
       return false
     }

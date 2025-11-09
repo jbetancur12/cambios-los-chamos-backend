@@ -9,8 +9,6 @@ async function createSuperAdmin() {
   const orm = await MikroORM.init(config)
   const em = orm.em.fork()
 
-
-
   const existing = await em.findOne(User, { email: SUPERADMIN_EMAIL })
   if (existing) {
     console.log(`⚠️ Ya existe un usuario con el email ${SUPERADMIN_EMAIL}`)

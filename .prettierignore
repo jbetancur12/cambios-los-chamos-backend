@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Temporary files
+temp/
+*.tmp
+
+# Migrations (generated code)
+src/migrations/
+
+# Lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/

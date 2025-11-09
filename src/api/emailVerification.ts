@@ -34,15 +34,17 @@ export async function sendVerificationEmail(user: User): Promise<void> {
  */
 export async function confirmEmail(req: Request, res: Response) {
   const { token } = req.query
-  const {password, passwordConfirm} = req.body;
+  const { password, passwordConfirm } = req.body
   if (!token || typeof token !== 'string') {
     return res.status(400).json(ApiResponse.invalidToken('Token inválido'))
   }
   if (password !== passwordConfirm) {
-    return res.status(400).json(ApiResponse.passwordMismatch());
+    return res.status(400).json(ApiResponse.passwordMismatch())
   }
   if (!password || password.length < 6) {
-    return res.status(400).json(ApiResponse.validationErrorSingle('password', 'La contraseña debe tener al menos 6 caracteres'));
+    return res
+      .status(400)
+      .json(ApiResponse.validationErrorSingle('password', 'La contraseña debe tener al menos 6 caracteres'))
   }
 
   const record = await validateUserToken(token, TokenType.EMAIL_VERIFICATION)
@@ -51,13 +53,15 @@ export async function confirmEmail(req: Request, res: Response) {
   }
 
   record.user.emailVerified = true
-  record.user.password = makePassword(password as string);
+  record.user.password = makePassword(password as string)
   await DI.em.persistAndFlush(record.user)
   await markTokenUsed(record)
 
-  return res.status(200).json(ApiResponse.success({
-    message: 'Correo verificado exitosamente. Ya puedes iniciar sesión.',
-  }))
+  return res.status(200).json(
+    ApiResponse.success({
+      message: 'Correo verificado exitosamente. Ya puedes iniciar sesión.',
+    })
+  )
 }
 
 /**
@@ -72,9 +76,11 @@ const resendEmailVerification = async (req: Request, res: Response) => {
   }
 
   await sendVerificationEmail(user)
-  return res.status(200).json(ApiResponse.success({
-    message: 'Se envió un nuevo enlace de verificación a tu correo.',
-  }))
+  return res.status(200).json(
+    ApiResponse.success({
+      message: 'Se envió un nuevo enlace de verificación a tu correo.',
+    })
+  )
 }
 
 /**

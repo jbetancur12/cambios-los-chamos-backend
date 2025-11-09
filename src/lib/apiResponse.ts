@@ -86,8 +86,7 @@ export function forbidden(message: string = 'No tienes permisos para realizar es
  */
 export function notFound(resource?: string, id?: number | string): ApiResponseType {
   const message = resource ? `${resource} no encontrado` : 'Recurso no encontrado'
-  const details: NotFoundErrorDetails | undefined =
-    resource || id ? { resource, id } : undefined
+  const details: NotFoundErrorDetails | undefined = resource || id ? { resource, id } : undefined
 
   return error(message, ErrorCode.NOT_FOUND, details)
 }

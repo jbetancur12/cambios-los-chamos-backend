@@ -13,38 +13,37 @@ import { BankTransaction } from './entities/BankTransaction'
 import { UserToken } from './entities/UserToken'
 import { BankAssignment } from './entities/BankAssignment'
 
-
 export const DI = {} as {
-    server: http.Server
-    orm: MikroORM
-    em: EntityManager
-    users: EntityRepository<User>
-    userTokens: EntityRepository<UserToken>
-    banks: EntityRepository<Bank>
-    bankAccounts: EntityRepository<BankAccount>
-    bankTransactions: EntityRepository<BankTransaction>
-    bankAssignments: EntityRepository<BankAssignment>
-    exchangeRates: EntityRepository<ExchangeRate>
-    giros: EntityRepository<Giro>
-    minoristas: EntityRepository<Minorista>
-    minoristaTransactions: EntityRepository<MinoristaTransaction>
-    transferencistas: EntityRepository<Transferencista>
+  server: http.Server
+  orm: MikroORM
+  em: EntityManager
+  users: EntityRepository<User>
+  userTokens: EntityRepository<UserToken>
+  banks: EntityRepository<Bank>
+  bankAccounts: EntityRepository<BankAccount>
+  bankTransactions: EntityRepository<BankTransaction>
+  bankAssignments: EntityRepository<BankAssignment>
+  exchangeRates: EntityRepository<ExchangeRate>
+  giros: EntityRepository<Giro>
+  minoristas: EntityRepository<Minorista>
+  minoristaTransactions: EntityRepository<MinoristaTransaction>
+  transferencistas: EntityRepository<Transferencista>
 }
 
 export const initDI = async (): Promise<typeof DI> => {
-    DI.orm = await MikroORM.init(config)
-    DI.em = DI.orm.em
-    DI.users = DI.orm.em.getRepository(User)
-    DI.userTokens = DI.orm.em.getRepository(UserToken)
-    DI.banks = DI.orm.em.getRepository(Bank)
-    DI.bankAccounts = DI.orm.em.getRepository(BankAccount)
-    DI.bankTransactions = DI.orm.em.getRepository(BankTransaction)
-    DI.bankAssignments = DI.orm.em.getRepository(BankAssignment)
-    DI.exchangeRates = DI.orm.em.getRepository(ExchangeRate)
-    DI.giros = DI.orm.em.getRepository(Giro)
-    DI.minoristas = DI.orm.em.getRepository(Minorista)
-    DI.minoristaTransactions = DI.orm.em.getRepository(MinoristaTransaction)
-    DI.transferencistas = DI.orm.em.getRepository(Transferencista)
+  DI.orm = await MikroORM.init(config)
+  DI.em = DI.orm.em
+  DI.users = DI.orm.em.getRepository(User)
+  DI.userTokens = DI.orm.em.getRepository(UserToken)
+  DI.banks = DI.orm.em.getRepository(Bank)
+  DI.bankAccounts = DI.orm.em.getRepository(BankAccount)
+  DI.bankTransactions = DI.orm.em.getRepository(BankTransaction)
+  DI.bankAssignments = DI.orm.em.getRepository(BankAssignment)
+  DI.exchangeRates = DI.orm.em.getRepository(ExchangeRate)
+  DI.giros = DI.orm.em.getRepository(Giro)
+  DI.minoristas = DI.orm.em.getRepository(Minorista)
+  DI.minoristaTransactions = DI.orm.em.getRepository(MinoristaTransaction)
+  DI.transferencistas = DI.orm.em.getRepository(Transferencista)
 
-    return DI
+  return DI
 }

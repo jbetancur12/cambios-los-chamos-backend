@@ -9,11 +9,7 @@ import { ApiResponse } from '@/lib/apiResponse'
  */
 export const requireAuth = () => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    if (
-      !req.context ||
-      !req.context.requestUser ||
-      req.context.requestUser.type === 'unauthenticatedUser'
-    ) {
+    if (!req.context || !req.context.requestUser || req.context.requestUser.type === 'unauthenticatedUser') {
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
@@ -36,15 +32,12 @@ export const requireRole = (...roles: UserRole[]) => {
     const user = requestUser.user
 
     if (!roles.includes(user.role)) {
-      return res.status(403).json(
-        ApiResponse.forbidden(`Requiere rol: ${roles.join(', ')}`)
-      )
+      return res.status(403).json(ApiResponse.forbidden(`Requiere rol: ${roles.join(', ')}`))
     }
 
     return next()
   }
 }
-
 
 /**
  * Valida que el usuario tenga permiso sobre un giro
@@ -59,14 +52,14 @@ export const requireGiroAccess = () => {
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
-    const giroIdParam = req.params.giroId || req.query.giroId as string
+    const giroIdParam = req.params.giroId || (req.query.giroId as string)
     const giroId = parseInt(giroIdParam)
 
     // Validar que giroId sea un número válido
     if (!giroIdParam || isNaN(giroId)) {
-      return res.status(400).json(
-        ApiResponse.validationErrorSingle('giroId', 'Giro ID es requerido y debe ser un número válido')
-      )
+      return res
+        .status(400)
+        .json(ApiResponse.validationErrorSingle('giroId', 'Giro ID es requerido y debe ser un número válido'))
     }
 
     try {
@@ -85,17 +78,11 @@ export const requireGiroAccess = () => {
         return next()
       }
 
-      if (
-        user.role === UserRole.MINORISTA &&
-        giro.minorista?.user.id === user.id
-      ) {
+      if (user.role === UserRole.MINORISTA && giro.minorista?.user.id === user.id) {
         return next()
       }
 
-      if (
-        user.role === UserRole.TRANSFERENCISTA &&
-        giro.transferencista?.user.id === user.id
-      ) {
+      if (user.role === UserRole.TRANSFERENCISTA && giro.transferencista?.user.id === user.id) {
         return next()
       }
 

@@ -1,7 +1,7 @@
-import { Entity, PrimaryKey, Property, Enum, ManyToOne, Index } from '@mikro-orm/core';
-import { v4 as uuidv4 } from 'uuid';
-import { Bank } from './Bank';
-import { User } from './User';
+import { Entity, PrimaryKey, Property, Enum, ManyToOne, Index } from '@mikro-orm/core'
+import { v4 as uuidv4 } from 'uuid'
+import { Bank } from './Bank'
+import { User } from './User'
 
 export enum BankTransactionType {
   RECHARGE = 'RECHARGE',
@@ -12,30 +12,30 @@ export enum BankTransactionType {
 @Entity({ tableName: 'bank_transactions' })
 export class BankTransaction {
   @PrimaryKey()
-  id: string = uuidv4();
+  id: string = uuidv4()
 
   @ManyToOne(() => Bank)
-  bank!: Bank;
+  bank!: Bank
 
   @Property({ type: 'decimal' })
-  amount!: number;
+  amount!: number
 
   @Enum(() => BankTransactionType)
-  type!: BankTransactionType;
+  type!: BankTransactionType
 
   @Property({ type: 'decimal', nullable: true })
-  commission?: number;
+  commission?: number
 
   @Property({ type: 'decimal' })
-  previousBalance!: number;
+  previousBalance!: number
 
   @Property({ type: 'decimal' })
-  currentBalance!: number;
+  currentBalance!: number
 
   @ManyToOne(() => User)
-  createdBy!: User;
+  createdBy!: User
 
   @Property({ onCreate: () => new Date() })
   @Index()
-  createdAt: Date = new Date();
+  createdAt: Date = new Date()
 }

@@ -4,8 +4,8 @@ import { TsMorphMetadataProvider } from '@mikro-orm/reflection'
 import { DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT } from './settings'
 
 export default defineConfig({
-  entities: ['./dist/entities'],       // Compiled entities (usadas en producción)
-  entitiesTs: ['./src/entities'],      // Source entities (usadas en desarrollo)
+  entities: ['./dist/entities'], // Compiled entities (usadas en producción)
+  entitiesTs: ['./src/entities'], // Source entities (usadas en desarrollo)
 
   dbName: DB_NAME,
   user: DB_USER,
