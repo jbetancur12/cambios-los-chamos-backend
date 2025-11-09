@@ -1,5 +1,6 @@
 import { defineConfig } from '@mikro-orm/postgresql'
 import { Migrator } from '@mikro-orm/migrations'
+import { SeedManager } from '@mikro-orm/seeder'
 import { TsMorphMetadataProvider } from '@mikro-orm/reflection'
 import { DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT } from './settings'
 
@@ -14,7 +15,7 @@ export default defineConfig({
   port: DB_PORT,
 
   metadataProvider: TsMorphMetadataProvider, // 👈 NECESARIO para leer decoradores TypeScript
-  extensions: [Migrator],
+  extensions: [Migrator, SeedManager],
 
   pool: {
     min: 0,
@@ -28,6 +29,14 @@ export default defineConfig({
     transactional: true,
     disableForeignKeys: false,
     allOrNothing: true,
+    emit: 'ts',
+  },
+
+  seeder: {
+    path: './dist/seeders',
+    pathTs: './src/seeders',
+    defaultSeeder: 'DatabaseSeeder',
+    glob: '!(*.d).{js,ts}',
     emit: 'ts',
   },
 })

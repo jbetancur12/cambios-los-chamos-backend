@@ -40,17 +40,14 @@
           ],
           "mappedType": "enum"
         },
-        "current_balance": {
-          "name": "current_balance",
-          "type": "numeric(10,0)",
+        "code": {
+          "name": "code",
+          "type": "int",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "precision": 10,
-          "scale": 0,
-          "default": "0",
-          "mappedType": "decimal"
+          "mappedType": "integer"
         }
       },
       "name": "banks",

@@ -19,9 +19,9 @@ export class Bank {
   @Enum(() => Currency)
   currency!: Currency
 
-  @Property({ type: 'decimal', default: 0 })
-  currentBalance: number = 0
+  @Property()
+  code!: number
 
-  @OneToMany(() => BankTransaction, (tx) => tx.bank)
-  transactions = new Array<BankTransaction>()
+  // @OneToMany(() => BankTransaction, (tx) => tx.bank)
+  // transactions = new Array<BankTransaction>()
 }
