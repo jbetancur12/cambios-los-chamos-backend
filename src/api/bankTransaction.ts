@@ -8,15 +8,16 @@ import { bankTransactionService } from '@/services/BankTransactionService'
 
 export const bankTransactionRouter = express.Router()
 
-// ------------------ CREAR TRANSACCIÓN ------------------
+// ------------------ CREAR REGISTRO DE TRANSACCIÓN (SOLO TRACKING) ------------------
 bankTransactionRouter.post(
   '/create',
   requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   validateBody(createBankTransactionSchema),
   async (req: Request, res: Response) => {
-    const { bankId, amount, type, commission } = req.body
+    const { bankId, amount, type, description, reference } = req.body
 
-    if (!req.user) {
+    const user = req.context?.requestUser?.user
+    if (!user) {
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
@@ -24,23 +25,22 @@ bankTransactionRouter.post(
       bankId,
       amount,
       type,
-      commission,
-      createdBy: req.user,
+      description,
+      reference,
+      createdBy: user,
     })
 
     if ('error' in result) {
       switch (result.error) {
         case 'BANK_NOT_FOUND':
           return res.status(404).json(ApiResponse.notFound('Banco', bankId))
-        case 'INSUFFICIENT_BALANCE':
-          return res.status(400).json(ApiResponse.badRequest('Saldo insuficiente para esta operación'))
       }
     }
 
     res.status(201).json(
       ApiResponse.success({
         data: result,
-        message: 'Transacción creada exitosamente',
+        message: 'Registro de transacción creado exitosamente (solo tracking, no modifica balance)',
       })
     )
   }

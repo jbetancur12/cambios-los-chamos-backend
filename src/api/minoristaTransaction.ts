@@ -16,7 +16,8 @@ minoristaTransactionRouter.post(
   async (req: Request, res: Response) => {
     const { minoristaId, amount, type } = req.body
 
-    if (!req.user) {
+    const user = req.context?.requestUser?.user
+    if (!user) {
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
@@ -24,7 +25,7 @@ minoristaTransactionRouter.post(
       minoristaId,
       amount,
       type,
-      createdBy: req.user,
+      createdBy: user,
     })
 
     if ('error' in result) {

@@ -66,6 +66,7 @@ export class BankAccountTransactionService {
       previousBalance,
       currentBalance: newBalance,
       createdBy: data.createdBy,
+      createdAt: new Date(),
     })
 
     // Actualizar balance de la cuenta

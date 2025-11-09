@@ -64,6 +64,7 @@ export class MinoristaTransactionService {
       previousBalance,
       currentBalance: newBalance,
       createdBy: data.createdBy,
+      createdAt: new Date(),
     })
 
     // Actualizar balance del minorista

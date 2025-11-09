@@ -7,74 +7,42 @@ export interface CreateBankTransactionInput {
   bankId: string
   amount: number
   type: BankTransactionType
-  commission?: number
+  description?: string
+  reference?: string
   createdBy: User
 }
 
+/**
+ * BankTransactionService - Solo para tracking administrativo
+ * NO modifica ningún balance. Solo registra eventos relacionados con bancos.
+ */
 export class BankTransactionService {
   /**
-   * Crea una transacción bancaria y actualiza el balance del banco
-   * Esta función maneja la lógica de negocio completa:
-   * 1. Verifica que el banco exista
-   * 2. Calcula el nuevo balance según el tipo de transacción
-   * 3. Crea el registro de transacción con balance anterior y nuevo
-   * 4. Actualiza el balance del banco
+   * Crea un registro de transacción bancaria para tracking administrativo
+   * NO actualiza ningún balance, solo crea el registro
    */
-  async createTransaction(
-    data: CreateBankTransactionInput
-  ): Promise<BankTransaction | { error: 'BANK_NOT_FOUND' | 'INSUFFICIENT_BALANCE' }> {
+  async createTransaction(data: CreateBankTransactionInput): Promise<BankTransaction | { error: 'BANK_NOT_FOUND' }> {
     const bankRepo = DI.em.getRepository(Bank)
     const transactionRepo = DI.em.getRepository(BankTransaction)
 
-    // Buscar banco
+    // Verificar que el banco exista
     const bank = await bankRepo.findOne({ id: data.bankId })
     if (!bank) {
       return { error: 'BANK_NOT_FOUND' }
     }
 
-    const previousBalance = bank.currentBalance
-    let newBalance = previousBalance
-
-    // Calcular nuevo balance según tipo de transacción
-    switch (data.type) {
-      case BankTransactionType.RECHARGE:
-        // Recarga: sumar al balance
-        newBalance = previousBalance + data.amount
-        break
-      case BankTransactionType.TRANSFER:
-        // Transferencia: restar del balance (validar que no quede negativo)
-        newBalance = previousBalance - data.amount
-        if (newBalance < 0) {
-          return { error: 'INSUFFICIENT_BALANCE' }
-        }
-        break
-      case BankTransactionType.ADJUSTMENT:
-        // Ajuste: puede ser positivo o negativo
-        newBalance = previousBalance + data.amount
-        if (newBalance < 0) {
-          return { error: 'INSUFFICIENT_BALANCE' }
-        }
-        break
-    }
-
-    // Crear transacción
+    // Crear registro de transacción (solo tracking, sin modificar balance)
     const transaction = transactionRepo.create({
       bank,
       amount: data.amount,
       type: data.type,
-      commission: data.commission,
-      previousBalance,
-      currentBalance: newBalance,
+      description: data.description,
+      reference: data.reference,
       createdBy: data.createdBy,
+      createdAt: new Date(),
     })
 
-    // Actualizar balance del banco
-    bank.currentBalance = newBalance
-
-    // Guardar todo en transacción atómica
-    await DI.em.transactional(async (em) => {
-      await em.persistAndFlush([transaction, bank])
-    })
+    await DI.em.persistAndFlush(transaction)
 
     return transaction
   }
@@ -94,9 +62,8 @@ export class BankTransactionService {
           id: string
           amount: number
           type: BankTransactionType
-          commission?: number
-          previousBalance: number
-          currentBalance: number
+          description?: string
+          reference?: string
           createdBy: {
             id: string
             fullName: string
@@ -134,9 +101,8 @@ export class BankTransactionService {
       id: t.id,
       amount: t.amount,
       type: t.type,
-      commission: t.commission,
-      previousBalance: t.previousBalance,
-      currentBalance: t.currentBalance,
+      description: t.description,
+      reference: t.reference,
       createdBy: {
         id: t.createdBy.id,
         fullName: t.createdBy.fullName,
@@ -161,14 +127,12 @@ export class BankTransactionService {
         id: string
         amount: number
         type: BankTransactionType
-        commission?: number
-        previousBalance: number
-        currentBalance: number
+        description?: string
+        reference?: string
         bank: {
           id: string
           name: string
           code: number
-          currentBalance: number
         }
         createdBy: {
           id: string
@@ -191,14 +155,12 @@ export class BankTransactionService {
       id: transaction.id,
       amount: transaction.amount,
       type: transaction.type,
-      commission: transaction.commission,
-      previousBalance: transaction.previousBalance,
-      currentBalance: transaction.currentBalance,
+      description: transaction.description,
+      reference: transaction.reference,
       bank: {
         id: transaction.bank.id,
         name: transaction.bank.name,
         code: transaction.bank.code,
-        currentBalance: transaction.bank.currentBalance,
       },
       createdBy: {
         id: transaction.createdBy.id,

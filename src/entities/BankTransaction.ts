@@ -4,11 +4,15 @@ import { Bank } from './Bank'
 import { User } from './User'
 
 export enum BankTransactionType {
-  RECHARGE = 'RECHARGE',
-  TRANSFER = 'TRANSFER',
-  ADJUSTMENT = 'ADJUSTMENT',
+  INFLOW = 'INFLOW', // Entrada de dinero al sistema (ej: recarga desde casa matriz)
+  OUTFLOW = 'OUTFLOW', // Salida de dinero del sistema
+  NOTE = 'NOTE', // Nota administrativa sin movimiento
 }
 
+/**
+ * BankTransaction es solo para tracking administrativo
+ * NO modifica ningún balance. Solo registra eventos relacionados con bancos.
+ */
 @Entity({ tableName: 'bank_transactions' })
 export class BankTransaction {
   @PrimaryKey()
@@ -23,14 +27,11 @@ export class BankTransaction {
   @Enum(() => BankTransactionType)
   type!: BankTransactionType
 
-  @Property({ type: 'decimal', nullable: true })
-  commission?: number
+  @Property({ type: 'text', nullable: true })
+  description?: string // Descripción del evento
 
-  @Property({ type: 'decimal' })
-  previousBalance!: number
-
-  @Property({ type: 'decimal' })
-  currentBalance!: number
+  @Property({ nullable: true })
+  reference?: string // Referencia opcional
 
   @ManyToOne(() => User)
   createdBy!: User

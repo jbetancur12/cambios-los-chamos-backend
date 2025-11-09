@@ -1238,44 +1238,30 @@
           "primary": false,
           "nullable": false,
           "enumItems": [
-            "RECHARGE",
-            "TRANSFER",
-            "ADJUSTMENT"
+            "INFLOW",
+            "OUTFLOW",
+            "NOTE"
           ],
           "mappedType": "enum"
         },
-        "commission": {
-          "name": "commission",
-          "type": "numeric(10,0)",
+        "description": {
+          "name": "description",
+          "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "precision": 10,
-          "scale": 0,
-          "mappedType": "decimal"
+          "mappedType": "text"
         },
-        "previous_balance": {
-          "name": "previous_balance",
-          "type": "numeric(10,0)",
+        "reference": {
+          "name": "reference",
+          "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
-          "precision": 10,
-          "scale": 0,
-          "mappedType": "decimal"
-        },
-        "current_balance": {
-          "name": "current_balance",
-          "type": "numeric(10,0)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "precision": 10,
-          "scale": 0,
-          "mappedType": "decimal"
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
         },
         "created_by_id": {
           "name": "created_by_id",
