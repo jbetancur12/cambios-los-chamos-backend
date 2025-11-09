@@ -16,12 +16,16 @@ bankTransactionRouter.post(
   async (req: Request, res: Response) => {
     const { bankId, amount, type, commission } = req.body
 
+    if (!req.user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
     const result = await bankTransactionService.createTransaction({
       bankId,
       amount,
       type,
       commission,
-      createdBy: req.user!,
+      createdBy: req.user,
     })
 
     if ('error' in result) {
