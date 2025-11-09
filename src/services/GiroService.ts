@@ -4,6 +4,10 @@ import { Minorista } from '@/entities/Minorista'
 import { CreateGiroInput } from '@/types/giro'
 import { User, UserRole } from '@/entities/User'
 import { Transferencista } from '@/entities/Transferencista'
+import { minoristaTransactionService } from '@/services/MinoristaTransactionService'
+import { MinoristaTransactionType } from '@/entities/MinoristaTransaction'
+import { bankAccountTransactionService } from '@/services/BankAccountTransactionService'
+import { BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 
 export class GiroService {
   /**
@@ -81,14 +85,22 @@ export class GiroService {
         return { error: 'MINORISTA_NOT_FOUND' }
       }
 
-      if (foundMinorista.balance < data.amountBs) {
+      // Crear transacción de descuento del balance del minorista
+      const transactionResult = await minoristaTransactionService.createTransaction({
+        minoristaId: foundMinorista.id,
+        amount: data.amountBs,
+        type: MinoristaTransactionType.DISCOUNT,
+        createdBy,
+      })
+
+      if ('error' in transactionResult) {
         return { error: 'INSUFFICIENT_BALANCE' }
       }
 
-      foundMinorista.balance -= data.amountBs
+      // Recargar minorista para obtener balance actualizado
+      await DI.em.refresh(foundMinorista)
       minorista = foundMinorista
       status = GiroStatus.PENDIENTE
-      entitiesToFlush.push(minorista)
     } else if (createdBy.role === UserRole.ADMIN || createdBy.role === UserRole.SUPER_ADMIN) {
       // Admin/SuperAdmin: NO requiere minorista, asignar transferencista basado en banco destino
       // El dinero se descontará de la cuenta del transferencista cuando ejecute el giro
@@ -168,13 +180,21 @@ export class GiroService {
       return { error: 'UNAUTHORIZED_ACCOUNT' }
     }
 
-    // Verificar balance suficiente
-    if (bankAccount.balance < giro.amountBs) {
+    // Crear transacción de retiro de la cuenta bancaria
+    const transactionResult = await bankAccountTransactionService.createTransaction({
+      bankAccountId: bankAccount.id,
+      amount: giro.amountBs,
+      type: BankAccountTransactionType.WITHDRAWAL,
+      reference: `Giro ${giro.id}`,
+      createdBy: giro.transferencista.user,
+    })
+
+    if ('error' in transactionResult) {
       return { error: 'INSUFFICIENT_BALANCE' }
     }
 
-    // Descontar de cuenta del transferencista
-    bankAccount.balance -= giro.amountBs
+    // Recargar cuenta para obtener balance actualizado
+    await DI.em.refresh(bankAccount)
 
     // Actualizar giro
     giro.bankAccountUsed = bankAccount
@@ -185,7 +205,7 @@ export class GiroService {
     }
     giro.updatedAt = new Date()
 
-    await DI.em.persistAndFlush([giro, bankAccount])
+    await DI.em.persistAndFlush(giro)
 
     return giro
   }
