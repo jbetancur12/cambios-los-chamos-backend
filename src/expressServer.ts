@@ -9,6 +9,7 @@ import { initDI } from '@/di'
 import { Request, Response, NextFunction } from 'express'
 import { userRouter } from '@/api/user'
 import { transferencistaRouter } from '@/api/transferencista'
+import { minoristaRouter } from '@/api/minorista'
 import { giroRouter } from '@/api/giro'
 import { bankAssignmentRouter } from '@/api/bankAssignment'
 import { bankRouter } from '@/api/bank'
@@ -67,6 +68,7 @@ export const startExpressServer = async () => {
   app.get('/api/health', health)
   app.use('/api/user', authRateLimiter, userRouter)
   app.use('/api/transferencista', transferencistaRouter)
+  app.use('/api/minorista', minoristaRouter)
   app.use('/api/bank', bankRouter)
   app.use('/api/bank-assignment', bankAssignmentRouter)
   app.use('/api/bank-account', bankAccountRouter)
