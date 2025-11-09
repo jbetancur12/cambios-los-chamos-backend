@@ -1,0 +1,18 @@
+Cuando se crea un giro, el origen del saldo depende del tipo de usuario que lo genera:
+- Si el giro lo crea un minorista, el monto se descuenta directamente del balance del minorista.
+- Si lo crea un admin (quien administra el punto de venta) o el superadmin, el monto debe descontarse de una cuenta bancaria del transferencista asignado.
+Cada giro está asociado a un banco destino, y los transferencistas tienen una o varias cuentas bancarias, cada una vinculada a un banco específico. Por ejemplo:
+- Rosana puede tener cuentas en Banco de Venezuela y Banco Mercantil.
+- Lola puede tener cuentas en esos mismos bancos u otros.
+Al ejecutar el giro, el transferencista decide desde cuál de sus cuentas bancarias realizará la transferencia, según el banco destino o el método (transferencia directa, pago móvil, etc.).
+El superadmin define la asignación base de giros por banco destino. Por ejemplo:
+- Puede establecer que todos los giros hacia Banco de Venezuela sean ejecutados por Rosana.
+- Si Rosana está inactiva (off), el superadmin puede reasignar esos giros a Lola o distribuirlos entre varios transferencistas disponibles que tengan cuentas en ese banco.
+El sistema debe permitir:
+- Registrar múltiples cuentas bancarias por transferencista, asociadas a diferentes bancos.
+- Que el transferencista seleccione la cuenta desde la cual ejecutará cada giro.
+- Que el superadmin defina qué transferencista está asignado por banco destino.
+- Que el superadmin marque transferencistas como inactivos, y que el sistema redistribuya automáticamente los giros entre los transferencistas activos con cuentas compatibles.
+- Validar que la cuenta seleccionada tenga saldo suficiente para ejecutar el giro.
+- Registrar el tipo de ejecución (transferencia, pago móvil, etc.) y la cuenta usada.
+Esta lógica garantiza flexibilidad operativa, control administrativo y trazabilidad de cada giro según el banco, el usuario que lo crea y el transferencista que lo ejecuta.
