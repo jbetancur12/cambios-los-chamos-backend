@@ -10,10 +10,12 @@ import { Request, Response, NextFunction } from 'express'
 import { userRouter } from '@/api/user'
 import { transferencistaRouter } from '@/api/transferencista'
 import { minoristaRouter } from '@/api/minorista'
+import { minoristaTransactionRouter } from '@/api/minoristaTransaction'
 import { giroRouter } from '@/api/giro'
 import { bankAssignmentRouter } from '@/api/bankAssignment'
 import { bankRouter } from '@/api/bank'
 import { bankAccountRouter } from '@/api/bankAccount'
+import { bankTransactionRouter } from '@/api/bankTransaction'
 import cookieParser from 'cookie-parser'
 import {
   CORS_ALLOWED_ORIGINS,
@@ -69,9 +71,11 @@ export const startExpressServer = async () => {
   app.use('/api/user', authRateLimiter, userRouter)
   app.use('/api/transferencista', transferencistaRouter)
   app.use('/api/minorista', minoristaRouter)
+  app.use('/api/minorista-transaction', minoristaTransactionRouter)
   app.use('/api/bank', bankRouter)
   app.use('/api/bank-assignment', bankAssignmentRouter)
   app.use('/api/bank-account', bankAccountRouter)
+  app.use('/api/bank-transaction', bankTransactionRouter)
   app.use('/email-verification', emailVerificationRouter)
 
   // Rutas privadas (requieren autenticación)

@@ -180,7 +180,9 @@ export class MinoristaService {
   }
 
   /**
-   * Actualiza el balance de un minorista
+   * @deprecated Use minoristaTransactionService.createTransaction instead
+   * Este método NO crea registro de auditoría. Usar MinoristaTransactionService para
+   * asegurar que todas las modificaciones de balance queden en el historial.
    */
   async updateBalance(
     minoristaId: string,
