@@ -4,7 +4,6 @@ import { Minorista } from '@/entities/Minorista'
 import { CreateGiroInput } from '@/types/giro'
 import { User, UserRole } from '@/entities/User'
 import { Transferencista } from '@/entities/Transferencista'
-import { BankAccount } from '@/entities/BankAccount'
 
 export class GiroService {
     /**
@@ -58,7 +57,7 @@ export class GiroService {
         let minorista: Minorista | undefined = undefined
         let transferencista: Transferencista | undefined = undefined
         let status = GiroStatus.PENDIENTE
-        const entitiesToFlush: any[] = []
+        const entitiesToFlush: (Giro | Minorista)[] = []
 
         // Determinar origen del saldo según rol del creador
         if (createdBy.role === UserRole.MINORISTA) {

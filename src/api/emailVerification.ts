@@ -2,7 +2,6 @@ import express, { Request, Response } from 'express'
 import { DI } from '@/di'
 import { User } from '@/entities/User'
 import { sendEmail } from '@/lib/emailUtils'
-import { generateEmailVerificationToken, verifyEmailVerificationToken } from '@/lib/verificationToken'
 import { createUserToken, markTokenUsed, validateUserToken } from '@/lib/userTokenUtils'
 import { TokenType } from '@/entities/UserToken'
 import { makePassword } from '@/lib/passwordUtils'
@@ -11,10 +10,6 @@ import { ApiResponse } from '@/lib/apiResponse'
 /**
  * Envía un correo de verificación con un enlace que incluye un token firmado.
  */
-interface VerificationEmailOptions {
-  email: string;
-  token: string;
-}
 
 export async function sendVerificationEmail(user: User): Promise<void> {
   const record = await createUserToken(user, TokenType.EMAIL_VERIFICATION, 10)

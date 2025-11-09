@@ -6,8 +6,6 @@ import { validateBody } from '@/lib/zodUtils'
 import { createGiroSchema } from '@/schemas/giroSchema'
 import { giroService } from '@/services/GiroService'
 import { DI } from '@/di'
-import { Minorista } from '@/entities/Minorista'
-import { ExchangeRate } from '@/entities/ExchangeRate'
 
 
 export const giroRouter = express.Router({ mergeParams: true })
@@ -19,7 +17,7 @@ giroRouter.post('/create', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, Use
         return res.status(401).json(ApiResponse.unauthorized())
     }
 
-    const { minoristaId, beneficiaryName, beneficiaryId, bankName, accountNumber, phone, amountInput, currencyInput, rateAppliedId, amountBs } = req.body
+    const { beneficiaryName, beneficiaryId, bankName, accountNumber, phone, amountInput, currencyInput, rateAppliedId, amountBs } = req.body
 
     // Determinar minoristaId según rol
     let finalMinoristaId: string | undefined
