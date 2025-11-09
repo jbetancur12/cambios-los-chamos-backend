@@ -9,6 +9,7 @@ import { initDI } from '@/di'
 import { Request, Response, NextFunction } from 'express'
 import { userRouter } from '@/api/user'
 import { giroRouter } from '@/api/giro'
+import { bankRouter } from '@/api/bank'
 import { bankAccountRouter } from '@/api/bankAccount'
 import cookieParser from 'cookie-parser'
 import {
@@ -63,6 +64,7 @@ export const startExpressServer = async () => {
 
   app.get('/api/health', health)
   app.use('/api/user', authRateLimiter, userRouter)
+  app.use('api/bank', bankRouter)
   app.use('/email-verification', emailVerificationRouter)
 
   // Rutas privadas (requieren autenticación)
