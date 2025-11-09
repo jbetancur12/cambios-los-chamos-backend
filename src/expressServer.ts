@@ -16,6 +16,7 @@ import { bankAssignmentRouter } from '@/api/bankAssignment'
 import { bankRouter } from '@/api/bank'
 import { bankAccountRouter } from '@/api/bankAccount'
 import { bankTransactionRouter } from '@/api/bankTransaction'
+import { exchangeRateRouter } from '@/api/exchangeRate'
 import cookieParser from 'cookie-parser'
 import {
   CORS_ALLOWED_ORIGINS,
@@ -76,6 +77,7 @@ export const startExpressServer = async () => {
   app.use('/api/bank-assignment', bankAssignmentRouter)
   app.use('/api/bank-account', bankAccountRouter)
   app.use('/api/bank-transaction', bankTransactionRouter)
+  app.use('/api/exchange-rate', exchangeRateRouter)
   app.use('/email-verification', emailVerificationRouter)
 
   // Rutas privadas (requieren autenticación)
