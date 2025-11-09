@@ -57,3 +57,10 @@ export const resetPasswordSchema = z
   })
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>
+
+export const getByRoleSchema = z.object({
+  role: z.string().refine((val) => Object.values(UserRole).includes(val as UserRole), {
+    message: `Rol inválido, debe ser uno de: ${Object.values(UserRole).join(', ')}`,
+  }),
+})
+export type GetByRoleInput = z.infer<typeof getByRoleSchema>

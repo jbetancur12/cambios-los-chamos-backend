@@ -23,7 +23,7 @@ giroRouter.post(
     const {
       beneficiaryName,
       beneficiaryId,
-      bankName,
+      bankId,
       accountNumber,
       phone,
       amountInput,
@@ -56,7 +56,7 @@ giroRouter.post(
         minoristaId: finalMinoristaId,
         beneficiaryName,
         beneficiaryId,
-        bankName,
+        bankId,
         accountNumber,
         phone,
         amountInput,
@@ -75,6 +75,8 @@ giroRouter.post(
           return res.status(400).json(ApiResponse.badRequest('Balance insuficiente'))
         case 'NO_TRANSFERENCISTA_ASSIGNED':
           return res.status(400).json(ApiResponse.badRequest('No hay transferencista asignado para este banco'))
+        case 'BANK_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Banco'))
       }
     }
 

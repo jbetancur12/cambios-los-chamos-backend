@@ -300,8 +300,8 @@
           "length": 255,
           "mappedType": "string"
         },
-        "destination_bank_name": {
-          "name": "destination_bank_name",
+        "bank_id": {
+          "name": "bank_id",
           "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,
@@ -366,10 +366,10 @@
       "indexes": [
         {
           "columnNames": [
-            "destination_bank_name"
+            "bank_id"
           ],
           "composite": false,
-          "keyName": "bank_assignments_destination_bank_name_index",
+          "keyName": "bank_assignments_bank_id_index",
           "constraint": false,
           "primary": false,
           "unique": false
@@ -397,6 +397,18 @@
       ],
       "checks": [],
       "foreignKeys": {
+        "bank_assignments_bank_id_foreign": {
+          "constraintName": "bank_assignments_bank_id_foreign",
+          "columnNames": [
+            "bank_id"
+          ],
+          "localTableName": "public.bank_assignments",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.banks",
+          "updateRule": "cascade"
+        },
         "bank_assignments_transferencista_id_foreign": {
           "constraintName": "bank_assignments_transferencista_id_foreign",
           "columnNames": [

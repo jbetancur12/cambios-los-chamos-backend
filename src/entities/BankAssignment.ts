@@ -1,15 +1,16 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Index } from '@mikro-orm/core'
 import { v4 as uuidv4 } from 'uuid'
 import { Transferencista } from './Transferencista'
+import { Bank } from './Bank'
 
 @Entity({ tableName: 'bank_assignments' })
 export class BankAssignment {
   @PrimaryKey()
   id: string = uuidv4()
 
-  @Property()
+  @ManyToOne(() => Bank)
   @Index()
-  destinationBankName!: string // Nombre del banco destino (ej: "Banco de Venezuela")
+  bank!: Bank
 
   @ManyToOne(() => Transferencista)
   transferencista!: Transferencista

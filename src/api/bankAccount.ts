@@ -3,51 +3,52 @@ import { requireAuth, requireRole } from '@/middleware/authMiddleware'
 import { UserRole } from '@/entities/User'
 import { ApiResponse } from '@/lib/apiResponse'
 import { validateBody } from '@/lib/zodUtils'
-import { createBankAccountSchema, updateBankAccountBalanceSchema } from '@/schemas/bankAccountSchema'
+import {
+  createBankAccountSchema,
+  listBankAccountsSchema,
+  updateBankAccountBalanceSchema,
+} from '@/schemas/bankAccountSchema'
 import { bankAccountService } from '@/services/BankAccountService'
 import { DI } from '@/di'
+import { validateParams } from '@/lib/validateParams'
 
 export const bankAccountRouter = express.Router({ mergeParams: true })
 
 // ------------------ CREAR CUENTA BANCARIA ------------------
 bankAccountRouter.post(
   '/create',
-  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA),
+  requireAuth(),
+  requireRole(UserRole.SUPER_ADMIN),
   validateBody(createBankAccountSchema),
   async (req: Request, res: Response) => {
-    const user = req.context?.requestUser?.user
-    if (!user) {
-      return res.status(401).json(ApiResponse.unauthorized())
-    }
-
-    const { transferenciaId, bankId, accountNumber, accountHolder, accountType, balance } = req.body
-
-    const result = await bankAccountService.createBankAccount(
-      {
-        transferenciaId,
+    const { transferencistaId, bankId, accountNumber, accountHolder, accountType } = req.body
+    try {
+      const bankAccount = await bankAccountService.createBankAccount({
+        transferencistaId,
         bankId,
         accountNumber,
         accountHolder,
         accountType,
-        balance,
-      },
-      user
-    )
+      })
 
-    if ('error' in result) {
-      switch (result.error) {
-        case 'TRANSFERENCISTA_NOT_FOUND':
-          return res.status(404).json(ApiResponse.notFound('Transferencista'))
-        case 'BANK_NOT_FOUND':
-          return res.status(404).json(ApiResponse.notFound('Banco'))
-        case 'ACCOUNT_NUMBER_EXISTS':
-          return res
-            .status(409)
-            .json(ApiResponse.conflict('Ya existe una cuenta con este número para este transferencista'))
+      res.status(201).json(
+        ApiResponse.success({
+          data: bankAccount,
+          message: 'Cuenta bancaria creada exitosamente',
+        })
+      )
+    } catch (err: any) {
+      if (err.message.includes('Transferencista no encontrado')) {
+        return res.status(404).json(ApiResponse.notFound('Transferencista'))
       }
+      if (err.message.includes('Banco no encontrado')) {
+        return res.status(404).json(ApiResponse.notFound('Banco'))
+      }
+      if (err.message.includes('Número de cuenta ya registrado')) {
+        return res.status(400).json(ApiResponse.validationErrorSingle('accountNumber', err.message))
+      }
+      res.status(500).json(ApiResponse.error('Error al crear cuenta bancaria'))
     }
-
-    res.status(201).json(ApiResponse.success({ bankAccount: result, message: 'Cuenta bancaria creada exitosamente' }))
   }
 )
 
@@ -107,53 +108,42 @@ bankAccountRouter.get('/my-accounts', requireRole(UserRole.TRANSFERENCISTA), asy
 })
 
 // ------------------ OBTENER CUENTA POR ID ------------------
-bankAccountRouter.get('/:bankAccountId', requireAuth(), async (req: Request, res: Response) => {
-  const { bankAccountId } = req.params
-  const user = req.context?.requestUser?.user
+bankAccountRouter.get(
+  '/list/:transferencistaId',
+  requireAuth(),
+  validateParams(listBankAccountsSchema),
+  async (req: Request, res: Response) => {
+    const { transferencistaId } = req.params
 
-  if (!user) {
-    return res.status(401).json(ApiResponse.unauthorized())
-  }
-
-  const result = await bankAccountService.getBankAccountById(bankAccountId)
-
-  if ('error' in result) {
-    switch (result.error) {
-      case 'BANK_ACCOUNT_NOT_FOUND':
-        return res.status(404).json(ApiResponse.notFound('Cuenta bancaria', bankAccountId))
+    try {
+      const accounts = await bankAccountService.listByTransferencista(transferencistaId)
+      res.json(ApiResponse.success({ accounts }))
+    } catch (err: any) {
+      if (err.message.includes('Transferencista no encontrado')) {
+        return res.status(404).json(ApiResponse.notFound('Transferencista'))
+      }
+      res.status(500).json(ApiResponse.error('Error al listar cuentas'))
     }
   }
-
-  // Verificar permisos: solo el transferencista dueño o admin/superadmin
-  if (user.role === UserRole.TRANSFERENCISTA) {
-    if (result.transferencista.user.id !== user.id) {
-      return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver esta cuenta'))
-    }
-  }
-
-  res.json(ApiResponse.success({ bankAccount: result }))
-})
+)
 
 // ------------------ ACTUALIZAR BALANCE ------------------
 bankAccountRouter.patch(
-  '/:bankAccountId/balance',
-  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  '/update',
+  requireAuth(),
+  requireRole(UserRole.SUPER_ADMIN),
   validateBody(updateBankAccountBalanceSchema),
   async (req: Request, res: Response) => {
-    const { bankAccountId } = req.params
-    const { balance } = req.body
+    const { bankAccountId, amount } = req.body
 
-    const result = await bankAccountService.updateBalance(bankAccountId, balance)
-
-    if ('error' in result) {
-      switch (result.error) {
-        case 'BANK_ACCOUNT_NOT_FOUND':
-          return res.status(404).json(ApiResponse.notFound('Cuenta bancaria', bankAccountId))
-        case 'INVALID_BALANCE':
-          return res.status(400).json(ApiResponse.badRequest('El balance no puede ser negativo'))
+    try {
+      const account = await bankAccountService.updateBalance(bankAccountId, amount)
+      res.json(ApiResponse.success({ data: account, message: 'Saldo actualizado exitosamente' }))
+    } catch (err: any) {
+      if (err.message.includes('Cuenta bancaria no encontrada')) {
+        return res.status(404).json(ApiResponse.notFound('Cuenta bancaria'))
       }
+      res.status(500).json(ApiResponse.error('Error al recargar saldo'))
     }
-
-    res.json(ApiResponse.success({ bankAccount: result, message: 'Balance actualizado exitosamente' }))
   }
 )

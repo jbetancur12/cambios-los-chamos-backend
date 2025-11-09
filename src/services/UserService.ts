@@ -151,6 +151,12 @@ export class UserService {
     const userRepo = DI.em.getRepository(User)
     return userRepo.findOne({ id })
   }
+
+  async getUsersByRole(role: UserRole) {
+    const userRepo = DI.em.getRepository(User)
+    const users = await userRepo.find({ role })
+    return users
+  }
 }
 
 // Exportar una instancia singleton

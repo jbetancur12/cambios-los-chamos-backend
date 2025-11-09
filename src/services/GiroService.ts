@@ -9,10 +9,10 @@ export class GiroService {
   /**
    * Encuentra el transferencista asignado para un banco destino específico
    */
-  private async findAssignedTransferencista(bankName: string): Promise<Transferencista | null> {
+  private async findAssignedTransferencista(bankId: string): Promise<Transferencista | null> {
     const assignment = await DI.bankAssignments.findOne(
       {
-        destinationBankName: bankName,
+        bank: bankId,
         isActive: true,
       },
       {
@@ -28,7 +28,7 @@ export class GiroService {
       // Buscar otro transferencista activo para este banco
       const alternativeAssignment = await DI.bankAssignments.findOne(
         {
-          destinationBankName: bankName,
+          bank: bankId,
           isActive: true,
           transferencista: { available: true },
         },
@@ -51,8 +51,16 @@ export class GiroService {
   async createGiro(
     data: CreateGiroInput,
     createdBy: User
-  ): Promise<Giro | { error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' }> {
+  ): Promise<
+    Giro | { error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND' }
+  > {
     const giroRepo = DI.em.getRepository(Giro)
+
+    // Verificar que el banco destino exista
+    const bank = await DI.banks.findOne({ id: data.bankId })
+    if (!bank) {
+      return { error: 'BANK_NOT_FOUND' }
+    }
 
     let minorista: Minorista | undefined = undefined
     let transferencista: Transferencista | undefined = undefined
@@ -84,7 +92,7 @@ export class GiroService {
     } else if (createdBy.role === UserRole.ADMIN || createdBy.role === UserRole.SUPER_ADMIN) {
       // Admin/SuperAdmin: NO requiere minorista, asignar transferencista basado en banco destino
       // El dinero se descontará de la cuenta del transferencista cuando ejecute el giro
-      const assigned = await this.findAssignedTransferencista(data.bankName)
+      const assigned = await this.findAssignedTransferencista(data.bankId)
       if (!assigned) {
         return { error: 'NO_TRANSFERENCISTA_ASSIGNED' }
       }
@@ -98,7 +106,7 @@ export class GiroService {
       transferencista,
       beneficiaryName: data.beneficiaryName,
       beneficiaryId: data.beneficiaryId,
-      bankName: data.bankName,
+      bankName: bank.name, // Nombre del banco destino para registro histórico
       accountNumber: data.accountNumber,
       phone: data.phone,
       rateApplied: data.rateApplied,

@@ -1,6 +1,5 @@
-import { Entity, PrimaryKey, Property, Enum, OneToMany } from '@mikro-orm/core'
+import { Entity, PrimaryKey, Property, Enum } from '@mikro-orm/core'
 import { v4 as uuidv4 } from 'uuid'
-import { BankTransaction } from './BankTransaction'
 
 export enum Currency {
   VES = 'VES',

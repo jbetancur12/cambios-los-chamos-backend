@@ -6,7 +6,7 @@ export interface CreateGiroInput {
   minoristaId?: string // Opcional: solo requerido cuando minorista crea el giro
   beneficiaryName: string
   beneficiaryId: string
-  bankName: string
+  bankId: string // ID del banco destino para asignar transferencista
   accountNumber: string
   phone: string
   amountInput: number

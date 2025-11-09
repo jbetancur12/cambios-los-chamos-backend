@@ -9,8 +9,10 @@ import {
   changePasswordSchema,
   sendResetPasswordSchema,
   resetPasswordSchema,
+  getByRoleSchema,
 } from '@/schemas/userSchemas'
 import { userService } from '@/services/UserService'
+import { validateParams } from '@/lib/validateParams'
 
 export const userRouter = express.Router({ mergeParams: true })
 
@@ -168,3 +170,21 @@ userRouter.post('/send-reset-password', validateBody(sendResetPasswordSchema), a
     return res.status(500).json(ApiResponse.serverError())
   }
 })
+
+// ------------------ OBTENER POR ROL ------------------
+userRouter.get(
+  '/by-role/:role',
+  requireAuth(),
+  requireRole(UserRole.SUPER_ADMIN),
+  validateParams(getByRoleSchema),
+  async (req: Request, res: Response) => {
+    const { role } = req.params as { role: UserRole }
+
+    try {
+      const users = await userService.getUsersByRole(role)
+      res.json(ApiResponse.success({ users }))
+    } catch (err: any) {
+      res.status(500).json(ApiResponse.error('Error al obtener usuarios por rol'))
+    }
+  }
+)

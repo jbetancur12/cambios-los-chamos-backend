@@ -5,7 +5,7 @@ export const createGiroSchema = z.object({
   minoristaId: z.string().uuid('ID de minorista inválido').optional(),
   beneficiaryName: z.string().min(1, 'El nombre del beneficiario es requerido'),
   beneficiaryId: z.string().min(1, 'La identificación del beneficiario es requerida'),
-  bankName: z.string().min(1, 'El nombre del banco es requerido'),
+  bankId: z.string().uuid('ID de banco inválido'),
   accountNumber: z.string().min(1, 'El número de cuenta es requerido'),
   phone: z.string().min(1, 'El teléfono es requerido'),
   amountInput: z.number().positive('La cantidad debe ser un número positivo'),

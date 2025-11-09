@@ -8,7 +8,9 @@ import { requireAuth } from '@/middleware/authMiddleware'
 import { initDI } from '@/di'
 import { Request, Response, NextFunction } from 'express'
 import { userRouter } from '@/api/user'
+import { transferencistaRouter } from '@/api/transferencista'
 import { giroRouter } from '@/api/giro'
+import { bankAssignmentRouter } from '@/api/bankAssignment'
 import { bankRouter } from '@/api/bank'
 import { bankAccountRouter } from '@/api/bankAccount'
 import cookieParser from 'cookie-parser'
@@ -64,12 +66,14 @@ export const startExpressServer = async () => {
 
   app.get('/api/health', health)
   app.use('/api/user', authRateLimiter, userRouter)
-  app.use('api/bank', bankRouter)
+  app.use('/api/transferencista', transferencistaRouter)
+  app.use('/api/bank', bankRouter)
+  app.use('/api/bank-assignment', bankAssignmentRouter)
+  app.use('/api/bank-account', bankAccountRouter)
   app.use('/email-verification', emailVerificationRouter)
 
   // Rutas privadas (requieren autenticación)
   privateRoutesRouter.use('/giro', giroRouter)
-  privateRoutesRouter.use('/bank-account', bankAccountRouter)
 
   app.use('/api', privateRoutesRouter)
 
