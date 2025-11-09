@@ -28,6 +28,10 @@ bankAssignmentRouter.post(
           return res.status(404).json(ApiResponse.notFound('Banco'))
         case 'TRANSFERENCISTA_NOT_FOUND':
           return res.status(404).json(ApiResponse.notFound('Transferencista'))
+        case 'ASSIGNMENT_ALREADY_EXISTS':
+          return res
+            .status(409)
+            .json(ApiResponse.conflict('Ya existe una asignación para este transferencista y banco'))
       }
     }
 
@@ -132,7 +136,7 @@ bankAssignmentRouter.delete(
 
     const result = await bankAssignmentService.deleteAssignment(assignmentId)
 
-    if ('error' in result) {
+    if (typeof result === 'object' && result !== null && 'error' in result) {
       return res.status(404).json(ApiResponse.notFound('Asignación', assignmentId))
     }
 

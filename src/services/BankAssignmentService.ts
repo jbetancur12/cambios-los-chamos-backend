@@ -13,7 +13,7 @@ export class BankAssignmentService {
    */
   async createBankAssignment(
     data: CreateBankAssignmentInput
-  ): Promise<BankAssignment | { error: 'BANK_NOT_FOUND' | 'TRANSFERENCISTA_NOT_FOUND' }> {
+  ): Promise<BankAssignment | { error: 'BANK_NOT_FOUND' | 'TRANSFERENCISTA_NOT_FOUND' | 'ASSIGNMENT_ALREADY_EXISTS' }> {
     const bankAssignmentRepo = DI.em.getRepository(BankAssignment)
 
     // Verificar que existan banco y transferencista
@@ -27,12 +27,24 @@ export class BankAssignmentService {
       return { error: 'TRANSFERENCISTA_NOT_FOUND' }
     }
 
+    // Verificar que no exista ya una asignación para este transferencista y banco
+    const existingAssignment = await bankAssignmentRepo.findOne({
+      bank: data.bankId,
+      transferencista: data.transferencistaId,
+    })
+
+    if (existingAssignment) {
+      return { error: 'ASSIGNMENT_ALREADY_EXISTS' }
+    }
+
     // Crear asignación
     const bankAssignment = bankAssignmentRepo.create({
       bank,
       transferencista,
       isActive: true,
       priority: data.priority ?? 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
 
     await DI.em.persistAndFlush(bankAssignment)
