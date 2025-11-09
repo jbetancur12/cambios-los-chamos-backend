@@ -27,4 +27,7 @@ export class BankAccount {
 
   @Enum(() => AccountType)
   accountType?: AccountType;
+
+  @Property({ type: 'decimal', default: 0 })
+  balance: number = 0;
 }

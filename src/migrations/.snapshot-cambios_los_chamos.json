@@ -303,6 +303,130 @@
           "length": 255,
           "mappedType": "string"
         },
+        "destination_bank_name": {
+          "name": "destination_bank_name",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "transferencista_id": {
+          "name": "transferencista_id",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "true",
+          "mappedType": "boolean"
+        },
+        "priority": {
+          "name": "priority",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "0",
+          "mappedType": "integer"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
+        }
+      },
+      "name": "bank_assignments",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "destination_bank_name"
+          ],
+          "composite": false,
+          "keyName": "bank_assignments_destination_bank_name_index",
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "is_active"
+          ],
+          "composite": false,
+          "keyName": "bank_assignments_is_active_index",
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "bank_assignments_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "bank_assignments_transferencista_id_foreign": {
+          "constraintName": "bank_assignments_transferencista_id_foreign",
+          "columnNames": [
+            "transferencista_id"
+          ],
+          "localTableName": "public.bank_assignments",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.transferencistas",
+          "updateRule": "cascade"
+        }
+      },
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
         "transferencista_id": {
           "name": "transferencista_id",
           "type": "varchar(255)",
@@ -355,6 +479,18 @@
             "CORRIENTE"
           ],
           "mappedType": "enum"
+        },
+        "balance": {
+          "name": "balance",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "precision": 10,
+          "scale": 0,
+          "default": "0",
+          "mappedType": "decimal"
         }
       },
       "name": "bank_accounts",
@@ -734,7 +870,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "length": 255,
           "mappedType": "string"
         },
@@ -844,6 +980,17 @@
           "scale": 0,
           "mappedType": "decimal"
         },
+        "bcv_value_applied": {
+          "name": "bcv_value_applied",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
         "commission": {
           "name": "commission",
           "type": "numeric(10,0)",
@@ -881,6 +1028,32 @@
           "nullable": true,
           "length": 255,
           "mappedType": "string"
+        },
+        "bank_account_used_id": {
+          "name": "bank_account_used_id",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "execution_type": {
+          "name": "execution_type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "enumItems": [
+            "TRANSFERENCIA",
+            "PAGO_MOVIL",
+            "EFECTIVO",
+            "ZELLE",
+            "OTROS"
+          ],
+          "mappedType": "enum"
         },
         "created_by_id": {
           "name": "created_by_id",
@@ -959,6 +1132,7 @@
             "id"
           ],
           "referencedTableName": "public.minoristas",
+          "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "giros_transferencista_id_foreign": {
@@ -984,6 +1158,19 @@
             "id"
           ],
           "referencedTableName": "public.exchange_rates",
+          "updateRule": "cascade"
+        },
+        "giros_bank_account_used_id_foreign": {
+          "constraintName": "giros_bank_account_used_id_foreign",
+          "columnNames": [
+            "bank_account_used_id"
+          ],
+          "localTableName": "public.giros",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.bank_accounts",
+          "deleteRule": "set null",
           "updateRule": "cascade"
         },
         "giros_created_by_id_foreign": {

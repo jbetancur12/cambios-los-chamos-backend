@@ -8,6 +8,8 @@ import { requireAuth } from '@/middleware/authMiddleware'
 import { initDI } from '@/di'
 import { Request, Response, NextFunction } from 'express'
 import { userRouter } from '@/api/user'
+import { giroRouter } from '@/api/giro'
+import { bankAccountRouter } from '@/api/bankAccount'
 import cookieParser from 'cookie-parser'
 import {
     CORS_ALLOWED_ORIGINS,
@@ -64,6 +66,9 @@ export const startExpressServer = async () => {
     app.use('/api/user', authRateLimiter, userRouter)
     app.use('/email-verification', emailVerificationRouter)
 
+    // Rutas privadas (requieren autenticación)
+    privateRoutesRouter.use('/giro', giroRouter)
+    privateRoutesRouter.use('/bank-account', bankAccountRouter)
 
     app.use('/api', privateRoutesRouter)
 

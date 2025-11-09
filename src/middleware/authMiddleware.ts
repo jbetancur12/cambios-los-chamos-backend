@@ -87,7 +87,7 @@ export const requireGiroAccess = () => {
 
       if (
         user.role === UserRole.MINORISTA &&
-        giro.minorista.user.id === user.id
+        giro.minorista?.user.id === user.id
       ) {
         return next()
       }
