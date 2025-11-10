@@ -8,13 +8,16 @@ export class ExchangeRate {
   id: string = uuidv4()
 
   @Property({ type: 'decimal' })
-  copToBs!: number
+  buyRate!: number
 
   @Property({ type: 'decimal' })
-  usdToBs!: number
+  sellRate!: number
 
   @Property({ type: 'decimal' })
-  bcvValue!: number
+  usd!: number
+
+  @Property({ type: 'decimal' })
+  bcv!: number
 
   @ManyToOne(() => User)
   createdBy!: User

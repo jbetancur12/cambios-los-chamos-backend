@@ -3,9 +3,10 @@ import { ExchangeRate } from '@/entities/ExchangeRate'
 import { User } from '@/entities/User'
 
 export interface CreateExchangeRateInput {
-  copToBs: number
-  usdToBs: number
-  bcvValue: number
+  buyRate: number
+  sellRate: number
+  usd: number
+  bcv: number
   createdBy: User
 }
 
@@ -17,9 +18,10 @@ export class ExchangeRateService {
     const exchangeRateRepo = DI.em.getRepository(ExchangeRate)
 
     const exchangeRate = exchangeRateRepo.create({
-      copToBs: data.copToBs,
-      usdToBs: data.usdToBs,
-      bcvValue: data.bcvValue,
+      buyRate: data.buyRate,
+      sellRate: data.sellRate,
+      usd: data.usd,
+      bcv: data.bcv,
       createdBy: data.createdBy,
       createdAt: new Date(),
     })
@@ -59,9 +61,10 @@ export class ExchangeRateService {
     limit: number
     rates: Array<{
       id: string
-      copToBs: number
-      usdToBs: number
-      bcvValue: number
+      buyRate: number
+      sellRate: number
+      usd: number
+      bcv: number
       createdBy: {
         id: string
         fullName: string
@@ -88,9 +91,10 @@ export class ExchangeRateService {
 
     const data = rates.map((rate) => ({
       id: rate.id,
-      copToBs: rate.copToBs,
-      usdToBs: rate.usdToBs,
-      bcvValue: rate.bcvValue,
+      buyRate: rate.buyRate,
+      sellRate: rate.sellRate,
+      usd: rate.usd,
+      bcv: rate.bcv,
       createdBy: {
         id: rate.createdBy.id,
         fullName: rate.createdBy.fullName,
@@ -113,9 +117,10 @@ export class ExchangeRateService {
   async getExchangeRateById(rateId: string): Promise<
     | {
         id: string
-        copToBs: number
-        usdToBs: number
-        bcvValue: number
+        buyRate: number
+        sellRate: number
+        usd: number
+        bcv: number
         createdBy: {
           id: string
           fullName: string
@@ -135,9 +140,10 @@ export class ExchangeRateService {
 
     return {
       id: rate.id,
-      copToBs: rate.copToBs,
-      usdToBs: rate.usdToBs,
-      bcvValue: rate.bcvValue,
+      buyRate: rate.buyRate,
+      sellRate: rate.sellRate,
+      usd: rate.usd,
+      bcv: rate.bcv,
       createdBy: {
         id: rate.createdBy.id,
         fullName: rate.createdBy.fullName,

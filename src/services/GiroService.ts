@@ -125,7 +125,7 @@ export class GiroService {
       amountInput: data.amountInput,
       currencyInput: data.currencyInput,
       amountBs: data.amountBs,
-      bcvValueApplied: data.rateApplied.bcvValue,
+      bcvValueApplied: data.rateApplied.bcv,
       status,
       createdBy,
       createdAt: new Date(),

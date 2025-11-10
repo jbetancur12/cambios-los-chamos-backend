@@ -14,7 +14,7 @@ exchangeRateRouter.post(
   requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   validateBody(createExchangeRateSchema),
   async (req: Request, res: Response) => {
-    const { copToBs, usdToBs, bcvValue } = req.body
+    const { buyRate, sellRate, usd, bcv } = req.body
 
     const user = req.context?.requestUser?.user
     if (!user) {
@@ -22,9 +22,10 @@ exchangeRateRouter.post(
     }
 
     const result = await exchangeRateService.createExchangeRate({
-      copToBs,
-      usdToBs,
-      bcvValue,
+      buyRate,
+      sellRate,
+      usd,
+      bcv,
       createdBy: user,
     })
 

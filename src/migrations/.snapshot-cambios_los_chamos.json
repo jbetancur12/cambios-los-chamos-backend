@@ -776,8 +776,8 @@
           "length": 255,
           "mappedType": "string"
         },
-        "cop_to_bs": {
-          "name": "cop_to_bs",
+        "buy_rate": {
+          "name": "buy_rate",
           "type": "numeric(10,0)",
           "unsigned": false,
           "autoincrement": false,
@@ -787,8 +787,8 @@
           "scale": 0,
           "mappedType": "decimal"
         },
-        "usd_to_bs": {
-          "name": "usd_to_bs",
+        "sell_rate": {
+          "name": "sell_rate",
           "type": "numeric(10,0)",
           "unsigned": false,
           "autoincrement": false,
@@ -798,8 +798,19 @@
           "scale": 0,
           "mappedType": "decimal"
         },
-        "bcv_value": {
-          "name": "bcv_value",
+        "usd": {
+          "name": "usd",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
+        "bcv": {
+          "name": "bcv",
           "type": "numeric(10,0)",
           "unsigned": false,
           "autoincrement": false,
