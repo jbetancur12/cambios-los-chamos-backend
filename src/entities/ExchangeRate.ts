@@ -7,16 +7,16 @@ export class ExchangeRate {
   @PrimaryKey()
   id: string = uuidv4()
 
-  @Property({ type: 'decimal' })
+  @Property({ type: 'decimal', precision: 15, scale: 4 })
   buyRate!: number
 
-  @Property({ type: 'decimal' })
+  @Property({ type: 'decimal', precision: 15, scale: 4 })
   sellRate!: number
 
-  @Property({ type: 'decimal' })
+  @Property({ type: 'decimal', precision: 15, scale: 4 })
   usd!: number
 
-  @Property({ type: 'decimal' })
+  @Property({ type: 'decimal', precision: 15, scale: 4 })
   bcv!: number
 
   @ManyToOne(() => User)

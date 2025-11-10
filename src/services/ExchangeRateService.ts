@@ -45,7 +45,6 @@ export class ExchangeRateService {
         limit: 1,
       }
     )
-    console.log("🚀 ~ ExchangeRateService ~ getCurrentRate ~ rates:", rates)
 
     if (rates.length === 0) {
       return { error: 'NO_RATE_FOUND' }

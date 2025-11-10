@@ -113,7 +113,8 @@ export class GiroService {
     }
 
     // Calcular ganancias: ((monto / sellRate) * buyRate) - monto
-    const totalProfit = (data.amountInput / data.rateApplied.sellRate) * data.rateApplied.buyRate - data.amountInput
+    const totalProfit =  data.amountInput - ((data.amountInput / data.rateApplied.sellRate) * data.rateApplied.buyRate) 
+    // const totalProfit = (data.rateApplied.sellRate - data.rateApplied.buyRate) * (data.amountInput )
     let systemProfit = 0
     let minoristaProfit = 0
 
