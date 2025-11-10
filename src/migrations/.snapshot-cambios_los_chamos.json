@@ -670,7 +670,8 @@
           "enumItems": [
             "RECHARGE",
             "DISCOUNT",
-            "ADJUSTMENT"
+            "ADJUSTMENT",
+            "PROFIT"
           ],
           "mappedType": "enum"
         },
@@ -1028,6 +1029,30 @@
           "nullable": true,
           "precision": 10,
           "scale": 0,
+          "mappedType": "decimal"
+        },
+        "system_profit": {
+          "name": "system_profit",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "precision": 10,
+          "scale": 0,
+          "default": "0",
+          "mappedType": "decimal"
+        },
+        "minorista_profit": {
+          "name": "minorista_profit",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "precision": 10,
+          "scale": 0,
+          "default": "0",
           "mappedType": "decimal"
         },
         "status": {

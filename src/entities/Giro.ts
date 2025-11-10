@@ -67,6 +67,13 @@ export class Giro {
   @Property({ type: 'decimal', nullable: true })
   commission?: number
 
+  // Ganancias del giro: ((monto/sellRate)*buyRate) - monto
+  @Property({ type: 'decimal', default: 0 })
+  systemProfit: number = 0 // 100% si admin/superadmin, 50% si minorista
+
+  @Property({ type: 'decimal', default: 0 })
+  minoristaProfit: number = 0 // 50% si minorista, 0 si admin/superadmin
+
   @Enum(() => GiroStatus)
   @Index()
   status: GiroStatus = GiroStatus.PENDIENTE

@@ -4,9 +4,10 @@ import { Minorista } from './Minorista'
 import { User } from './User'
 
 export enum MinoristaTransactionType {
-  RECHARGE = 'RECHARGE',
-  DISCOUNT = 'DISCOUNT',
-  ADJUSTMENT = 'ADJUSTMENT',
+  RECHARGE = 'RECHARGE', // Recarga de saldo
+  DISCOUNT = 'DISCOUNT', // Descuento por giro
+  ADJUSTMENT = 'ADJUSTMENT', // Ajuste manual
+  PROFIT = 'PROFIT', // Ganancia de giro (50%)
 }
 
 @Entity({ tableName: 'minorista_transactions' })

@@ -112,6 +112,37 @@ export class GiroService {
       status = GiroStatus.ASIGNADO
     }
 
+    // Calcular ganancias: ((monto / sellRate) * buyRate) - monto
+    const totalProfit = (data.amountInput / data.rateApplied.sellRate) * data.rateApplied.buyRate - data.amountInput
+    let systemProfit = 0
+    let minoristaProfit = 0
+
+    if (createdBy.role === UserRole.MINORISTA && minorista) {
+      // Minorista: 50% para él, 50% para el sistema
+      minoristaProfit = totalProfit * 0.5
+      systemProfit = totalProfit * 0.5
+
+      // Crear transacción de ganancia para el minorista
+      const profitTransaction = await minoristaTransactionService.createTransaction({
+        minoristaId: minorista.id,
+        amount: minoristaProfit,
+        type: MinoristaTransactionType.PROFIT,
+        createdBy,
+      })
+
+      if ('error' in profitTransaction) {
+        // Si falla la transacción de ganancia, no debería pasar pero manejamos el error
+        console.error('Error al crear transacción de ganancia:', profitTransaction.error)
+      } else {
+        // Recargar minorista para obtener balance actualizado
+        await DI.em.refresh(minorista)
+      }
+    } else {
+      // Admin/SuperAdmin: 100% para el sistema
+      systemProfit = totalProfit
+      minoristaProfit = 0
+    }
+
     // Crear giro
     const giro = giroRepo.create({
       minorista, // Puede ser undefined para admin/superadmin
@@ -126,6 +157,8 @@ export class GiroService {
       currencyInput: data.currencyInput,
       amountBs: data.amountBs,
       bcvValueApplied: data.rateApplied.bcv,
+      systemProfit,
+      minoristaProfit,
       status,
       createdBy,
       createdAt: new Date(),
