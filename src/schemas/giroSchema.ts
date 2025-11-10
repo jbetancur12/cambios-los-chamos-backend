@@ -10,6 +10,14 @@ export const createGiroSchema = z.object({
   phone: z.string().min(1, 'El teléfono es requerido'),
   amountInput: z.number().positive('La cantidad debe ser un número positivo'),
   currencyInput: z.enum([Currency.COP, Currency.USD, Currency.VES], 'La moneda de entrada es inválida'),
-  rateAppliedId: z.string().uuid('ID de tasa inválido'),
-  amountBs: z.number().positive('El monto en Bs debe ser un número positivo'),
+  // Solo SUPER_ADMIN puede hacer override de la tasa pasando valores personalizados
+  customRate: z
+    .object({
+      buyRate: z.number().positive('La tasa de compra debe ser mayor a 0'),
+      sellRate: z.number().positive('La tasa de venta debe ser mayor a 0'),
+      usd: z.number().positive('El valor USD debe ser mayor a 0'),
+      bcv: z.number().positive('El valor BCV debe ser mayor a 0'),
+    })
+    .optional(),
+  // amountBs se calcula en el backend basado en la tasa del día o customRate
 })

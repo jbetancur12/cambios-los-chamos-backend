@@ -37,19 +37,21 @@ export class ExchangeRateService {
   async getCurrentRate(): Promise<ExchangeRate | { error: 'NO_RATE_FOUND' }> {
     const exchangeRateRepo = DI.em.getRepository(ExchangeRate)
 
-    const currentRate = await exchangeRateRepo.findOne(
+    const rates = await exchangeRateRepo.find(
       {},
       {
         orderBy: { createdAt: 'DESC' },
         populate: ['createdBy'],
+        limit: 1,
       }
     )
+    console.log("🚀 ~ ExchangeRateService ~ getCurrentRate ~ rates:", rates)
 
-    if (!currentRate) {
+    if (rates.length === 0) {
       return { error: 'NO_RATE_FOUND' }
     }
 
-    return currentRate
+    return rates[0]
   }
 
   /**

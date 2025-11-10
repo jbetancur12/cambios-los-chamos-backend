@@ -283,6 +283,7 @@
             "id"
           ],
           "referencedTableName": "public.users",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         }
       },
@@ -407,6 +408,7 @@
             "id"
           ],
           "referencedTableName": "public.banks",
+          "deleteRule": "restrict",
           "updateRule": "cascade"
         },
         "bank_assignments_transferencista_id_foreign": {
@@ -419,6 +421,7 @@
             "id"
           ],
           "referencedTableName": "public.transferencistas",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         }
       },
@@ -528,6 +531,7 @@
             "id"
           ],
           "referencedTableName": "public.transferencistas",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "bank_accounts_bank_id_foreign": {
@@ -540,6 +544,7 @@
             "id"
           ],
           "referencedTableName": "public.banks",
+          "deleteRule": "restrict",
           "updateRule": "cascade"
         }
       },
@@ -616,6 +621,7 @@
             "id"
           ],
           "referencedTableName": "public.users",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         }
       },
@@ -747,6 +753,7 @@
             "id"
           ],
           "referencedTableName": "public.minoristas",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "minorista_transactions_created_by_id_foreign": {
@@ -759,6 +766,7 @@
             "id"
           ],
           "referencedTableName": "public.users",
+          "deleteRule": "restrict",
           "updateRule": "cascade"
         }
       },
@@ -1152,7 +1160,7 @@
             "id"
           ],
           "referencedTableName": "public.minoristas",
-          "deleteRule": "set null",
+          "deleteRule": "restrict",
           "updateRule": "cascade"
         },
         "giros_transferencista_id_foreign": {
@@ -1165,7 +1173,7 @@
             "id"
           ],
           "referencedTableName": "public.transferencistas",
-          "deleteRule": "set null",
+          "deleteRule": "restrict",
           "updateRule": "cascade"
         },
         "giros_rate_applied_id_foreign": {
@@ -1178,6 +1186,7 @@
             "id"
           ],
           "referencedTableName": "public.exchange_rates",
+          "deleteRule": "restrict",
           "updateRule": "cascade"
         },
         "giros_bank_account_used_id_foreign": {
@@ -1190,7 +1199,7 @@
             "id"
           ],
           "referencedTableName": "public.bank_accounts",
-          "deleteRule": "set null",
+          "deleteRule": "restrict",
           "updateRule": "cascade"
         },
         "giros_created_by_id_foreign": {
@@ -1203,6 +1212,7 @@
             "id"
           ],
           "referencedTableName": "public.users",
+          "deleteRule": "restrict",
           "updateRule": "cascade"
         }
       },
@@ -1331,6 +1341,7 @@
             "id"
           ],
           "referencedTableName": "public.banks",
+          "deleteRule": "restrict",
           "updateRule": "cascade"
         },
         "bank_transactions_created_by_id_foreign": {
@@ -1343,6 +1354,7 @@
             "id"
           ],
           "referencedTableName": "public.users",
+          "deleteRule": "restrict",
           "updateRule": "cascade"
         }
       },
@@ -1484,6 +1496,7 @@
             "id"
           ],
           "referencedTableName": "public.bank_accounts",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "bank_account_transactions_created_by_id_foreign": {
@@ -1496,6 +1509,7 @@
             "id"
           ],
           "referencedTableName": "public.users",
+          "deleteRule": "restrict",
           "updateRule": "cascade"
         }
       },
@@ -1613,6 +1627,7 @@
             "id"
           ],
           "referencedTableName": "public.users",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         }
       },

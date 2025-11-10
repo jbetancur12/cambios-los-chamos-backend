@@ -13,10 +13,10 @@ export class BankAccount {
   @PrimaryKey()
   id: string = uuidv4()
 
-  @ManyToOne(() => Transferencista)
+  @ManyToOne(() => Transferencista, { deleteRule: 'cascade', updateRule: 'cascade' })
   transferencista!: Transferencista
 
-  @ManyToOne(() => Bank)
+  @ManyToOne(() => Bank, { deleteRule: 'restrict', updateRule: 'cascade' })
   bank!: Bank
 
   @Property()

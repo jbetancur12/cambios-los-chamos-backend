@@ -9,7 +9,7 @@ export class Transferencista {
   @PrimaryKey()
   id: string = uuidv4()
 
-  @OneToOne(() => User)
+  @OneToOne(() => User, { deleteRule: 'cascade', updateRule: 'cascade' })
   user!: User
 
   @Property({ default: true })

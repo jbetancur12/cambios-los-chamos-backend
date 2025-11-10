@@ -12,7 +12,7 @@ export class UserToken {
   @PrimaryKey()
   id: string = uuidv4()
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { deleteRule: 'cascade', updateRule: 'cascade' })
   user!: User
 
   @Property({ unique: true })

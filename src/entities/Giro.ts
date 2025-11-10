@@ -28,13 +28,13 @@ export class Giro {
   @PrimaryKey()
   id: string = uuidv4()
 
-  @ManyToOne(() => Minorista, { nullable: true })
+  @ManyToOne(() => Minorista, { nullable: true, deleteRule: 'restrict', updateRule: 'cascade' })
   minorista?: Minorista
 
-  @ManyToOne(() => Transferencista, { nullable: true })
+  @ManyToOne(() => Transferencista, { nullable: true, deleteRule: 'restrict', updateRule: 'cascade' })
   transferencista?: Transferencista
 
-  @ManyToOne(() => ExchangeRate)
+  @ManyToOne(() => ExchangeRate, { deleteRule: 'restrict', updateRule: 'cascade' })
   rateApplied!: ExchangeRate
 
   @Property()
@@ -74,13 +74,13 @@ export class Giro {
   @Property({ nullable: true })
   proofUrl?: string
 
-  @ManyToOne(() => BankAccount, { nullable: true })
+  @ManyToOne(() => BankAccount, { nullable: true, deleteRule: 'restrict', updateRule: 'cascade' })
   bankAccountUsed?: BankAccount
 
   @Enum(() => ExecutionType)
   executionType?: ExecutionType
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { deleteRule: 'restrict', updateRule: 'cascade' })
   createdBy!: User
 
   @Property({ onCreate: () => new Date() })

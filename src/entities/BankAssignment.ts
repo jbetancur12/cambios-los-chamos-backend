@@ -8,11 +8,11 @@ export class BankAssignment {
   @PrimaryKey()
   id: string = uuidv4()
 
-  @ManyToOne(() => Bank)
+  @ManyToOne(() => Bank, { deleteRule: 'restrict', updateRule: 'cascade' })
   @Index()
   bank!: Bank
 
-  @ManyToOne(() => Transferencista)
+  @ManyToOne(() => Transferencista, { deleteRule: 'cascade', updateRule: 'cascade' })
   transferencista!: Transferencista
 
   @Property({ default: true })

@@ -9,7 +9,7 @@ export class Minorista {
   @PrimaryKey()
   id: string = uuidv4()
 
-  @OneToOne(() => User)
+  @OneToOne(() => User, { deleteRule: 'cascade', updateRule: 'cascade' })
   user!: User
 
   @Property({ type: 'decimal', default: 0 })

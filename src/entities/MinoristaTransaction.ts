@@ -14,7 +14,7 @@ export class MinoristaTransaction {
   @PrimaryKey()
   id: string = uuidv4()
 
-  @ManyToOne(() => Minorista)
+  @ManyToOne(() => Minorista, { deleteRule: 'cascade', updateRule: 'cascade' })
   minorista!: Minorista
 
   @Property({ type: 'decimal' })
@@ -29,7 +29,7 @@ export class MinoristaTransaction {
   @Property({ type: 'decimal' })
   currentBalance!: number
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { deleteRule: 'restrict', updateRule: 'cascade' })
   createdBy!: User
 
   @Property({ onCreate: () => new Date() })

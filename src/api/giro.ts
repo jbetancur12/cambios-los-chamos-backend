@@ -6,6 +6,8 @@ import { validateBody } from '@/lib/zodUtils'
 import { createGiroSchema } from '@/schemas/giroSchema'
 import { giroService } from '@/services/GiroService'
 import { DI } from '@/di'
+import { Currency } from '@/entities/Bank'
+import { exchangeRateService } from '@/services/ExchangeRateService'
 
 export const giroRouter = express.Router({ mergeParams: true })
 
@@ -20,17 +22,18 @@ giroRouter.post(
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
-    const {
-      beneficiaryName,
-      beneficiaryId,
-      bankId,
-      accountNumber,
-      phone,
-      amountInput,
-      currencyInput,
-      rateAppliedId,
-      amountBs,
-    } = req.body
+    const { beneficiaryName, beneficiaryId, bankId, accountNumber, phone, amountInput, currencyInput, customRate } =
+      req.body
+
+    // VALIDACIÓN 1: Solo SUPER_ADMIN puede usar USD
+    if (currencyInput === Currency.USD && user.role !== UserRole.SUPER_ADMIN) {
+      return res.status(403).json(ApiResponse.forbidden('Solo el SUPER_ADMIN puede enviar dólares'))
+    }
+
+    // VALIDACIÓN 2: Solo SUPER_ADMIN puede hacer override de la tasa
+    if (customRate && user.role !== UserRole.SUPER_ADMIN) {
+      return res.status(403).json(ApiResponse.forbidden('Solo el SUPER_ADMIN puede cambiar la tasa del giro'))
+    }
 
     // Determinar minoristaId según rol
     let finalMinoristaId: string | undefined
@@ -45,10 +48,41 @@ giroRouter.post(
     // Admin/SuperAdmin: NO requieren minoristaId
     // El giro se asignará directamente a un transferencista y el dinero saldrá de su cuenta
 
-    // Obtener la tasa de cambio
-    const rateApplied = await DI.exchangeRates.findOne({ id: rateAppliedId })
-    if (!rateApplied) {
-      return res.status(404).json(ApiResponse.notFound('Tasa de cambio', rateAppliedId))
+    // Obtener la tasa de cambio (customRate o tasa del día)
+    let rateApplied
+    if (customRate) {
+      // SUPER_ADMIN hizo override: crear ExchangeRate temporal con valores custom
+      const customExchangeRate = await exchangeRateService.createExchangeRate({
+        buyRate: customRate.buyRate,
+        sellRate: customRate.sellRate,
+        usd: customRate.usd,
+        bcv: customRate.bcv,
+        createdBy: user,
+      })
+      rateApplied = customExchangeRate
+    } else {
+      // Usar la tasa del día (última creada)
+      const currentRateResult = await exchangeRateService.getCurrentRate()
+      if ('error' in currentRateResult) {
+        return res
+          .status(404)
+          .json(ApiResponse.notFound('No hay tasa de cambio configurada para hoy. Contacte al administrador.'))
+      }
+      rateApplied = currentRateResult
+    }
+
+    // Calcular amountBs basado en la moneda y la tasa
+    let amountBs: number
+    if (currencyInput === Currency.USD) {
+      // USD → Bs: amountInput * bcv
+      amountBs = amountInput * rateApplied.bcv
+    } else if (currencyInput === Currency.COP) {
+      // COP → Bs: amountInput / sellRate
+      amountBs = amountInput / rateApplied.sellRate
+      console.log("🚀 ~ amountBs:", amountBs)
+    } else {
+      // VES (bolivares directos)
+      amountBs = amountInput
     }
 
     const result = await giroService.createGiro(

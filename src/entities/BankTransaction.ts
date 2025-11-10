@@ -18,7 +18,7 @@ export class BankTransaction {
   @PrimaryKey()
   id: string = uuidv4()
 
-  @ManyToOne(() => Bank)
+  @ManyToOne(() => Bank, { deleteRule: 'restrict', updateRule: 'cascade' })
   bank!: Bank
 
   @Property({ type: 'decimal' })
@@ -33,7 +33,7 @@ export class BankTransaction {
   @Property({ nullable: true })
   reference?: string // Referencia opcional
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { deleteRule: 'restrict', updateRule: 'cascade' })
   createdBy!: User
 
   @Property({ onCreate: () => new Date() })

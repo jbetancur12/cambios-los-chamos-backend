@@ -14,7 +14,7 @@ export class BankAccountTransaction {
   @PrimaryKey()
   id: string = uuidv4()
 
-  @ManyToOne(() => BankAccount)
+  @ManyToOne(() => BankAccount, { deleteRule: 'cascade', updateRule: 'cascade' })
   bankAccount!: BankAccount
 
   @Property({ type: 'decimal' })
@@ -32,7 +32,7 @@ export class BankAccountTransaction {
   @Property({ nullable: true })
   reference?: string // Referencia opcional (ej: ID del giro)
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { deleteRule: 'restrict', updateRule: 'cascade' })
   createdBy!: User
 
   @Property({ onCreate: () => new Date() })
