@@ -114,6 +114,9 @@ export class GiroService {
 
     // Calcular ganancias: ((monto / sellRate) * buyRate) - monto
     const totalProfit =  data.amountInput - ((data.amountInput / data.rateApplied.sellRate) * data.rateApplied.buyRate) 
+    console.log("🚀 ~ GiroService ~ createGiro ~ data.rateApplied.buyRate:", data.rateApplied.buyRate)
+    console.log("🚀 ~ GiroService ~ createGiro ~ data.rateApplied.sellRate:", data.rateApplied.sellRate)
+    console.log("🚀 ~ GiroService ~ createGiro ~ data.amountInput:", data.amountInput)
     // const totalProfit = (data.rateApplied.sellRate - data.rateApplied.buyRate) * (data.amountInput )
     let systemProfit = 0
     let minoristaProfit = 0
@@ -264,6 +267,77 @@ export class GiroService {
     await DI.em.persistAndFlush(giro)
 
     return giro
+  }
+
+  /**
+   * Lista giros con filtros y permisos según rol
+   */
+  async listGiros(options: {
+    userId: string
+    userRole: UserRole
+    status?: GiroStatus
+    dateFrom?: Date
+    dateTo?: Date
+    page?: number
+    limit?: number
+  }): Promise<{
+    giros: Giro[]
+    total: number
+    page: number
+    limit: number
+  }> {
+    const page = options.page ?? 1
+    const limit = options.limit ?? 50
+    const offset = (page - 1) * limit
+
+    // Construir filtros base según rol
+    const where: any = {}
+
+    if (options.userRole === UserRole.TRANSFERENCISTA) {
+      // Transferencista: solo giros asignados a él
+      const transferencista = await DI.transferencistas.findOne({ user: options.userId })
+      if (!transferencista) {
+        return { giros: [], total: 0, page, limit }
+      }
+      where.transferencista = transferencista.id
+    } else if (options.userRole === UserRole.MINORISTA) {
+      // Minorista: solo sus giros
+      const minorista = await DI.minoristas.findOne({ user: options.userId })
+      if (!minorista) {
+        return { giros: [], total: 0, page, limit }
+      }
+      where.minorista = minorista.id
+    }
+    // SUPER_ADMIN/ADMIN: ven todos los giros (sin filtro adicional)
+
+    // Filtros opcionales
+    if (options.status) {
+      where.status = options.status
+    }
+
+    if (options.dateFrom || options.dateTo) {
+      where.createdAt = {}
+      if (options.dateFrom) {
+        where.createdAt.$gte = options.dateFrom
+      }
+      if (options.dateTo) {
+        where.createdAt.$lte = options.dateTo
+      }
+    }
+
+    const [giros, total] = await DI.giros.findAndCount(where, {
+      limit,
+      offset,
+      orderBy: { createdAt: 'DESC' },
+      populate: ['minorista', 'minorista.user', 'transferencista', 'transferencista.user', 'rateApplied', 'createdBy'],
+    })
+
+    return {
+      giros,
+      total,
+      page,
+      limit,
+    }
   }
 }
 

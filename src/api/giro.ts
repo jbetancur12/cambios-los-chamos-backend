@@ -8,6 +8,7 @@ import { giroService } from '@/services/GiroService'
 import { DI } from '@/di'
 import { Currency } from '@/entities/Bank'
 import { exchangeRateService } from '@/services/ExchangeRateService'
+import { GiroStatus } from '@/entities/Giro'
 
 export const giroRouter = express.Router({ mergeParams: true })
 
@@ -117,6 +118,42 @@ giroRouter.post(
     res.json(ApiResponse.success({ giro: result, message: 'Giro creado exitosamente' }))
   }
 )
+
+// ------------------ LISTAR GIROS ------------------
+giroRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
+  const user = req.context?.requestUser?.user
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
+  }
+
+  const status = req.query.status as GiroStatus | undefined
+  const page = parseInt(req.query.page as string) || 1
+  const limit = parseInt(req.query.limit as string) || 50
+  const dateFrom = req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined
+  const dateTo = req.query.dateTo ? new Date(req.query.dateTo as string) : undefined
+
+  const result = await giroService.listGiros({
+    userId: user.id,
+    userRole: user.role,
+    status,
+    dateFrom,
+    dateTo,
+    page,
+    limit,
+  })
+
+  res.json(
+    ApiResponse.success({
+      giros: result.giros,
+      pagination: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: Math.ceil(result.total / result.limit),
+      },
+    })
+  )
+})
 
 // ------------------ OBTENER GIRO ------------------
 giroRouter.get('/:giroId', requireAuth(), async (req: Request, res: Response) => {
