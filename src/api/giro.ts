@@ -80,7 +80,7 @@ giroRouter.post(
     } else if (currencyInput === Currency.COP) {
       // COP → Bs: amountInput / sellRate
       amountBs = amountInput / rateApplied.sellRate
-      console.log("🚀 ~ amountBs:", amountBs)
+    
     } else {
       // VES (bolivares directos)
       amountBs = amountInput

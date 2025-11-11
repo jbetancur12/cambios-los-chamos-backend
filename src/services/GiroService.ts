@@ -68,8 +68,15 @@ export class GiroService {
 
     let minorista: Minorista | undefined = undefined
     let transferencista: Transferencista | undefined = undefined
-    let status = GiroStatus.PENDIENTE
+    let status = GiroStatus.ASIGNADO // Por defecto ASIGNADO cuando hay transferencista
     const entitiesToFlush: (Giro | Minorista)[] = []
+
+    // Asignar transferencista basado en banco destino (para todos los roles)
+    const assigned = await this.findAssignedTransferencista(data.bankId)
+    if (!assigned) {
+      return { error: 'NO_TRANSFERENCISTA_ASSIGNED' }
+    }
+    transferencista = assigned
 
     // Determinar origen del saldo según rol del creador
     if (createdBy.role === UserRole.MINORISTA) {
@@ -100,17 +107,9 @@ export class GiroService {
       // Recargar minorista para obtener balance actualizado
       await DI.em.refresh(foundMinorista)
       minorista = foundMinorista
-      status = GiroStatus.PENDIENTE
-    } else if (createdBy.role === UserRole.ADMIN || createdBy.role === UserRole.SUPER_ADMIN) {
-      // Admin/SuperAdmin: NO requiere minorista, asignar transferencista basado en banco destino
-      // El dinero se descontará de la cuenta del transferencista cuando ejecute el giro
-      const assigned = await this.findAssignedTransferencista(data.bankId)
-      if (!assigned) {
-        return { error: 'NO_TRANSFERENCISTA_ASSIGNED' }
-      }
-      transferencista = assigned
-      status = GiroStatus.ASIGNADO
     }
+    // Admin/SuperAdmin: NO requiere minorista
+    // El dinero se descontará de la cuenta del transferencista cuando ejecute el giro
 
     // Calcular ganancias: ((monto / sellRate) * buyRate) - monto
     const totalProfit =  data.amountInput - ((data.amountInput / data.rateApplied.sellRate) * data.rateApplied.buyRate) 
@@ -293,6 +292,7 @@ export class GiroService {
     // Construir filtros base según rol
     const where: any = {}
 
+    console.log("🚀 ~ GiroService ~ listGiros ~ options.userRole:", options.userRole)
     if (options.userRole === UserRole.TRANSFERENCISTA) {
       // Transferencista: solo giros asignados a él
       const transferencista = await DI.transferencistas.findOne({ user: options.userId })
