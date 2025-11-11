@@ -6,8 +6,12 @@ export interface DashboardStats {
   girosCount: number
   girosLabel: string
   usersCount?: number
-  volume?: number
-  earnings?: number
+  volumeBs?: number
+  volumeCOP?: number
+  volumeUSD?: number
+  systemEarnings?: number
+  minoristaEarnings?: number
+  earnings?: number // Para minoristas (solo su parte)
 }
 
 export class DashboardService {
@@ -43,15 +47,28 @@ export class DashboardService {
         createdAt: { $gte: monthStart, $lte: monthEnd },
       })
 
-      const volume = girosThisMonth.reduce((sum: number, giro: Giro) => sum + Number(giro.amountBs), 0)
-      const earnings = girosThisMonth.reduce((sum: number, giro: Giro) => sum + Number(giro.systemProfit), 0)
+      const volumeBs = girosThisMonth.reduce((sum: number, giro: Giro) => sum + Number(giro.amountBs), 0)
+      const volumeCOP = girosThisMonth.reduce((sum: number, giro: Giro) => {
+        return giro.currencyInput === 'COP' ? sum + Number(giro.amountInput) : sum
+      }, 0)
+      const volumeUSD = girosThisMonth.reduce((sum: number, giro: Giro) => {
+        return giro.currencyInput === 'USD' ? sum + Number(giro.amountInput) : sum
+      }, 0)
+      const systemEarnings = girosThisMonth.reduce((sum: number, giro: Giro) => sum + Number(giro.systemProfit), 0)
+      const minoristaEarnings = girosThisMonth.reduce(
+        (sum: number, giro: Giro) => sum + Number(giro.minoristaProfit),
+        0
+      )
 
       return {
         girosCount: girosToday,
         girosLabel: 'Giros Hoy',
         usersCount: activeUsers,
-        volume,
-        earnings,
+        volumeBs,
+        volumeCOP,
+        volumeUSD,
+        systemEarnings,
+        minoristaEarnings,
       }
     } else if (role === 'TRANSFERENCISTA') {
       // Transferencista stats
