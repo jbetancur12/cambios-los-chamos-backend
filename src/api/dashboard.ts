@@ -1,7 +1,7 @@
-import { Router } from 'express'
-import { DashboardService } from '../services/DashboardService'
-import { requireAuth } from '../middleware/authMiddleware'
-import { apiResponse } from '../utils/apiResponse'
+import { Router, Request, Response } from 'express'
+import { DashboardService } from '@/services/DashboardService'
+import { requireAuth } from '@/middleware/authMiddleware'
+import { ApiResponse } from '@/lib/apiResponse'
 
 const router = Router()
 const dashboardService = new DashboardService()
@@ -10,12 +10,15 @@ const dashboardService = new DashboardService()
  * GET /api/dashboard/stats
  * Get dashboard statistics based on user role
  */
-router.get('/stats', requireAuth(), async (req, res) => {
+router.get('/stats', requireAuth(), async (req: Request, res: Response) => {
   try {
+    if (!req.context?.requestUser) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
     const stats = await dashboardService.getStats(req.context.requestUser)
-    return apiResponse.success(res, stats)
+    return res.status(200).json(ApiResponse.success(stats))
   } catch (error) {
-    return apiResponse.error(res, error instanceof Error ? error.message : 'Error al obtener estadísticas')
+    return res.status(500).json(ApiResponse.serverError(error instanceof Error ? error.message : 'Error al obtener estadísticas'))
   }
 })
 

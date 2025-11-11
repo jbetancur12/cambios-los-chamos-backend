@@ -1,9 +1,6 @@
-import { GiroRepository } from '../repositories/GiroRepository'
-import { UserRepository } from '../repositories/UserRepository'
-import { MinoristaRepository } from '../repositories/MinoristaRepository'
-import { TransferencistaRepository } from '../repositories/TransferencistaRepository'
-import { RequestUser } from '../middleware/userMiddleware'
-import { Between } from 'typeorm'
+import { DI } from '@/di'
+import { RequestUser } from '@/middleware/requestUser'
+import { Giro } from '@/entities/Giro'
 
 export interface DashboardStats {
   girosCount: number
@@ -14,11 +11,6 @@ export interface DashboardStats {
 }
 
 export class DashboardService {
-  private giroRepo = GiroRepository
-  private userRepo = UserRepository
-  private minoristaRepo = MinoristaRepository
-  private transferencistaRepo = TransferencistaRepository
-
   async getStats(requestUser: RequestUser): Promise<DashboardStats> {
     const user = requestUser.user
     if (!user) {
@@ -39,20 +31,20 @@ export class DashboardService {
 
     if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
       // Super Admin stats
-      const girosToday = await this.giroRepo.count({
-        where: { createdAt: Between(today, tomorrow) },
+      const girosToday = await DI.giros.count({
+        createdAt: { $gte: today, $lt: tomorrow },
       })
 
-      const activeUsers = await this.userRepo.count({
-        where: { isActive: true },
+      const activeUsers = await DI.users.count({
+        isActive: true,
       })
 
-      const girosThisMonth = await this.giroRepo.find({
-        where: { createdAt: Between(monthStart, monthEnd) },
+      const girosThisMonth = await DI.giros.find({
+        createdAt: { $gte: monthStart, $lte: monthEnd },
       })
 
-      const volume = girosThisMonth.reduce((sum, giro) => sum + Number(giro.amountBs), 0)
-      const earnings = girosThisMonth.reduce((sum, giro) => sum + Number(giro.systemProfit), 0)
+      const volume = girosThisMonth.reduce((sum: number, giro: Giro) => sum + Number(giro.amountBs), 0)
+      const earnings = girosThisMonth.reduce((sum: number, giro: Giro) => sum + Number(giro.systemProfit), 0)
 
       return {
         girosCount: girosToday,
@@ -63,13 +55,13 @@ export class DashboardService {
       }
     } else if (role === 'TRANSFERENCISTA') {
       // Transferencista stats
-      const transferencista = requestUser.relatedEntity
+      const transferencista = user.transferencista
       if (!transferencista) {
         throw new Error('Transferencista no encontrado')
       }
 
-      const myGiros = await this.giroRepo.count({
-        where: { transferencista: { id: transferencista.id } },
+      const myGiros = await DI.giros.count({
+        transferencista: transferencista.id,
       })
 
       return {
@@ -78,23 +70,21 @@ export class DashboardService {
       }
     } else if (role === 'MINORISTA') {
       // Minorista stats
-      const minorista = requestUser.relatedEntity
+      const minorista = user.minorista
       if (!minorista) {
         throw new Error('Minorista no encontrado')
       }
 
-      const myGiros = await this.giroRepo.count({
-        where: { minorista: { id: minorista.id } },
+      const myGiros = await DI.giros.count({
+        minorista: minorista.id,
       })
 
-      const girosThisMonth = await this.giroRepo.find({
-        where: {
-          minorista: { id: minorista.id },
-          createdAt: Between(monthStart, monthEnd),
-        },
+      const girosThisMonth = await DI.giros.find({
+        minorista: minorista.id,
+        createdAt: { $gte: monthStart, $lte: monthEnd },
       })
 
-      const earnings = girosThisMonth.reduce((sum, giro) => sum + Number(giro.minoristaProfit), 0)
+      const earnings = girosThisMonth.reduce((sum: number, giro: Giro) => sum + Number(giro.minoristaProfit), 0)
 
       return {
         girosCount: myGiros,
