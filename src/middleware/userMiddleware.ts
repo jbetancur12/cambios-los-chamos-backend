@@ -11,6 +11,7 @@ export const userMiddleware = () => {
     req.context = {
       requestUser: new RequestUser(null, 'unauthenticatedUser', null),
     }
+    console.log("🚀 ~ userMiddleware ~ req.context:", req.context)
 
     // 1️⃣ Obtener token desde cookie o header Authorization
     const accessToken = req.cookies?.accessToken

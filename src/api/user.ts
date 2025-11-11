@@ -31,7 +31,7 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
     path: '/',
   })
@@ -76,7 +76,7 @@ userRouter.post(
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000,
       path: '/',
     })

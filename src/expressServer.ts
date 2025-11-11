@@ -52,6 +52,16 @@ export const startExpressServer = async () => {
     app.use(generalRateLimiter)
   }
 
+  app.use((req, res, next) => {
+  console.log('📦 Nueva petición x:')
+  console.log('  URL:', req.url)
+  console.log('  Método:', req.method)
+  console.log('  Origin:', req.headers.origin)
+  console.log('  Host:', req.headers.host)
+  console.log('  Referer:', req.headers.referer)
+  next()
+})
+
   app.use(
     cors({
       origin: CORS_ALLOWED_ORIGINS,

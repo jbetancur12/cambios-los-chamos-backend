@@ -107,7 +107,7 @@ let CORS_ALLOWED_ORIGINS: string[]
 if (CORS_ORIGINS_ENV) {
   CORS_ALLOWED_ORIGINS = CORS_ORIGINS_ENV.split(',').map((origin) => origin.trim())
 } else if (IS_DEVELOPMENT) {
-  CORS_ALLOWED_ORIGINS = ['http://localhost:8000', 'http://localhost:3000', 'http://localhost:5173']
+  CORS_ALLOWED_ORIGINS = ['http://localhost:8000', 'http://localhost:3000', 'http://localhost:5173', 'http://192.168.40.12:5173', 'http://192.168.40.15:5173']
 } else {
   CORS_ALLOWED_ORIGINS = ['https://app.useskald.com', 'https://api.useskald.com', 'https://platform.useskald.com']
 }
