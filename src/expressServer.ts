@@ -64,7 +64,7 @@ export const startExpressServer = async () => {
 
   app.use(
     cors({
-      origin: CORS_ALLOWED_ORIGINS,
+      origin: IS_DEVELOPMENT ? true : CORS_ALLOWED_ORIGINS,
       credentials: CORS_ALLOW_CREDENTIALS,
     })
   )
