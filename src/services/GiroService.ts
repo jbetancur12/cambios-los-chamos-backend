@@ -11,40 +11,46 @@ import { BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 
 export class GiroService {
   /**
-   * Encuentra el transferencista asignado para un banco destino específico
+   * Encuentra el siguiente transferencista disponible usando distribución round-robin
+   * Distribuye los giros equitativamente entre TODOS los transferencistas disponibles
    */
-  private async findAssignedTransferencista(bankId: string): Promise<Transferencista | null> {
-    const assignment = await DI.bankAssignments.findOne(
+  private async findNextAvailableTransferencista(): Promise<Transferencista | null> {
+    // Obtener todos los transferencistas disponibles, ordenados por ID para consistencia
+    const availableTransferencistas = await DI.transferencistas.find(
+      { available: true },
       {
-        bank: bankId,
-        isActive: true,
-      },
-      {
-        populate: ['transferencista', 'transferencista.user'],
-        orderBy: { priority: 'DESC' },
+        populate: ['user'],
+        orderBy: { id: 'ASC' },
       }
     )
 
-    if (!assignment) return null
-
-    // Verificar que el transferencista esté disponible
-    if (!assignment.transferencista.available) {
-      // Buscar otro transferencista activo para este banco
-      const alternativeAssignment = await DI.bankAssignments.findOne(
-        {
-          bank: bankId,
-          isActive: true,
-          transferencista: { available: true },
-        },
-        {
-          populate: ['transferencista', 'transferencista.user'],
-          orderBy: { priority: 'DESC' },
-        }
-      )
-      return alternativeAssignment?.transferencista || null
+    if (availableTransferencistas.length === 0) {
+      return null
     }
 
-    return assignment.transferencista
+    // Obtener o crear el tracker de asignación
+    let tracker = await DI.transferencistaAssignmentTracker.findOne({ id: 1 })
+
+    if (!tracker) {
+      // Crear el tracker si no existe (primera vez)
+      tracker = DI.transferencistaAssignmentTracker.create({
+        id: 1,
+        lastAssignedIndex: 0,
+        updatedAt: new Date(),
+      })
+      await DI.em.persistAndFlush(tracker)
+    }
+
+    // Calcular el siguiente índice (round-robin)
+    const nextIndex = (tracker.lastAssignedIndex + 1) % availableTransferencistas.length
+    const selectedTransferencista = availableTransferencistas[nextIndex]
+
+    // Actualizar el tracker
+    tracker.lastAssignedIndex = nextIndex
+    tracker.updatedAt = new Date()
+    await DI.em.persistAndFlush(tracker)
+
+    return selectedTransferencista
   }
 
   /**
@@ -71,8 +77,8 @@ export class GiroService {
     let status = GiroStatus.ASIGNADO // Por defecto ASIGNADO cuando hay transferencista
     const entitiesToFlush: (Giro | Minorista)[] = []
 
-    // Asignar transferencista basado en banco destino (para todos los roles)
-    const assigned = await this.findAssignedTransferencista(data.bankId)
+    // Asignar transferencista usando round-robin (distribución equitativa)
+    const assigned = await this.findNextAvailableTransferencista()
     if (!assigned) {
       return { error: 'NO_TRANSFERENCISTA_ASSIGNED' }
     }
@@ -266,6 +272,54 @@ export class GiroService {
     await DI.em.persistAndFlush(giro)
 
     return giro
+  }
+
+  /**
+   * Redistribuye todos los giros pendientes de un transferencista a otros disponibles
+   * Se llama cuando un transferencista se marca como no disponible
+   */
+  async redistributePendingGiros(transferencistaId: string): Promise<{
+    redistributed: number
+    errors: number
+  }> {
+    // Encontrar todos los giros pendientes o en proceso del transferencista
+    const pendingGiros = await DI.giros.find({
+      transferencista: transferencistaId,
+      status: { $in: [GiroStatus.ASIGNADO, GiroStatus.PROCESANDO] },
+    })
+
+    let redistributed = 0
+    let errors = 0
+
+    for (const giro of pendingGiros) {
+      try {
+        // Encontrar nuevo transferencista usando round-robin
+        const newTransferencista = await this.findNextAvailableTransferencista()
+
+        if (!newTransferencista) {
+          // No hay transferencistas disponibles, dejar el giro como está
+          errors++
+          continue
+        }
+
+        // Reasignar el giro
+        giro.transferencista = newTransferencista
+        giro.status = GiroStatus.ASIGNADO // Resetear a ASIGNADO si estaba PROCESANDO
+        giro.updatedAt = new Date()
+
+        redistributed++
+      } catch (error) {
+        console.error(`Error redistribuyendo giro ${giro.id}:`, error)
+        errors++
+      }
+    }
+
+    // Guardar todos los cambios
+    if (pendingGiros.length > 0) {
+      await DI.em.persistAndFlush(pendingGiros)
+    }
+
+    return { redistributed, errors }
   }
 
   /**

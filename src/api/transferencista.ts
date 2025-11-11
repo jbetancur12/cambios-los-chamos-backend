@@ -55,3 +55,42 @@ transferencistaRouter.get(
     }
   }
 )
+
+// ------------------ CAMBIAR DISPONIBILIDAD ------------------
+transferencistaRouter.put(
+  '/:id/toggle-availability',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  async (req: Request, res: Response) => {
+    const { id } = req.params
+    const { isAvailable } = req.body
+
+    if (typeof isAvailable !== 'boolean') {
+      return res.status(400).json(ApiResponse.badRequest('isAvailable debe ser un booleano'))
+    }
+
+    try {
+      const result = await transferencistaService.setAvailability(id, isAvailable)
+
+      if ('error' in result) {
+        return res.status(404).json(ApiResponse.notFound('Transferencista', id))
+      }
+
+      let message = result.available
+        ? 'Transferencista marcado como disponible'
+        : 'Transferencista marcado como no disponible'
+
+      if (result.girosRedistributed !== undefined && result.girosRedistributed > 0) {
+        message += `. ${result.girosRedistributed} giro(s) redistribuido(s) a otros transferencistas`
+      }
+
+      if (result.redistributionErrors !== undefined && result.redistributionErrors > 0) {
+        message += `. ${result.redistributionErrors} giro(s) no pudieron ser redistribuidos`
+      }
+
+      res.json(ApiResponse.success({ data: result, message }))
+    } catch (err: any) {
+      console.error('Error al actualizar disponibilidad:', err)
+      res.status(500).json(ApiResponse.error('Error al actualizar disponibilidad'))
+    }
+  }
+)

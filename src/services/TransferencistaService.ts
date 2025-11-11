@@ -3,6 +3,7 @@ import { DI } from '@/di'
 import { User, UserRole } from '@/entities/User'
 import { Transferencista } from '@/entities/Transferencista'
 import { makePassword } from '@/lib/passwordUtils'
+import { giroService } from '@/services/GiroService'
 
 class TransferencistaService {
   async createTransferencista(data: { fullName: string; email: string; password: string; available?: boolean }) {
@@ -95,6 +96,47 @@ class TransferencistaService {
       page,
       limit,
       transferencistas: data,
+    }
+  }
+
+  async setAvailability(
+    transferencistaId: string,
+    available: boolean
+  ): Promise<
+    | {
+        success: true
+        available: boolean
+        girosRedistributed?: number
+        redistributionErrors?: number
+      }
+    | { error: 'TRANSFERENCISTA_NOT_FOUND' }
+  > {
+    const transferencistaRepo = DI.em.getRepository(Transferencista)
+
+    const transferencista = await transferencistaRepo.findOne({ id: transferencistaId })
+    if (!transferencista) {
+      return { error: 'TRANSFERENCISTA_NOT_FOUND' }
+    }
+
+    const previousAvailability = transferencista.available
+    transferencista.available = available
+    await DI.em.persistAndFlush(transferencista)
+
+    // Si se marcó como NO disponible, redistribuir sus giros pendientes
+    if (!available && previousAvailability) {
+      const redistribution = await giroService.redistributePendingGiros(transferencistaId)
+
+      return {
+        success: true,
+        available: false,
+        girosRedistributed: redistribution.redistributed,
+        redistributionErrors: redistribution.errors,
+      }
+    }
+
+    return {
+      success: true,
+      available,
     }
   }
 }

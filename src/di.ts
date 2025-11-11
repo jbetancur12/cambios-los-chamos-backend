@@ -12,6 +12,7 @@ import { MinoristaTransaction } from './entities/MinoristaTransaction'
 import { BankTransaction } from './entities/BankTransaction'
 import { UserToken } from './entities/UserToken'
 import { BankAssignment } from './entities/BankAssignment'
+import { TransferencistaAssignmentTracker } from './entities/TransferencistaAssignmentTracker'
 
 export const DI = {} as {
   server: http.Server
@@ -28,6 +29,7 @@ export const DI = {} as {
   minoristas: EntityRepository<Minorista>
   minoristaTransactions: EntityRepository<MinoristaTransaction>
   transferencistas: EntityRepository<Transferencista>
+  transferencistaAssignmentTracker: EntityRepository<TransferencistaAssignmentTracker>
 }
 
 export const initDI = async (): Promise<typeof DI> => {
@@ -44,6 +46,7 @@ export const initDI = async (): Promise<typeof DI> => {
   DI.minoristas = DI.orm.em.getRepository(Minorista)
   DI.minoristaTransactions = DI.orm.em.getRepository(MinoristaTransaction)
   DI.transferencistas = DI.orm.em.getRepository(Transferencista)
+  DI.transferencistaAssignmentTracker = DI.orm.em.getRepository(TransferencistaAssignmentTracker)
 
   return DI
 }
