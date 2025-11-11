@@ -157,6 +157,20 @@ export class UserService {
     const users = await userRepo.find({ role })
     return users
   }
+
+  async toggleUserActiveStatus(userId: string): Promise<User | false> {
+    const userRepo = DI.em.getRepository(User)
+    const user = await userRepo.findOne({ id: userId })
+    console.log("🚀 ~ UserService ~ toggleUserActiveStatus ~ user:", user)
+
+    if (!user) {
+      return false
+    }
+
+    user.isActive = !user.isActive
+    await DI.em.persistAndFlush(user)
+    return user
+  }
 }
 
 // Exportar una instancia singleton

@@ -188,3 +188,35 @@ userRouter.get(
     }
   }
 )
+
+// ------------------ ACTIVAR / DESACTIVAR USUARIO ------------------
+userRouter.put(
+  '/:userId/toggle-active',
+  requireAuth(),
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: Request, res: Response) => {
+    const { userId } = req.params
+
+    try {
+      const user = await userService.toggleUserActiveStatus(userId)
+      if (!user) {
+        return res.status(404).json(ApiResponse.notFound('Usuario no encontrado'))
+      }
+
+      res.json(
+        ApiResponse.success({
+          message: `Usuario ${user.isActive ? 'activado' : 'desactivado'} exitosamente`,
+          user: {
+            id: user.id,
+            fullName: user.fullName,
+            email: user.email,
+            role: user.role,
+            isActive: user.isActive,
+          },
+        })
+      )
+    } catch (err: any) {
+      res.status(500).json(ApiResponse.error('Error al cambiar el estado del usuario'))
+    }
+  }
+)
