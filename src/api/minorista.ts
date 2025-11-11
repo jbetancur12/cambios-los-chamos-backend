@@ -39,6 +39,22 @@ minoristaRouter.post(
   }
 )
 
+// ------------------ OBTENER MI MINORISTA (USUARIO ACTUAL) ------------------
+minoristaRouter.get('/me', requireRole(UserRole.MINORISTA), async (req: Request, res: Response) => {
+  const user = req.context?.requestUser?.user
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
+  }
+
+  const result = await minoristaService.getMinoristaByUserId(user.id)
+
+  if ('error' in result) {
+    return res.status(404).json(ApiResponse.notFound('Minorista'))
+  }
+
+  res.json(ApiResponse.success({ minorista: result }))
+})
+
 // ------------------ LISTAR MINORISTAS ------------------
 minoristaRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
   const page = parseInt(req.query.page as string) || 1

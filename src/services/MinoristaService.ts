@@ -142,6 +142,44 @@ export class MinoristaService {
   }
 
   /**
+   * Obtiene un minorista por ID de usuario
+   */
+  async getMinoristaByUserId(userId: string): Promise<
+    | {
+        id: string
+        balance: number
+        user: {
+          id: string
+          fullName: string
+          email: string
+          role: UserRole
+          isActive: boolean
+        }
+      }
+    | { error: 'MINORISTA_NOT_FOUND' }
+  > {
+    const minoristaRepo = DI.em.getRepository(Minorista)
+
+    const minorista = await minoristaRepo.findOne({ user: userId }, { populate: ['user'] })
+
+    if (!minorista) {
+      return { error: 'MINORISTA_NOT_FOUND' }
+    }
+
+    return {
+      id: minorista.id,
+      balance: minorista.balance,
+      user: {
+        id: minorista.user.id,
+        fullName: minorista.user.fullName,
+        email: minorista.user.email,
+        role: minorista.user.role,
+        isActive: minorista.user.isActive,
+      },
+    }
+  }
+
+  /**
    * Obtiene un minorista por ID
    */
   async getMinoristaById(minoristaId: string): Promise<
