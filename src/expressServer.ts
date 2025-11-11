@@ -17,6 +17,7 @@ import { bankRouter } from '@/api/bank'
 import { bankAccountRouter } from '@/api/bankAccount'
 import { bankTransactionRouter } from '@/api/bankTransaction'
 import { exchangeRateRouter } from '@/api/exchangeRate'
+import dashboardRouter from '@/api/dashboard'
 import cookieParser from 'cookie-parser'
 import {
   CORS_ALLOWED_ORIGINS,
@@ -82,6 +83,7 @@ export const startExpressServer = async () => {
 
   // Rutas privadas (requieren autenticación)
   privateRoutesRouter.use('/giro', giroRouter)
+  privateRoutesRouter.use('/dashboard', dashboardRouter)
 
   app.use('/api', privateRoutesRouter)
 

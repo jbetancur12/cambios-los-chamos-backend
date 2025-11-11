@@ -292,7 +292,6 @@ export class GiroService {
     // Construir filtros base según rol
     const where: any = {}
 
-    console.log("🚀 ~ GiroService ~ listGiros ~ options.userRole:", options.userRole)
     if (options.userRole === UserRole.TRANSFERENCISTA) {
       // Transferencista: solo giros asignados a él
       const transferencista = await DI.transferencistas.findOne({ user: options.userId })
