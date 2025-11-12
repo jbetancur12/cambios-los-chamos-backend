@@ -53,7 +53,13 @@ router.post('/', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Re
 
     const amount = new RechargeAmount()
     amount.amountBs = amountBs
-    const user = (req as any).user
+    const user = req.context?.requestUser?.user
+    if (!user) {
+      return res.status(401).json({
+        error: 'UNAUTHORIZED',
+        message: 'User not found in request context',
+      })
+    }
     amount.createdBy = user
 
     await DI.em.persistAndFlush(amount)
