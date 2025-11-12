@@ -552,6 +552,111 @@ export class GiroService {
 
     return giro
   }
+
+  /**
+   * Crea un giro de tipo PAGO_MOVIL
+   * Solo MINORISTA puede crear pagos móviles
+   */
+  async createMobilePayment(
+    data: {
+      cedula: string
+      bankId: string
+      phone: string
+      contactoEnvia: string
+      amountCop: number
+    },
+    createdBy: User,
+    exchangeRate: any
+  ): Promise<
+    Giro | {
+      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
+    }
+  > {
+    const giroRepo = DI.em.getRepository(Giro)
+
+    // Validar que sea minorista
+    if (createdBy.role !== UserRole.MINORISTA) {
+      return { error: 'MINORISTA_NOT_FOUND' }
+    }
+
+    // Obtener minorista
+    const minorista = await DI.minoristas.findOne({ user: createdBy.id }, { populate: ['user'] })
+    if (!minorista) {
+      return { error: 'MINORISTA_NOT_FOUND' }
+    }
+
+    // Obtener banco
+    const bank = await DI.banks.findOne({ id: data.bankId })
+    if (!bank) {
+      return { error: 'BANK_NOT_FOUND' }
+    }
+
+    // Asignar transferencista
+    const assigned = await this.findNextAvailableTransferencista()
+    if (!assigned) {
+      return { error: 'NO_TRANSFERENCISTA_ASSIGNED' }
+    }
+
+    // Calcular conversión COP a Bs
+    const amountBs = data.amountCop / Number(exchangeRate.sellRate)
+
+    // Crear transacción de descuento del balance del minorista
+    const transactionResult = await minoristaTransactionService.createTransaction({
+      minoristaId: minorista.id,
+      amount: data.amountCop,
+      type: MinoristaTransactionType.DISCOUNT,
+      createdBy,
+    })
+
+    if ('error' in transactionResult) {
+      return { error: 'INSUFFICIENT_BALANCE' }
+    }
+
+    // Recargar minorista para obtener balance actualizado
+    await DI.em.refresh(minorista)
+
+    // Calcular ganancias: 5% para minorista
+    const minoristaProfit = data.amountCop * 0.05
+    const systemProfit = data.amountCop * 0.05 // 5% para el sistema
+
+    // Crear transacción de ganancia para el minorista
+    await minoristaTransactionService.createTransaction({
+      minoristaId: minorista.id,
+      amount: minoristaProfit,
+      type: MinoristaTransactionType.PROFIT,
+      createdBy,
+    })
+
+    // Recargar minorista para obtener balance actualizado
+    await DI.em.refresh(minorista)
+
+    // Crear giro
+    const giro = giroRepo.create({
+      minorista,
+      transferencista: assigned,
+      beneficiaryName: data.contactoEnvia,
+      beneficiaryId: data.cedula,
+      bankName: bank.name,
+      accountNumber: data.phone,
+      phone: data.phone,
+      rateApplied: exchangeRate,
+      amountInput: data.amountCop,
+      currencyInput: 'COP' as any,
+      amountBs: amountBs,
+      bcvValueApplied: exchangeRate.bcv,
+      systemProfit,
+      minoristaProfit,
+      executionType: ExecutionType.PAGO_MOVIL,
+      status: GiroStatus.ASIGNADO,
+      createdBy,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    await DI.em.persistAndFlush(giro)
+
+    return giro
+  }
 }
 
 export const giroService = new GiroService()
