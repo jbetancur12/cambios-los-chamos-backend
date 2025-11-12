@@ -109,6 +109,40 @@ bankAccountRouter.get('/my-accounts', requireRole(UserRole.TRANSFERENCISTA), asy
   res.json(ApiResponse.success({ bankAccounts: result }))
 })
 
+// ------------------ OBTENER TODAS LAS CUENTAS (ADMIN/SUPER_ADMIN) ------------------
+bankAccountRouter.get(
+  '/all',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  async (req: Request, res: Response) => {
+    const bankAccountRepo = DI.em.getRepository(BankAccount)
+
+    const accounts = await bankAccountRepo.find({}, { populate: ['bank', 'transferencista', 'transferencista.user'] })
+
+    const formattedAccounts = accounts.map((account) => ({
+      id: account.id,
+      accountNumber: account.accountNumber,
+      accountHolder: account.accountHolder,
+      accountType: account.accountType,
+      balance: account.balance,
+      bank: {
+        id: account.bank.id,
+        name: account.bank.name,
+        code: account.bank.code,
+      },
+      transferencista: {
+        id: account.transferencista.id,
+        user: {
+          id: account.transferencista.user.id,
+          fullName: account.transferencista.user.fullName,
+          email: account.transferencista.user.email,
+        },
+      },
+    }))
+
+    res.json(ApiResponse.success({ bankAccounts: formattedAccounts }))
+  }
+)
+
 // ------------------ OBTENER CUENTA POR ID ------------------
 bankAccountRouter.get(
   '/list/:transferencistaId',
@@ -183,16 +217,33 @@ bankAccountRouter.patch(
   validateBody(updateBankAccountBalanceSchema),
   async (req: Request, res: Response) => {
     const { bankAccountId, amount } = req.body
+    const user = req.context?.requestUser?.user
 
-    try {
-      const account = await bankAccountService.updateBalance(bankAccountId, amount)
-      res.json(ApiResponse.success({ data: account, message: 'Saldo actualizado exitosamente' }))
-    } catch (err: any) {
-      if (err.message.includes('Cuenta bancaria no encontrada')) {
-        return res.status(404).json(ApiResponse.notFound('Cuenta bancaria'))
-      }
-      res.status(500).json(ApiResponse.error('Error al recargar saldo'))
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
     }
+
+    // Determinar el tipo de transacción según si es positivo o negativo
+    const transactionType = amount >= 0 ? 'DEPOSIT' : 'ADJUSTMENT'
+
+    const result = await bankAccountTransactionService.createTransaction({
+      bankAccountId,
+      amount: Math.abs(amount), // El servicio maneja el signo según el tipo
+      type: transactionType as any,
+      reference: 'Recarga manual de saldo',
+      createdBy: user,
+    })
+
+    if ('error' in result) {
+      switch (result.error) {
+        case 'BANK_ACCOUNT_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Cuenta bancaria'))
+        case 'INSUFFICIENT_BALANCE':
+          return res.status(400).json(ApiResponse.badRequest('Balance insuficiente para esta operación'))
+      }
+    }
+
+    res.json(ApiResponse.success({ message: 'Saldo actualizado exitosamente' }))
   }
 )
 
