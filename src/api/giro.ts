@@ -8,7 +8,7 @@ import { giroService } from '@/services/GiroService'
 import { DI } from '@/di'
 import { Currency } from '@/entities/Bank'
 import { exchangeRateService } from '@/services/ExchangeRateService'
-import { GiroStatus } from '@/entities/Giro'
+import { ExecutionType, GiroStatus } from '@/entities/Giro'
 
 export const giroRouter = express.Router({ mergeParams: true })
 
@@ -99,6 +99,7 @@ giroRouter.post(
         currencyInput,
         amountBs,
         rateApplied,
+        executionType: ExecutionType.TRANSFERENCIA
       },
       user
     )

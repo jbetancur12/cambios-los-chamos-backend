@@ -1,5 +1,6 @@
 import { Currency } from '@/entities/Bank'
 import { ExchangeRate } from '@/entities/ExchangeRate'
+import { ExecutionType } from '@/entities/Giro'
 
 export interface CreateGiroInput {
   rateApplied: ExchangeRate
@@ -12,4 +13,5 @@ export interface CreateGiroInput {
   amountInput: number
   currencyInput: Currency
   amountBs: number
+  executionType: ExecutionType
 }

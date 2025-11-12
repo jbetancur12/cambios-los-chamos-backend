@@ -164,6 +164,7 @@ export class GiroService {
       currencyInput: data.currencyInput,
       amountBs: data.amountBs,
       bcvValueApplied: data.rateApplied.bcv,
+      executionType:data.executionType,
       systemProfit,
       minoristaProfit,
       status,

@@ -1346,7 +1346,8 @@
             "PAGO_MOVIL",
             "EFECTIVO",
             "ZELLE",
-            "OTROS"
+            "OTROS",
+            "RECARGA"
           ],
           "mappedType": "enum"
         },
