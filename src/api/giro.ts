@@ -59,6 +59,7 @@ giroRouter.post(
         usd: customRate.usd,
         bcv: customRate.bcv,
         createdBy: user,
+        isCustom: true, // Marcar como tasa personalizada para este giro
       })
       rateApplied = customExchangeRate
     } else {

@@ -8,6 +8,7 @@ export interface CreateExchangeRateInput {
   usd: number
   bcv: number
   createdBy: User
+  isCustom?: boolean // Marcar como tasa personalizada para un giro específico
 }
 
 export class ExchangeRateService {
@@ -23,6 +24,7 @@ export class ExchangeRateService {
       usd: data.usd,
       bcv: data.bcv,
       createdBy: data.createdBy,
+      isCustom: data.isCustom ?? false,
       createdAt: new Date(),
     })
 
@@ -32,13 +34,13 @@ export class ExchangeRateService {
   }
 
   /**
-   * Obtiene la tasa de cambio actual (la más reciente)
+   * Obtiene la tasa de cambio actual (la más reciente que no sea personalizada)
    */
   async getCurrentRate(): Promise<ExchangeRate | { error: 'NO_RATE_FOUND' }> {
     const exchangeRateRepo = DI.em.getRepository(ExchangeRate)
 
     const rates = await exchangeRateRepo.find(
-      {},
+      { isCustom: false }, // Excluir tasas personalizadas
       {
         orderBy: { createdAt: 'DESC' },
         populate: ['createdBy'],
@@ -54,7 +56,7 @@ export class ExchangeRateService {
   }
 
   /**
-   * Lista todas las tasas de cambio con paginación
+   * Lista todas las tasas de cambio con paginación (excluye tasas personalizadas)
    */
   async listExchangeRates(options?: { page?: number; limit?: number }): Promise<{
     total: number
@@ -81,7 +83,7 @@ export class ExchangeRateService {
     const offset = (page - 1) * limit
 
     const [rates, total] = await exchangeRateRepo.findAndCount(
-      {},
+      { isCustom: false }, // Excluir tasas personalizadas del historial
       {
         limit,
         offset,

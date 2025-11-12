@@ -1,6 +1,7 @@
 import { config } from 'dotenv'
 import { resolve } from 'path'
 import pino from 'pino'
+import type { CorsOptions } from 'cors'
 
 // Logger for settings validation (before main logger is configured)
 const logger = pino({
@@ -107,9 +108,20 @@ let CORS_ALLOWED_ORIGINS: string[]
 if (CORS_ORIGINS_ENV) {
   CORS_ALLOWED_ORIGINS = CORS_ORIGINS_ENV.split(',').map((origin) => origin.trim())
 } else if (IS_DEVELOPMENT) {
-  CORS_ALLOWED_ORIGINS = ['http://localhost:8000', 'http://localhost:3000', 'http://localhost:5173', 'http://192.168.40.12:5173', 'http://192.168.40.15:5173']
+  CORS_ALLOWED_ORIGINS = [
+    'https://zkq86shq.use2.devtunnels.ms:5173',
+    'http://localhost:8000', 
+    'http://localhost:3000', 
+    'http://localhost:5173', 
+    'http://192.168.40.12:5173', 
+    'http://192.168.40.15:5173', 
+  ]
 } else {
-  CORS_ALLOWED_ORIGINS = ['https://app.useskald.com', 'https://api.useskald.com', 'https://platform.useskald.com']
+  CORS_ALLOWED_ORIGINS = [
+    'https://app.useskald.com', 
+    'https://api.useskald.com', 
+    'https://platform.useskald.com'
+  ]
 }
 
 // Add self-hosted deployment URLs
@@ -125,7 +137,26 @@ if (IS_SELF_HOSTED_DEPLOY) {
   }
 }
 
-export { CORS_ALLOWED_ORIGINS }
+interface CorsCallback {
+  (error: Error | null, allow?: boolean): void
+}
+
+const corsOptions: CorsOptions = {
+  origin: (origin: string | undefined, callback: CorsCallback) => {
+    console.log(`[CORS] Origin recibido: ${origin}`);
+    if (!origin || IS_DEVELOPMENT || CORS_ALLOWED_ORIGINS.includes(origin.replace(/\/$/, ''))) {
+      console.log(`[CORS] Permitido: ${origin}`);
+      callback(null, true)
+    } else {
+      console.warn(`[CORS] Bloqueado: ${origin}`);
+      callback(new Error(`CORS: Origen no permitido → ${origin}`))
+    }
+  },
+  credentials: CORS_ALLOW_CREDENTIALS
+}
+
+
+export { corsOptions }
 
 export const ENABLE_SECURITY_SETTINGS = strToBool(process.env.ENABLE_SECURITY_SETTINGS, !IS_DEVELOPMENT)
 

@@ -20,11 +20,10 @@ import { exchangeRateRouter } from '@/api/exchangeRate'
 import dashboardRouter from '@/api/dashboard'
 import cookieParser from 'cookie-parser'
 import {
-  CORS_ALLOWED_ORIGINS,
-  CORS_ALLOW_CREDENTIALS,
   IS_DEVELOPMENT,
   ENABLE_SECURITY_SETTINGS,
   EXPRESS_SERVER_PORT,
+  corsOptions,
 } from '@/settings'
 import { emailVerificationRouter } from '@/api/emailVerification'
 import { authRateLimiter, generalRateLimiter } from '@/middleware/rateLimitMiddleware'
@@ -51,15 +50,23 @@ export const startExpressServer = async () => {
   if (ENABLE_SECURITY_SETTINGS) {
     app.use(generalRateLimiter)
   }
-
+  
   app.use(
-    cors({
-      origin: IS_DEVELOPMENT ? true : CORS_ALLOWED_ORIGINS,
-      credentials: CORS_ALLOW_CREDENTIALS,
-    })
+    cors(corsOptions)
   )
 
+
+
+
+
+
+
   app.use(express.json())
+  app.use((req, res, next) => {
+  logger.info(`[REQ] ${req.method} ${req.url} desde ${req.headers.origin}`);
+  next();
+});
+
   app.use(cookieParser())
   app.use((req, res, next) => RequestContext.create(DI.orm.em, next))
   app.use(userMiddleware())
@@ -70,7 +77,7 @@ export const startExpressServer = async () => {
   privateRoutesRouter.use(requireAuth())
 
   app.get('/api/health', health)
-  app.use('/api/user', authRateLimiter, userRouter)
+  app.use('/api/user',  userRouter)
   app.use('/api/transferencista', transferencistaRouter)
   app.use('/api/minorista', minoristaRouter)
   app.use('/api/minorista-transaction', minoristaTransactionRouter)

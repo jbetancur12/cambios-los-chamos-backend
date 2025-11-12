@@ -22,6 +22,9 @@ export class ExchangeRate {
   @ManyToOne(() => User)
   createdBy!: User
 
+  @Property({ type: 'boolean', default: false })
+  isCustom: boolean = false // True si es una tasa personalizada para un giro específico
+
   @Property({ onCreate: () => new Date() })
   createdAt: Date = new Date()
 }

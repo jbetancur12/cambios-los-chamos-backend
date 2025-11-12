@@ -16,8 +16,11 @@ import { validateParams } from '@/lib/validateParams'
 
 export const userRouter = express.Router({ mergeParams: true })
 
+
+
 // ------------------ LOGIN ------------------
 userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: Response) => {
+
   const { email, password } = req.body
 
   const result = await userService.login(email, password)
@@ -27,6 +30,8 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
   }
 
   const { user, token: accessToken } = result
+
+ 
 
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
