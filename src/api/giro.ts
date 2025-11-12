@@ -235,3 +235,64 @@ giroRouter.post('/:giroId/execute', requireRole(UserRole.TRANSFERENCISTA), async
 
   res.json(ApiResponse.success({ giro: result, message: 'Giro ejecutado exitosamente' }))
 })
+
+// ------------------ CREAR RECARGA ------------------
+giroRouter.post(
+  '/recharge/create',
+  requireRole(UserRole.MINORISTA),
+  async (req: Request, res: Response) => {
+    const user = req.context?.requestUser?.user
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
+    const { operatorId, amountBsId, phone, contactoEnvia } = req.body
+
+    if (!operatorId || !amountBsId || !phone || !contactoEnvia) {
+      return res.status(400).json(
+        ApiResponse.validationError([
+          { field: 'operatorId', message: 'El operador es requerido' },
+          { field: 'amountBsId', message: 'El monto es requerido' },
+          { field: 'phone', message: 'El teléfono es requerido' },
+          { field: 'contactoEnvia', message: 'El contacto que envía es requerido' },
+        ])
+      )
+    }
+
+    // Obtener tasa de cambio actual
+    const currentRateResult = await exchangeRateService.getCurrentRate()
+    if ('error' in currentRateResult) {
+      return res
+        .status(404)
+        .json(ApiResponse.notFound('No hay tasa de cambio configurada. Contacte al administrador.'))
+    }
+
+    const result = await giroService.createRecharge(
+      {
+        operatorId,
+        amountBsId,
+        phone,
+        contactoEnvia,
+      },
+      user,
+      currentRateResult
+    )
+
+    if ('error' in result) {
+      switch (result.error) {
+        case 'MINORISTA_NOT_FOUND':
+          return res.status(400).json(ApiResponse.notFound('Minorista'))
+        case 'NO_TRANSFERENCISTA_ASSIGNED':
+          return res.status(400).json(ApiResponse.badRequest('No hay transferencistas disponibles'))
+        case 'INSUFFICIENT_BALANCE':
+          return res.status(400).json(ApiResponse.badRequest('Balance insuficiente del minorista'))
+        case 'OPERATOR_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Operador', operatorId))
+        case 'AMOUNT_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Monto', amountBsId))
+      }
+    }
+
+    res.status(201).json(ApiResponse.success({ giro: result, message: 'Recarga creada exitosamente' }))
+  }
+)

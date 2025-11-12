@@ -441,6 +441,117 @@ export class GiroService {
 
     return { error: 'UNAUTHORIZED' }
   }
+
+  /**
+   * Crea un giro de tipo RECARGA
+   * Solo MINORISTA puede crear recargas
+   */
+  async createRecharge(
+    data: {
+      operatorId: string
+      amountBsId: string
+      phone: string
+      contactoEnvia: string
+    },
+    createdBy: User,
+    exchangeRate: any
+  ): Promise<
+    Giro | {
+      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'OPERATOR_NOT_FOUND' | 'AMOUNT_NOT_FOUND'
+    }
+  > {
+    const giroRepo = DI.em.getRepository(Giro)
+
+    // Validar que sea minorista
+    if (createdBy.role !== UserRole.MINORISTA) {
+      return { error: 'MINORISTA_NOT_FOUND' }
+    }
+
+    // Obtener minorista
+    const minorista = await DI.minoristas.findOne({ user: createdBy.id }, { populate: ['user'] })
+    if (!minorista) {
+      return { error: 'MINORISTA_NOT_FOUND' }
+    }
+
+    // Obtener operador
+    const operator = await DI.rechargeOperators.findOne({ id: data.operatorId })
+    if (!operator) {
+      return { error: 'OPERATOR_NOT_FOUND' }
+    }
+
+    // Obtener monto
+    const amount = await DI.rechargeAmounts.findOne({ id: data.amountBsId })
+    if (!amount) {
+      return { error: 'AMOUNT_NOT_FOUND' }
+    }
+
+    // Asignar transferencista
+    const assigned = await this.findNextAvailableTransferencista()
+    if (!assigned) {
+      return { error: 'NO_TRANSFERENCISTA_ASSIGNED' }
+    }
+
+    // Calcular conversiones
+    const amountBs = amount.amountBs
+    const amountCop = amountBs * Number(exchangeRate.sellRate)
+
+    // Crear transacción de descuento del balance del minorista
+    const transactionResult = await minoristaTransactionService.createTransaction({
+      minoristaId: minorista.id,
+      amount: amountCop,
+      type: MinoristaTransactionType.DISCOUNT,
+      createdBy,
+    })
+
+    if ('error' in transactionResult) {
+      return { error: 'INSUFFICIENT_BALANCE' }
+    }
+
+    // Recargar minorista para obtener balance actualizado
+    await DI.em.refresh(minorista)
+
+    // Calcular ganancias: 5% para minorista
+    const minoristaProfit = amountCop * 0.05
+    const systemProfit = amountCop * 0.05 // 5% para el sistema
+
+    // Crear transacción de ganancia para el minorista
+    await minoristaTransactionService.createTransaction({
+      minoristaId: minorista.id,
+      amount: minoristaProfit,
+      type: MinoristaTransactionType.PROFIT,
+      createdBy,
+    })
+
+    // Recargar minorista para obtener balance actualizado
+    await DI.em.refresh(minorista)
+
+    // Crear giro
+    const giro = giroRepo.create({
+      minorista,
+      transferencista: assigned,
+      beneficiaryName: data.contactoEnvia,
+      beneficiaryId: data.phone, // Usar teléfono como ID temporal
+      bankName: operator.name, // Nombre del operador
+      accountNumber: data.phone,
+      phone: data.phone,
+      rateApplied: exchangeRate,
+      amountInput: amountCop,
+      currencyInput: 'COP' as any, // COP es el tipo de moneda para recarga
+      amountBs: amountBs,
+      bcvValueApplied: exchangeRate.bcv,
+      systemProfit,
+      minoristaProfit,
+      executionType: ExecutionType.RECARGA,
+      status: GiroStatus.ASIGNADO,
+      createdBy,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    await DI.em.persistAndFlush(giro)
+
+    return giro
+  }
 }
 
 export const giroService = new GiroService()

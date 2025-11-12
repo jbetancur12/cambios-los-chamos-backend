@@ -21,6 +21,7 @@ export enum ExecutionType {
   EFECTIVO = 'EFECTIVO',
   ZELLE = 'ZELLE',
   OTROS = 'OTROS',
+  RECARGA = 'RECARGA',
 }
 
 @Entity({ tableName: 'giros' })
