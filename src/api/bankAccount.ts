@@ -11,6 +11,8 @@ import {
 import { bankAccountService } from '@/services/BankAccountService'
 import { DI } from '@/di'
 import { validateParams } from '@/lib/validateParams'
+import { bankAccountTransactionService } from '@/services/BankAccountTransactionService'
+import { BankAccount } from '@/entities/BankAccount'
 
 export const bankAccountRouter = express.Router({ mergeParams: true })
 
@@ -145,5 +147,61 @@ bankAccountRouter.patch(
       }
       res.status(500).json(ApiResponse.error('Error al recargar saldo'))
     }
+  }
+)
+
+// ------------------ LISTAR TRANSACCIONES DE UNA CUENTA ------------------
+bankAccountRouter.get(
+  '/:bankAccountId/transactions',
+  requireRole(UserRole.TRANSFERENCISTA),
+  async (req: Request, res: Response) => {
+    const { bankAccountId } = req.params
+    const user = req.context?.requestUser?.user
+
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
+    // Buscar el transferencista asociado al usuario
+    const transferencista = await DI.transferencistas.findOne({ user: user.id })
+    if (!transferencista) {
+      return res.status(404).json(ApiResponse.notFound('Transferencista'))
+    }
+
+    // Verificar que la cuenta bancaria pertenece al transferencista
+    const bankAccountRepo = DI.em.getRepository(BankAccount)
+    const bankAccount = await bankAccountRepo.findOne({ id: bankAccountId }, { populate: ['transferencista'] })
+
+    if (!bankAccount) {
+      return res.status(404).json(ApiResponse.notFound('Cuenta bancaria'))
+    }
+
+    if (bankAccount.transferencista.id !== transferencista.id) {
+      return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver las transacciones de esta cuenta'))
+    }
+
+    const page = parseInt(req.query.page as string) || 1
+    const limit = parseInt(req.query.limit as string) || 50
+
+    const result = await bankAccountTransactionService.listTransactionsByBankAccount(bankAccountId, {
+      page,
+      limit,
+    })
+
+    if ('error' in result) {
+      return res.status(404).json(ApiResponse.notFound('Cuenta bancaria'))
+    }
+
+    res.json(
+      ApiResponse.success({
+        transactions: result.transactions,
+        pagination: {
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: Math.ceil(result.total / result.limit),
+        },
+      })
+    )
   }
 )
