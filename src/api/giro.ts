@@ -158,8 +158,23 @@ giroRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
 // ------------------ OBTENER GIRO ------------------
 giroRouter.get('/:giroId', requireAuth(), async (req: Request, res: Response) => {
   const { giroId } = req.params
-  // Lógica para obtener un giro por ID
-  res.json(ApiResponse.success({ message: `Giro ${giroId} obtenido exitosamente` }))
+  const user = req.context?.requestUser?.user
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
+  }
+
+  const result = await giroService.getGiroById(giroId, user.id, user.role)
+
+  if ('error' in result) {
+    switch (result.error) {
+      case 'GIRO_NOT_FOUND':
+        return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+      case 'UNAUTHORIZED':
+        return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver este giro'))
+    }
+  }
+
+  res.json(ApiResponse.success({ giro: result }))
 })
 
 // ------------------ MARCAR GIRO COMO PROCESANDO ------------------

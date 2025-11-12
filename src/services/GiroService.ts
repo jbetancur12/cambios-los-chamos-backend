@@ -392,6 +392,57 @@ export class GiroService {
       limit,
     }
   }
+
+  /**
+   * Obtiene un giro por ID con validación de permisos
+   */
+  async getGiroById(
+    giroId: string,
+    userId: string,
+    userRole: UserRole
+  ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'UNAUTHORIZED' }> {
+    const giroRepo = DI.em.getRepository(Giro)
+
+    const giro = await giroRepo.findOne(
+      { id: giroId },
+      {
+        populate: [
+          'minorista',
+          'minorista.user',
+          'transferencista',
+          'transferencista.user',
+          'rateApplied',
+          'createdBy',
+          'bankAccountUsed',
+          'bankAccountUsed.bank',
+        ],
+      }
+    )
+
+    if (!giro) {
+      return { error: 'GIRO_NOT_FOUND' }
+    }
+
+    // Validar permisos según rol
+    if (userRole === UserRole.SUPER_ADMIN || userRole === UserRole.ADMIN) {
+      // Admin y SuperAdmin pueden ver todos los giros
+      return giro
+    } else if (userRole === UserRole.TRANSFERENCISTA) {
+      // Transferencista solo puede ver giros asignados a él
+      if (giro.transferencista?.user.id !== userId) {
+        return { error: 'UNAUTHORIZED' }
+      }
+      return giro
+    } else if (userRole === UserRole.MINORISTA) {
+      // Minorista solo puede ver sus propios giros
+      if (giro.minorista?.user.id !== userId) {
+        return { error: 'UNAUTHORIZED' }
+      }
+      return giro
+    }
+
+    return { error: 'UNAUTHORIZED' }
+  }
 }
 
 export const giroService = new GiroService()
