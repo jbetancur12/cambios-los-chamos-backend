@@ -19,6 +19,8 @@ import { bankTransactionRouter } from '@/api/bankTransaction'
 import { exchangeRateRouter } from '@/api/exchangeRate'
 import dashboardRouter from '@/api/dashboard'
 import reportsRouter from '@/api/reports'
+import rechargeOperatorRouter from '@/api/rechargeOperator'
+import rechargeAmountRouter from '@/api/rechargeAmount'
 import cookieParser from 'cookie-parser'
 import {
   IS_DEVELOPMENT,
@@ -84,6 +86,8 @@ export const startExpressServer = async () => {
   app.use('/api/exchange-rate', exchangeRateRouter)
   app.use('/email-verification', emailVerificationRouter)
   app.use('/api/reports', reportsRouter)
+  app.use('/api/recharge-operators', rechargeOperatorRouter)
+  app.use('/api/recharge-amounts', rechargeAmountRouter)
 
   // Rutas privadas (requieren autenticación)
   privateRoutesRouter.use('/giro', giroRouter)
