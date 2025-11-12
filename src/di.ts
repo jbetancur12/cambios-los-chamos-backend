@@ -10,6 +10,7 @@ import { Minorista } from './entities/Minorista'
 import { Giro } from './entities/Giro'
 import { MinoristaTransaction } from './entities/MinoristaTransaction'
 import { BankTransaction } from './entities/BankTransaction'
+import { BankAccountTransaction } from './entities/BankAccountTransaction'
 import { UserToken } from './entities/UserToken'
 import { BankAssignment } from './entities/BankAssignment'
 import { TransferencistaAssignmentTracker } from './entities/TransferencistaAssignmentTracker'
@@ -23,6 +24,7 @@ export const DI = {} as {
   banks: EntityRepository<Bank>
   bankAccounts: EntityRepository<BankAccount>
   bankTransactions: EntityRepository<BankTransaction>
+  bankAccountTransactions: EntityRepository<BankAccountTransaction>
   bankAssignments: EntityRepository<BankAssignment>
   exchangeRates: EntityRepository<ExchangeRate>
   giros: EntityRepository<Giro>
@@ -40,6 +42,7 @@ export const initDI = async (): Promise<typeof DI> => {
   DI.banks = DI.orm.em.getRepository(Bank)
   DI.bankAccounts = DI.orm.em.getRepository(BankAccount)
   DI.bankTransactions = DI.orm.em.getRepository(BankTransaction)
+  DI.bankAccountTransactions = DI.orm.em.getRepository(BankAccountTransaction)
   DI.bankAssignments = DI.orm.em.getRepository(BankAssignment)
   DI.exchangeRates = DI.orm.em.getRepository(ExchangeRate)
   DI.giros = DI.orm.em.getRepository(Giro)

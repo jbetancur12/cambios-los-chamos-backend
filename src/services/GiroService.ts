@@ -119,17 +119,15 @@ export class GiroService {
 
     // Calcular ganancias: ((monto / sellRate) * buyRate) - monto
     const totalProfit =  data.amountInput - ((data.amountInput / data.rateApplied.sellRate) * data.rateApplied.buyRate) 
-    console.log("🚀 ~ GiroService ~ createGiro ~ data.rateApplied.buyRate:", data.rateApplied.buyRate)
-    console.log("🚀 ~ GiroService ~ createGiro ~ data.rateApplied.sellRate:", data.rateApplied.sellRate)
-    console.log("🚀 ~ GiroService ~ createGiro ~ data.amountInput:", data.amountInput)
+
     // const totalProfit = (data.rateApplied.sellRate - data.rateApplied.buyRate) * (data.amountInput )
     let systemProfit = 0
     let minoristaProfit = 0
 
     if (createdBy.role === UserRole.MINORISTA && minorista) {
       // Minorista: 50% para él, 50% para el sistema
-      minoristaProfit = totalProfit * 0.5
-      systemProfit = totalProfit * 0.5
+      minoristaProfit = data.amountInput * 0.05
+      systemProfit = totalProfit  - minoristaProfit
 
       // Crear transacción de ganancia para el minorista
       const profitTransaction = await minoristaTransactionService.createTransaction({

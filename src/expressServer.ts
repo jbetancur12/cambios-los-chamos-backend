@@ -18,6 +18,7 @@ import { bankAccountRouter } from '@/api/bankAccount'
 import { bankTransactionRouter } from '@/api/bankTransaction'
 import { exchangeRateRouter } from '@/api/exchangeRate'
 import dashboardRouter from '@/api/dashboard'
+import reportsRouter from '@/api/reports'
 import cookieParser from 'cookie-parser'
 import {
   IS_DEVELOPMENT,
@@ -56,11 +57,6 @@ export const startExpressServer = async () => {
   )
 
 
-
-
-
-
-
   app.use(express.json())
   app.use((req, res, next) => {
   logger.info(`[REQ] ${req.method} ${req.url} desde ${req.headers.origin}`);
@@ -87,6 +83,7 @@ export const startExpressServer = async () => {
   app.use('/api/bank-transaction', bankTransactionRouter)
   app.use('/api/exchange-rate', exchangeRateRouter)
   app.use('/email-verification', emailVerificationRouter)
+  app.use('/api/reports', reportsRouter)
 
   // Rutas privadas (requieren autenticación)
   privateRoutesRouter.use('/giro', giroRouter)
