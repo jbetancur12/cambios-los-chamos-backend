@@ -205,8 +205,15 @@ minoristaRouter.get(
         return res.status(404).json(ApiResponse.notFound('Minorista', minoristaId))
       }
 
-      const transactions = await transactionRepo.find({ minorista: minoristaId }, { orderBy: { createdAt: -1 } })
+      const page = parseInt(req.query.page as string) || 1
+      const limit = parseInt(req.query.limit as string) || 50
+      const offset = (page - 1) * limit
 
+      const transactions = await transactionRepo.find(
+        { minorista: minoristaId },
+        { orderBy: { createdAt: -1 }, limit, offset }
+      )
+      const total = await transactionRepo.count({ minorista: minoristaId })
       res.json(
         ApiResponse.success({
           transactions: transactions.map((t: any) => ({
@@ -223,6 +230,12 @@ minoristaRouter.get(
             creditLimit: minorista.creditLimit,
             createdAt: t.createdAt.toISOString(),
           })),
+          pagination: {
+            total: total, // Total de registros
+            page: page, // Página actual
+            limit: limit, // Límite por página
+            totalPages: total, // Total de páginas disponibles
+          },
           message: 'Transacciones obtenidas exitosamente',
         })
       )
