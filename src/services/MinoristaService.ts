@@ -28,7 +28,7 @@ export class MinoristaService {
         }
         minorista: {
           id: string
-          balance: number
+          
         }
       }
     | { error: 'EMAIL_ALREADY_EXISTS' }
@@ -60,7 +60,6 @@ export class MinoristaService {
     // Crear Minorista asociado
     const minorista = minoristaRepo.create({
       user,
-      balance: data.balance ?? 0,
       creditLimit: 0,
       availableCredit: 0,
       transactions: [],
@@ -85,7 +84,7 @@ export class MinoristaService {
       },
       minorista: {
         id: minorista.id,
-        balance: minorista.balance,
+
       },
     }
   }
@@ -99,7 +98,7 @@ export class MinoristaService {
     limit: number
     minoristas: Array<{
       id: string
-      balance: number
+      
       creditLimit: number
       availableCredit: number
       user: {
@@ -128,8 +127,7 @@ export class MinoristaService {
 
     // Retornar solo campos públicos
     const data = minoristas.map((m) => ({
-      id: m.id,
-      balance: m.balance,
+      id: m.id,     
       creditLimit: m.creditLimit,
       availableCredit: m.availableCredit,
       user: {
@@ -155,7 +153,7 @@ export class MinoristaService {
   async getMinoristaByUserId(userId: string): Promise<
     | {
         id: string
-        balance: number
+        
         creditLimit: number
         availableCredit: number
         user: {
@@ -178,7 +176,6 @@ export class MinoristaService {
 
     return {
       id: minorista.id,
-      balance: minorista.balance,
       creditLimit: minorista.creditLimit,
       availableCredit: minorista.availableCredit,
       user: {
@@ -196,8 +193,7 @@ export class MinoristaService {
    */
   async getMinoristaById(minoristaId: string): Promise<
     | {
-        id: string
-        balance: number
+        id: string       
         creditLimit: number
         availableCredit: number
         user: {
@@ -220,7 +216,6 @@ export class MinoristaService {
 
     return {
       id: minorista.id,
-      balance: minorista.balance,
       creditLimit: minorista.creditLimit,
       availableCredit: minorista.availableCredit,
       user: {
@@ -244,7 +239,6 @@ export class MinoristaService {
   ): Promise<
     | {
         id: string
-        balance: number
       }
     | { error: 'MINORISTA_NOT_FOUND' | 'INVALID_BALANCE' }
   > {
@@ -259,12 +253,12 @@ export class MinoristaService {
       return { error: 'MINORISTA_NOT_FOUND' }
     }
 
-    minorista.balance = newBalance
+   
     await DI.em.persistAndFlush(minorista)
 
     return {
       id: minorista.id,
-      balance: minorista.balance,
+    
     }
   }
 
@@ -301,15 +295,15 @@ export class MinoristaService {
     minorista.availableCredit = creditLimit
 
     // Si hay diferencia positiva, crear transacción de recarga
-    if (creditLimit > oldCreditLimit) {
-      const difference = creditLimit - oldCreditLimit
-      await minoristaTransactionService.createTransaction({
-        minoristaId,
-        amount: difference,
-        type: MinoristaTransactionType.RECHARGE,
-        createdBy,
-      })
-    }
+    // if (creditLimit > oldCreditLimit) {
+    //   const difference = creditLimit - oldCreditLimit
+    //   await minoristaTransactionService.createTransaction({
+    //     minoristaId,
+    //     amount: difference,
+    //     type: MinoristaTransactionType.RECHARGE,
+    //     createdBy,
+    //   })
+    // }
 
     await DI.em.persistAndFlush(minorista)
 
@@ -336,7 +330,6 @@ export class MinoristaService {
   ): Promise<
     | {
         id: string
-        balance: number
         creditLimit: number
         availableCredit: number
         debtAmount: number
@@ -380,7 +373,6 @@ export class MinoristaService {
 
     return {
       id: minorista.id,
-      balance: minorista.balance,
       creditLimit: minorista.creditLimit,
       availableCredit: minorista.availableCredit,
       debtAmount: Math.max(0, minorista.creditLimit - minorista.availableCredit),

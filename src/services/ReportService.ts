@@ -34,7 +34,7 @@ export interface MinoriastaProfit {
   email: string
   totalProfit: number
   giroCount: number
-  balance: number
+
 }
 
 export interface TopMinoristaReport {
@@ -173,8 +173,7 @@ export class ReportService {
         minoristaName: minorista.user.fullName,
         email: minorista.user.email,
         totalProfit,
-        giroCount: giros.length,
-        balance: minorista.balance,
+        giroCount: giros.length,  
       })
     }
 

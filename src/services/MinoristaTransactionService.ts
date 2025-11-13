@@ -19,75 +19,98 @@ export class MinoristaTransactionService {
    * 3. Crea el registro de transacción con balance anterior y nuevo
    * 4. Actualiza el balance del minorista
    */
-  async createTransaction(
-    data: CreateTransactionInput
-  ): Promise<MinoristaTransaction | { error: 'MINORISTA_NOT_FOUND' | 'INSUFFICIENT_BALANCE' }> {
-    const minoristaRepo = DI.em.getRepository(Minorista)
-    const transactionRepo = DI.em.getRepository(MinoristaTransaction)
+ async createTransaction(
+  data: CreateTransactionInput
+): Promise<MinoristaTransaction | { error: 'MINORISTA_NOT_FOUND' | 'INSUFFICIENT_BALANCE' }> {
+  const minoristaRepo = DI.em.getRepository(Minorista)
+  const transactionRepo = DI.em.getRepository(MinoristaTransaction)
 
-    // Buscar minorista
-    const minorista = await minoristaRepo.findOne({ id: data.minoristaId })
-    if (!minorista) {
-      return { error: 'MINORISTA_NOT_FOUND' }
-    }
-
-    const previousBalance = minorista.balance
-    const previousAvailableCredit = minorista.availableCredit
-    let newBalance = previousBalance
-    let newAvailableCredit = previousAvailableCredit
-
-    // Calcular nuevo balance según tipo de transacción
-    switch (data.type) {
-      case MinoristaTransactionType.RECHARGE:
-        // Recarga: sumar al balance y al crédito disponible (hasta el límite)
-        newBalance = previousBalance + data.amount
-        newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
-        break
-      case MinoristaTransactionType.DISCOUNT:
-        // Descuento: restar del crédito disponible primero (validar que haya crédito)
-        if (previousAvailableCredit < data.amount) {
-          return { error: 'INSUFFICIENT_BALANCE' }
-        }
-        newAvailableCredit = previousAvailableCredit - data.amount
-        newBalance = previousBalance - data.amount
-        break
-      case MinoristaTransactionType.PROFIT:
-        // Ganancia: sumar al balance y al crédito disponible (hasta el límite)
-        newBalance = previousBalance + data.amount
-        newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
-        break
-      case MinoristaTransactionType.ADJUSTMENT:
-        // Ajuste: puede ser positivo o negativo
-        newBalance = previousBalance + data.amount
-        newAvailableCredit = previousAvailableCredit + data.amount
-        if (newAvailableCredit < 0) {
-          return { error: 'INSUFFICIENT_BALANCE' }
-        }
-        break
-    }
-
-    // Crear transacción
-    const transaction = transactionRepo.create({
-      minorista,
-      amount: data.amount,
-      type: data.type,
-      previousBalance,
-      currentBalance: newBalance,
-      createdBy: data.createdBy,
-      createdAt: new Date(),
-    })
-
-    // Actualizar balance y crédito disponible del minorista
-    minorista.balance = newBalance
-    minorista.availableCredit = newAvailableCredit
-
-    // Guardar todo en transacción atómica
-    await DI.em.transactional(async (em) => {
-      await em.persistAndFlush([transaction, minorista])
-    })
-
-    return transaction
+  // Buscar minorista
+  const minorista = await minoristaRepo.findOne({ id: data.minoristaId })
+  if (!minorista) {
+    return { error: 'MINORISTA_NOT_FOUND' }
   }
+
+  const previousAvailableCredit = minorista.availableCredit
+  const { creditLimit } = minorista
+
+  let newAvailableCredit = previousAvailableCredit
+
+  // Calcular nuevo balance según tipo de transacción
+  switch (data.type) {
+    case MinoristaTransactionType.RECHARGE:
+      newAvailableCredit = Math.min(
+        previousAvailableCredit + data.amount,
+        minorista.creditLimit
+      )
+      break
+
+    case MinoristaTransactionType.DISCOUNT:
+      if (previousAvailableCredit < data.amount) {
+        return { error: 'INSUFFICIENT_BALANCE' }
+      }
+      newAvailableCredit = previousAvailableCredit - data.amount
+      break
+
+    case MinoristaTransactionType.PROFIT:
+      newAvailableCredit = Math.min(
+        previousAvailableCredit + data.amount,
+        minorista.creditLimit
+      )
+      break
+
+    case MinoristaTransactionType.ADJUSTMENT:
+      newAvailableCredit = previousAvailableCredit + data.amount
+      if (newAvailableCredit < 0) {
+        return { error: 'INSUFFICIENT_BALANCE' }
+      }
+      break
+  }
+
+  const profitEarned = data.type === MinoristaTransactionType.PROFIT ? data.amount : 0
+  const creditConsumed = data.type === MinoristaTransactionType.DISCOUNT ? data.amount : 0
+
+  //Obtener la última transacción para mantener o reiniciar el profit acumulado
+  const lastTransaction = await transactionRepo.findOne(
+    { minorista },
+    { orderBy: { createdAt: 'DESC' } }
+  )
+
+  let accumulatedProfit = 0
+
+  if (data.type === MinoristaTransactionType.RECHARGE) {
+    accumulatedProfit = 0 // Reinicia en recarga
+  } else if (data.type === MinoristaTransactionType.PROFIT) {
+    accumulatedProfit = (lastTransaction?.accumulatedProfit ?? 0) + data.amount
+  } else {
+    accumulatedProfit = lastTransaction?.accumulatedProfit ?? 0
+  }
+
+  // Crear transacción
+  const transaction = transactionRepo.create({
+    minorista,
+    amount: data.amount,
+    type: data.type,
+    creditConsumed,
+    profitEarned,
+    previousAvailableCredit,
+    accumulatedDebt: creditLimit - newAvailableCredit,
+    accumulatedProfit,
+    availableCredit: newAvailableCredit,
+    createdBy: data.createdBy,
+    createdAt: new Date(),
+  })
+
+  // Actualizar el crédito disponible del minorista
+  minorista.availableCredit = newAvailableCredit
+
+  // Guardar en una transacción atómica
+  await DI.em.transactional(async (em) => {
+    await em.persistAndFlush([transaction, minorista])
+  })
+
+  return transaction
+}
 
   /**
    * Lista las transacciones de un minorista con paginación
@@ -143,8 +166,8 @@ export class MinoristaTransactionService {
       id: t.id,
       amount: t.amount,
       type: t.type,
-      previousBalance: t.previousBalance,
-      currentBalance: t.currentBalance,
+      previousBalance: t.previousAvailableCredit,
+      currentBalance: t.availableCredit,
       createdBy: {
         id: t.createdBy.id,
         fullName: t.createdBy.fullName,
@@ -173,7 +196,7 @@ export class MinoristaTransactionService {
         currentBalance: number
         minorista: {
           id: string
-          balance: number
+          availableCredit: number
           user: {
             id: string
             fullName: string
@@ -204,11 +227,11 @@ export class MinoristaTransactionService {
       id: transaction.id,
       amount: transaction.amount,
       type: transaction.type,
-      previousBalance: transaction.previousBalance,
-      currentBalance: transaction.currentBalance,
+      previousBalance: transaction.previousAvailableCredit,
+      currentBalance: transaction.availableCredit,
       minorista: {
         id: transaction.minorista.id,
-        balance: transaction.minorista.balance,
+        availableCredit: transaction.availableCredit,
         user: {
           id: transaction.minorista.user.id,
           fullName: transaction.minorista.user.fullName,

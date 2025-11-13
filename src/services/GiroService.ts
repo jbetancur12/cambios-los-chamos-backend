@@ -101,7 +101,7 @@ export class GiroService {
       // Crear transacción de descuento del balance del minorista
       const transactionResult = await minoristaTransactionService.createTransaction({
         minoristaId: foundMinorista.id,
-        amount: data.amountBs,
+        amount: data.amountInput,
         type: MinoristaTransactionType.DISCOUNT,
         createdBy,
       })

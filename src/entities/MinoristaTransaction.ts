@@ -25,11 +25,17 @@ export class MinoristaTransaction {
   @Enum(() => MinoristaTransactionType)
   type!: MinoristaTransactionType
 
-  @Property({ type: 'decimal' })
-  previousBalance!: number
+    @Property({ type: 'decimal' })
+  previousAvailableCredit!: number
 
   @Property({ type: 'decimal' })
-  currentBalance!: number
+  availableCredit!: number
+
+  // @Property({ type: 'decimal' })
+  // previousBalance!: number
+
+  // @Property({ type: 'decimal' })
+  // currentBalance!: number
 
   @OneToOne(() => Giro, { nullable: true, deleteRule: 'restrict', updateRule: 'cascade' })
   giro?: Giro
@@ -42,6 +48,9 @@ export class MinoristaTransaction {
 
   @Property({ type: 'decimal', nullable: true })
   accumulatedDebt?: number // Deuda acumulada después de esta transacción
+  
+  @Property({ type: 'decimal', nullable: true })
+  accumulatedProfit?: number // Ganancia Acumulada depues de esta tranasaccion
 
   @Property({ nullable: true })
   description?: string // Descripción clara de la transacción

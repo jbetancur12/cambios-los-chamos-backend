@@ -15,7 +15,7 @@
     "seed": "mikro-orm seeder:run",
     "seed:create": "mikro-orm seeder:create",
     "db:drop": "mikro-orm schema:drop --run",
-    "db:fresh": "npm run db:drop && mikro-orm schema:update --run && npm run seed",
+    "db:fresh": "npm run db:drop && mikro-orm schema:update --run && npm run create:superadmin && npm run seed",
     "db:reset": "npm run db:fresh",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

@@ -1400,8 +1400,8 @@
           ],
           "mappedType": "enum"
         },
-        "previous_balance": {
-          "name": "previous_balance",
+        "previous_available_credit": {
+          "name": "previous_available_credit",
           "type": "numeric(10,0)",
           "unsigned": false,
           "autoincrement": false,
@@ -1411,8 +1411,8 @@
           "scale": 0,
           "mappedType": "decimal"
         },
-        "current_balance": {
-          "name": "current_balance",
+        "available_credit": {
+          "name": "available_credit",
           "type": "numeric(10,0)",
           "unsigned": false,
           "autoincrement": false,
@@ -1456,6 +1456,17 @@
         },
         "accumulated_debt": {
           "name": "accumulated_debt",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
+        "accumulated_profit": {
+          "name": "accumulated_profit",
           "type": "numeric(10,0)",
           "unsigned": false,
           "autoincrement": false,
