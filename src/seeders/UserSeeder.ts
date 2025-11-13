@@ -78,6 +78,8 @@ export class UserSeeder extends Seeder {
         const minorista = em.create(Minorista, {
           user,
           balance: 0, // Balance inicial en 0
+          creditLimit: 0,
+          availableCredit: 0,
           transactions: [],
           giros: [],
         })

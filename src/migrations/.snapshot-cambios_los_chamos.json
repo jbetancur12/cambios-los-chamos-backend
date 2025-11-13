@@ -804,8 +804,20 @@
           "length": 255,
           "mappedType": "string"
         },
-        "balance": {
-          "name": "balance",
+        "credit_limit": {
+          "name": "credit_limit",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "precision": 10,
+          "scale": 0,
+          "default": "0",
+          "mappedType": "decimal"
+        },
+        "available_credit": {
+          "name": "available_credit",
           "type": "numeric(10,0)",
           "unsigned": false,
           "autoincrement": false,
@@ -854,152 +866,6 @@
           ],
           "referencedTableName": "public.users",
           "deleteRule": "cascade",
-          "updateRule": "cascade"
-        }
-      },
-      "nativeEnums": {}
-    },
-    {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "length": 255,
-          "mappedType": "string"
-        },
-        "minorista_id": {
-          "name": "minorista_id",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "length": 255,
-          "mappedType": "string"
-        },
-        "amount": {
-          "name": "amount",
-          "type": "numeric(10,0)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "precision": 10,
-          "scale": 0,
-          "mappedType": "decimal"
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "enumItems": [
-            "RECHARGE",
-            "DISCOUNT",
-            "ADJUSTMENT",
-            "PROFIT"
-          ],
-          "mappedType": "enum"
-        },
-        "previous_balance": {
-          "name": "previous_balance",
-          "type": "numeric(10,0)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "precision": 10,
-          "scale": 0,
-          "mappedType": "decimal"
-        },
-        "current_balance": {
-          "name": "current_balance",
-          "type": "numeric(10,0)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "precision": 10,
-          "scale": 0,
-          "mappedType": "decimal"
-        },
-        "created_by_id": {
-          "name": "created_by_id",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "length": 255,
-          "mappedType": "string"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "length": 6,
-          "mappedType": "datetime"
-        }
-      },
-      "name": "minorista_transactions",
-      "schema": "public",
-      "indexes": [
-        {
-          "columnNames": [
-            "created_at"
-          ],
-          "composite": false,
-          "keyName": "minorista_transactions_created_at_index",
-          "constraint": false,
-          "primary": false,
-          "unique": false
-        },
-        {
-          "keyName": "minorista_transactions_pkey",
-          "columnNames": [
-            "id"
-          ],
-          "composite": false,
-          "constraint": true,
-          "primary": true,
-          "unique": true
-        }
-      ],
-      "checks": [],
-      "foreignKeys": {
-        "minorista_transactions_minorista_id_foreign": {
-          "constraintName": "minorista_transactions_minorista_id_foreign",
-          "columnNames": [
-            "minorista_id"
-          ],
-          "localTableName": "public.minorista_transactions",
-          "referencedColumnNames": [
-            "id"
-          ],
-          "referencedTableName": "public.minoristas",
-          "deleteRule": "cascade",
-          "updateRule": "cascade"
-        },
-        "minorista_transactions_created_by_id_foreign": {
-          "constraintName": "minorista_transactions_created_by_id_foreign",
-          "columnNames": [
-            "created_by_id"
-          ],
-          "localTableName": "public.minorista_transactions",
-          "referencedColumnNames": [
-            "id"
-          ],
-          "referencedTableName": "public.users",
-          "deleteRule": "restrict",
           "updateRule": "cascade"
         }
       },
@@ -1476,6 +1342,228 @@
             "created_by_id"
           ],
           "localTableName": "public.giros",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.users",
+          "deleteRule": "restrict",
+          "updateRule": "cascade"
+        }
+      },
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "minorista_id": {
+          "name": "minorista_id",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "enumItems": [
+            "RECHARGE",
+            "DISCOUNT",
+            "ADJUSTMENT",
+            "PROFIT"
+          ],
+          "mappedType": "enum"
+        },
+        "previous_balance": {
+          "name": "previous_balance",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
+        "current_balance": {
+          "name": "current_balance",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
+        "giro_id": {
+          "name": "giro_id",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "credit_consumed": {
+          "name": "credit_consumed",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
+        "profit_earned": {
+          "name": "profit_earned",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
+        "accumulated_debt": {
+          "name": "accumulated_debt",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "created_by_id": {
+          "name": "created_by_id",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
+        }
+      },
+      "name": "minorista_transactions",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "giro_id"
+          ],
+          "composite": false,
+          "keyName": "minorista_transactions_giro_id_unique",
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "created_at"
+          ],
+          "composite": false,
+          "keyName": "minorista_transactions_created_at_index",
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "minorista_transactions_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "minorista_transactions_minorista_id_foreign": {
+          "constraintName": "minorista_transactions_minorista_id_foreign",
+          "columnNames": [
+            "minorista_id"
+          ],
+          "localTableName": "public.minorista_transactions",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.minoristas",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        },
+        "minorista_transactions_giro_id_foreign": {
+          "constraintName": "minorista_transactions_giro_id_foreign",
+          "columnNames": [
+            "giro_id"
+          ],
+          "localTableName": "public.minorista_transactions",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.giros",
+          "deleteRule": "restrict",
+          "updateRule": "cascade"
+        },
+        "minorista_transactions_created_by_id_foreign": {
+          "constraintName": "minorista_transactions_created_by_id_foreign",
+          "columnNames": [
+            "created_by_id"
+          ],
+          "localTableName": "public.minorista_transactions",
           "referencedColumnNames": [
             "id"
           ],

@@ -12,8 +12,14 @@ export class Minorista {
   @OneToOne(() => User, { deleteRule: 'cascade', updateRule: 'cascade' })
   user!: User
 
+  // @Property({ type: 'decimal', default: 0 })
+  // balance: number = 0
+
   @Property({ type: 'decimal', default: 0 })
-  balance: number = 0
+  creditLimit: number = 0
+
+  @Property({ type: 'decimal', default: 0 })
+  availableCredit: number = 0
 
   @OneToMany(() => MinoristaTransaction, (tx) => tx.minorista)
   transactions = new Array<MinoristaTransaction>()

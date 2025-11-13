@@ -32,25 +32,35 @@ export class MinoristaTransactionService {
     }
 
     const previousBalance = minorista.balance
+    const previousAvailableCredit = minorista.availableCredit
     let newBalance = previousBalance
+    let newAvailableCredit = previousAvailableCredit
 
     // Calcular nuevo balance según tipo de transacción
     switch (data.type) {
       case MinoristaTransactionType.RECHARGE:
-        // Recarga: sumar al balance
+        // Recarga: sumar al balance y al crédito disponible (hasta el límite)
         newBalance = previousBalance + data.amount
+        newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
         break
       case MinoristaTransactionType.DISCOUNT:
-        // Descuento: restar del balance (validar que no quede negativo)
-        newBalance = previousBalance - data.amount
-        if (newBalance < 0) {
+        // Descuento: restar del crédito disponible primero (validar que haya crédito)
+        if (previousAvailableCredit < data.amount) {
           return { error: 'INSUFFICIENT_BALANCE' }
         }
+        newAvailableCredit = previousAvailableCredit - data.amount
+        newBalance = previousBalance - data.amount
+        break
+      case MinoristaTransactionType.PROFIT:
+        // Ganancia: sumar al balance y al crédito disponible (hasta el límite)
+        newBalance = previousBalance + data.amount
+        newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
         break
       case MinoristaTransactionType.ADJUSTMENT:
         // Ajuste: puede ser positivo o negativo
         newBalance = previousBalance + data.amount
-        if (newBalance < 0) {
+        newAvailableCredit = previousAvailableCredit + data.amount
+        if (newAvailableCredit < 0) {
           return { error: 'INSUFFICIENT_BALANCE' }
         }
         break
@@ -67,8 +77,9 @@ export class MinoristaTransactionService {
       createdAt: new Date(),
     })
 
-    // Actualizar balance del minorista
+    // Actualizar balance y crédito disponible del minorista
     minorista.balance = newBalance
+    minorista.availableCredit = newAvailableCredit
 
     // Guardar todo en transacción atómica
     await DI.em.transactional(async (em) => {

@@ -2,6 +2,8 @@ import { DI } from '@/di'
 import { User, UserRole } from '@/entities/User'
 import { Minorista } from '@/entities/Minorista'
 import { makePassword } from '@/lib/passwordUtils'
+import { minoristaTransactionService } from './MinoristaTransactionService'
+import { MinoristaTransactionType } from '@/entities/MinoristaTransaction'
 
 export interface CreateMinoristaInput {
   fullName: string
@@ -59,6 +61,8 @@ export class MinoristaService {
     const minorista = minoristaRepo.create({
       user,
       balance: data.balance ?? 0,
+      creditLimit: 0,
+      availableCredit: 0,
       transactions: [],
       giros: [],
     })
@@ -96,6 +100,8 @@ export class MinoristaService {
     minoristas: Array<{
       id: string
       balance: number
+      creditLimit: number
+      availableCredit: number
       user: {
         id: string
         fullName: string
@@ -124,6 +130,8 @@ export class MinoristaService {
     const data = minoristas.map((m) => ({
       id: m.id,
       balance: m.balance,
+      creditLimit: m.creditLimit,
+      availableCredit: m.availableCredit,
       user: {
         id: m.user.id,
         fullName: m.user.fullName,
@@ -148,6 +156,8 @@ export class MinoristaService {
     | {
         id: string
         balance: number
+        creditLimit: number
+        availableCredit: number
         user: {
           id: string
           fullName: string
@@ -169,6 +179,8 @@ export class MinoristaService {
     return {
       id: minorista.id,
       balance: minorista.balance,
+      creditLimit: minorista.creditLimit,
+      availableCredit: minorista.availableCredit,
       user: {
         id: minorista.user.id,
         fullName: minorista.user.fullName,
@@ -186,6 +198,8 @@ export class MinoristaService {
     | {
         id: string
         balance: number
+        creditLimit: number
+        availableCredit: number
         user: {
           id: string
           fullName: string
@@ -207,6 +221,8 @@ export class MinoristaService {
     return {
       id: minorista.id,
       balance: minorista.balance,
+      creditLimit: minorista.creditLimit,
+      availableCredit: minorista.availableCredit,
       user: {
         id: minorista.user.id,
         fullName: minorista.user.fullName,
@@ -249,6 +265,130 @@ export class MinoristaService {
     return {
       id: minorista.id,
       balance: minorista.balance,
+    }
+  }
+
+  /**
+   * Asigna un cupo de crédito a un minorista
+   * El crédito disponible se establece al valor del límite
+   */
+  async setCreditLimit(
+    minoristaId: string,
+    creditLimit: number,
+    createdBy: User
+  ): Promise<
+    | {
+        id: string
+        creditLimit: number
+        availableCredit: number
+        user: {
+          id: string
+          fullName: string
+          email: string
+        }
+      }
+    | { error: 'MINORISTA_NOT_FOUND' }
+  > {
+    const minoristaRepo = DI.em.getRepository(Minorista)
+
+    const minorista = await minoristaRepo.findOne({ id: minoristaId }, { populate: ['user'] })
+    if (!minorista) {
+      return { error: 'MINORISTA_NOT_FOUND' }
+    }
+
+    const oldCreditLimit = minorista.creditLimit
+    minorista.creditLimit = creditLimit
+    minorista.availableCredit = creditLimit
+
+    // Si hay diferencia positiva, crear transacción de recarga
+    if (creditLimit > oldCreditLimit) {
+      const difference = creditLimit - oldCreditLimit
+      await minoristaTransactionService.createTransaction({
+        minoristaId,
+        amount: difference,
+        type: MinoristaTransactionType.RECHARGE,
+        createdBy,
+      })
+    }
+
+    await DI.em.persistAndFlush(minorista)
+
+    return {
+      id: minorista.id,
+      creditLimit: minorista.creditLimit,
+      availableCredit: minorista.availableCredit,
+      user: {
+        id: minorista.user.id,
+        fullName: minorista.user.fullName,
+        email: minorista.user.email,
+      },
+    }
+  }
+
+  /**
+   * Procesa un pago de deuda que restaura el crédito disponible
+   * El monto pagado se suma al crédito disponible (hasta el límite)
+   */
+  async payDebt(
+    minoristaId: string,
+    amount: number,
+    createdBy: User
+  ): Promise<
+    | {
+        id: string
+        balance: number
+        creditLimit: number
+        availableCredit: number
+        debtAmount: number
+        user: {
+          id: string
+          fullName: string
+          email: string
+        }
+      }
+    | { error: 'MINORISTA_NOT_FOUND' | 'INSUFFICIENT_PAYMENT' }
+  > {
+    const minoristaRepo = DI.em.getRepository(Minorista)
+
+    const minorista = await minoristaRepo.findOne({ id: minoristaId }, { populate: ['user'] })
+    if (!minorista) {
+      return { error: 'MINORISTA_NOT_FOUND' }
+    }
+
+    // Calcular la deuda (cuanto crédito falta para llegar al límite)
+    const debtAmount = minorista.creditLimit - minorista.availableCredit
+
+    // El monto pagado no puede ser mayor que la deuda
+    if (amount > debtAmount) {
+      return { error: 'INSUFFICIENT_PAYMENT' }
+    }
+
+    // Crear transacción de recarga (restaura el crédito disponible)
+    const transactionResult = await minoristaTransactionService.createTransaction({
+      minoristaId,
+      amount,
+      type: MinoristaTransactionType.RECHARGE,
+      createdBy,
+    })
+
+    if ('error' in transactionResult) {
+      return { error: 'MINORISTA_NOT_FOUND' }
+    }
+
+    // Refrescar los datos del minorista
+    await minoristaRepo.populate(minorista, ['user'])
+
+    return {
+      id: minorista.id,
+      balance: minorista.balance,
+      creditLimit: minorista.creditLimit,
+      availableCredit: minorista.availableCredit,
+      debtAmount: Math.max(0, minorista.creditLimit - minorista.availableCredit),
+      user: {
+        id: minorista.user.id,
+        fullName: minorista.user.fullName,
+        email: minorista.user.email,
+      },
     }
   }
 }
