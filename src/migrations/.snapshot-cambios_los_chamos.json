@@ -1176,9 +1176,20 @@
             "ASIGNADO",
             "PROCESANDO",
             "COMPLETADO",
-            "CANCELADO"
+            "CANCELADO",
+            "DEVUELTO"
           ],
           "mappedType": "enum"
+        },
+        "return_reason": {
+          "name": "return_reason",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
         },
         "proof_url": {
           "name": "proof_url",

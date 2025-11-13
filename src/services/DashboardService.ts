@@ -204,6 +204,7 @@ export class DashboardService {
         amountInput: Number(giro.amountInput),
         currencyInput: giro.currencyInput,
         status: giro.status,
+        returnReason: giro.returnReason,
         createdAt: giro.createdAt,
         minoristaName,
         transferencistaNombre,

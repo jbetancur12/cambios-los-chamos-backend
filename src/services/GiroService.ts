@@ -254,6 +254,37 @@ export class GiroService {
     return giro
   }
 
+  async returnGiro(giroId: string, reason: string): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' }> {
+    const giro = await DI.giros.findOne({ id: giroId }, { populate: ['minorista'] })
+
+    if (!giro) {
+      return { error: 'GIRO_NOT_FOUND' }
+    }
+
+    // Solo giros ASIGNADOS o PROCESANDO pueden ser devueltos
+    if (giro.status !== GiroStatus.ASIGNADO && giro.status !== GiroStatus.PROCESANDO) {
+      return { error: 'INVALID_STATUS' }
+    }
+
+    giro.status = GiroStatus.DEVUELTO
+    giro.returnReason = reason
+    giro.updatedAt = new Date()
+
+    await DI.em.persistAndFlush(giro)
+
+    // Si el giro tiene minorista, reembolsar el monto
+    // if (giro.minorista) {
+    //   await minoristaTransactionService.createTransaction({
+    //     minoristaId: giro.minorista.id,
+    //     amount: giro.amountInput,
+    //     type: MinoristaTransactionType.REFUND,
+    //     createdBy: giro.createdBy,
+    //   })
+    // }
+
+    return giro
+  }
+
   /**
    * Permite al transferencista marcar un giro como en proceso
    */

@@ -13,6 +13,7 @@ export enum GiroStatus {
   PROCESANDO = 'PROCESANDO',
   COMPLETADO = 'COMPLETADO',
   CANCELADO = 'CANCELADO',
+  DEVUELTO = 'DEVUELTO',
 }
 
 export enum ExecutionType {
@@ -78,6 +79,9 @@ export class Giro {
   @Enum(() => GiroStatus)
   @Index()
   status: GiroStatus = GiroStatus.PENDIENTE
+
+  @Property({ nullable: true })
+  returnReason?: string
 
   @Property({ nullable: true })
   proofUrl?: string

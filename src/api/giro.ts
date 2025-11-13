@@ -236,6 +236,35 @@ giroRouter.post('/:giroId/execute', requireRole(UserRole.TRANSFERENCISTA), async
   res.json(ApiResponse.success({ giro: result, message: 'Giro ejecutado exitosamente' }))
 })
 
+giroRouter.post(
+  '/:giroId/return',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA),
+  async (req: Request, res: Response) => {
+    const { giroId } = req.params
+    const { reason } = req.body
+    if (!reason) {
+      return res
+        .status(400)
+        .json(
+          ApiResponse.validationError([{ field: 'reason', message: 'La razón para devolver el giro es requerida' }])
+        )
+    }
+
+    const result = await giroService.returnGiro(giroId, reason)
+
+    if ('error' in result) {
+      switch (result.error) {
+        case 'GIRO_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+        case 'INVALID_STATUS':
+          return res.status(400).json(ApiResponse.badRequest('El giro no está en estado válido para ser devuelto'))
+      }
+    }
+
+    res.json(ApiResponse.success({ giro: result, message: 'Giro devuelto exitosamente' }))
+  }
+)
+
 // ------------------ CREAR RECARGA ------------------
 giroRouter.post('/recharge/create', requireRole(UserRole.MINORISTA), async (req: Request, res: Response) => {
   const user = req.context?.requestUser?.user
