@@ -11,7 +11,9 @@ export const createBankAccountSchema = z.object({
 
 export const updateBankAccountBalanceSchema = z.object({
   bankAccountId: z.string().uuid({ message: 'bankAccountId inválido' }),
-  amount: z.number().positive({ message: 'El monto debe ser mayor que 0' }),
+  amount: z.number().refine((val) => val !== 0, {
+    message: 'El monto no puede ser cero (debe ser positivo para recargar o negativo para ajustar)',
+  }),
 })
 
 export const listBankAccountsSchema = z.object({

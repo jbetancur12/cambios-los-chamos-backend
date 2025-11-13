@@ -225,6 +225,7 @@ bankAccountRouter.patch(
 
     // Determinar el tipo de transacción según si es positivo o negativo
     const transactionType = amount >= 0 ? 'DEPOSIT' : 'ADJUSTMENT'
+    console.log('🚀 ~ transactionType:', transactionType)
 
     const result = await bankAccountTransactionService.createTransaction({
       bankAccountId,
