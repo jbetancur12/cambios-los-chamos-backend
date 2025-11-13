@@ -178,6 +178,33 @@ giroRouter.get('/:giroId', requireAuth(), async (req: Request, res: Response) =>
   res.json(ApiResponse.success({ giro: result }))
 })
 
+// ------------------- UPDATE GIRO ------------------
+giroRouter.patch(
+  '/:giroId',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MINORISTA),
+  async (req: Request, res: Response) => {
+    const { giroId } = req.params
+    const { beneficiaryName, beneficiaryId, bankId, accountNumber, phone } = req.body
+
+    const result = await giroService.updateGiro(giroId, {
+      beneficiaryName,
+      beneficiaryId,
+      bankId,
+      accountNumber,
+      phone,
+    })
+
+    if ('error' in result) {
+      switch (result.error) {
+        case 'GIRO_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+      }
+    }
+
+    res.json(ApiResponse.success({ giro: result, message: 'Giro actualizado exitosamente' }))
+  }
+)
+
 // ------------------ MARCAR GIRO COMO PROCESANDO ------------------
 giroRouter.post(
   '/:giroId/mark-processing',

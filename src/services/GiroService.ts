@@ -699,6 +699,41 @@ export class GiroService {
 
     return giro
   }
+
+  async updateGiro(
+    giroId: string,
+    data: {
+      beneficiaryName: string
+      beneficiaryId: string
+      bankId: string
+      accountNumber: string
+      phone: string
+    }
+  ): Promise<Giro> {
+    const giro = await DI.giros.findOne({ id: giroId })
+    if (!giro) {
+      throw new Error('Giro no encontrado')
+    }
+
+    const bank = await DI.banks.findOne({ id: data.bankId })
+    if (!bank) {
+      throw new Error('Banco no encontrado')
+    }
+
+    if (giro.status === GiroStatus.DEVUELTO) {
+      giro.status = GiroStatus.ASIGNADO
+    }
+
+    giro.beneficiaryName = data.beneficiaryName
+    giro.beneficiaryId = data.beneficiaryId
+    giro.bankName = bank.name
+    giro.accountNumber = data.accountNumber
+    giro.phone = data.phone
+    giro.updatedAt = new Date()
+
+    await DI.em.persistAndFlush(giro)
+    return giro
+  }
 }
 
 export const giroService = new GiroService()
