@@ -20,6 +20,9 @@ export class BankAccountTransaction {
   @Property({ type: 'decimal' })
   amount!: number
 
+  @Property({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  fee!: number
+
   @Enum(() => BankAccountTransactionType)
   type!: BankAccountTransactionType
 

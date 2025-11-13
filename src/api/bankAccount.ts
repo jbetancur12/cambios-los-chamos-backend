@@ -231,6 +231,7 @@ bankAccountRouter.patch(
       amount: Math.abs(amount), // El servicio maneja el signo según el tipo
       type: transactionType as any,
       reference: 'Recarga manual de saldo',
+      fee: 0,
       createdBy: user,
     })
 

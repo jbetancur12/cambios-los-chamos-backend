@@ -1760,6 +1760,18 @@
           "scale": 0,
           "mappedType": "decimal"
         },
+        "fee": {
+          "name": "fee",
+          "type": "numeric(10,2)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "precision": 10,
+          "scale": 2,
+          "default": "0",
+          "mappedType": "decimal"
+        },
         "type": {
           "name": "type",
           "type": "text",

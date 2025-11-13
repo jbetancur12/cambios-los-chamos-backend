@@ -6,6 +6,7 @@ import { User } from '@/entities/User'
 export interface CreateBankAccountTransactionInput {
   bankAccountId: string
   amount: number
+  fee: number
   type: BankAccountTransactionType
   reference?: string
   createdBy: User
@@ -43,7 +44,7 @@ export class BankAccountTransactionService {
         break
       case BankAccountTransactionType.WITHDRAWAL:
         // Retiro: restar del balance (validar que no quede negativo)
-        newBalance = previousBalance - data.amount
+        newBalance = previousBalance - data.amount - data.fee
         if (newBalance < 0) {
           return { error: 'INSUFFICIENT_BALANCE' }
         }
@@ -61,6 +62,7 @@ export class BankAccountTransactionService {
     const transaction = transactionRepo.create({
       bankAccount,
       amount: data.amount,
+      fee: data.fee,
       type: data.type,
       reference: data.reference,
       previousBalance,
@@ -94,6 +96,7 @@ export class BankAccountTransactionService {
         transactions: Array<{
           id: string
           amount: number
+          fee: number
           type: BankAccountTransactionType
           reference?: string
           previousBalance: number
@@ -134,6 +137,7 @@ export class BankAccountTransactionService {
     const data = transactions.map((t) => ({
       id: t.id,
       amount: t.amount,
+      fee: t.fee,
       type: t.type,
       reference: t.reference,
       previousBalance: t.previousBalance,

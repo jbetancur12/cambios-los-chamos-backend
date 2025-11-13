@@ -203,7 +203,7 @@ giroRouter.post(
 // ------------------ EJECUTAR GIRO ------------------
 giroRouter.post('/:giroId/execute', requireRole(UserRole.TRANSFERENCISTA), async (req: Request, res: Response) => {
   const { giroId } = req.params
-  const { bankAccountId, executionType, proofUrl } = req.body
+  const { bankAccountId, executionType, proofUrl, fee } = req.body
 
   if (!bankAccountId || !executionType) {
     return res.status(400).json(
@@ -214,7 +214,7 @@ giroRouter.post('/:giroId/execute', requireRole(UserRole.TRANSFERENCISTA), async
     )
   }
 
-  const result = await giroService.executeGiro(giroId, bankAccountId, executionType, proofUrl)
+  const result = await giroService.executeGiro(giroId, bankAccountId, executionType, fee, proofUrl)
 
   if ('error' in result) {
     switch (result.error) {

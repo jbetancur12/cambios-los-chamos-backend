@@ -187,6 +187,7 @@ export class GiroService {
     giroId: string,
     bankAccountId: string,
     executionType: ExecutionType,
+    fee: number,
     proofUrl?: string
   ): Promise<
     | Giro
@@ -199,6 +200,7 @@ export class GiroService {
           | 'UNAUTHORIZED_ACCOUNT'
       }
   > {
+    console.log('🚀 ~ GiroService ~ executeGiro ~ fee:', fee)
     const giro = await DI.giros.findOne({ id: giroId }, { populate: ['transferencista', 'minorista'] })
 
     if (!giro) {
@@ -225,6 +227,7 @@ export class GiroService {
     const transactionResult = await bankAccountTransactionService.createTransaction({
       bankAccountId: bankAccount.id,
       amount: giro.amountBs,
+      fee,
       type: BankAccountTransactionType.WITHDRAWAL,
       reference: `Giro ${giro.id}`,
       createdBy: giro.transferencista.user,
