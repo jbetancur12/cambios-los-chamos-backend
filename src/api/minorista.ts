@@ -196,17 +196,16 @@ minoristaRouter.get(
 
     try {
       const minoristaRepo = require('@/di').DI.em.getRepository(require('@/entities/Minorista').Minorista)
-      const transactionRepo = require('@/di').DI.em.getRepository(require('@/entities/MinoristaTransaction').MinoristaTransaction)
+      const transactionRepo = require('@/di').DI.em.getRepository(
+        require('@/entities/MinoristaTransaction').MinoristaTransaction
+      )
 
       const minorista = await minoristaRepo.findOne({ id: minoristaId })
       if (!minorista) {
         return res.status(404).json(ApiResponse.notFound('Minorista', minoristaId))
       }
 
-      const transactions = await transactionRepo.find(
-        { minorista: minoristaId },
-        { orderBy: { createdAt: -1 } }
-      )
+      const transactions = await transactionRepo.find({ minorista: minoristaId }, { orderBy: { createdAt: -1 } })
 
       res.json(
         ApiResponse.success({

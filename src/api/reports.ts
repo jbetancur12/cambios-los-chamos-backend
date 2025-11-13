@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { requireAuth,  requireRole } from '@/middleware/authMiddleware'
+import { requireAuth, requireRole } from '@/middleware/authMiddleware'
 import { UserRole } from '@/entities/User'
 import { reportService } from '@/services/ReportService'
 import { json } from 'zod'
@@ -87,120 +87,108 @@ router.get('/system-profit-trend', requireRole(UserRole.SUPER_ADMIN), async (req
  * GET /api/reports/minorista-profit
  * Get minorista profit report for a date range (SUPER_ADMIN only)
  */
-router.get(
-  '/minorista-profit',
-  requireRole(UserRole.SUPER_ADMIN),
-  async (req: Request, res: Response) => {
-    try {
-      const dateFromStr = req.query.dateFrom as string
-      const dateToStr = req.query.dateTo as string
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100
+router.get('/minorista-profit', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
+  try {
+    const dateFromStr = req.query.dateFrom as string
+    const dateToStr = req.query.dateTo as string
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 100
 
-      if (!dateFromStr || !dateToStr) {
-        return res.status(400).json({
-          error: 'MISSING_PARAMETERS',
-          message: 'dateFrom and dateTo are required',
-        })
-      }
-
-      const dateFrom = new Date(dateFromStr)
-      const dateTo = new Date(dateToStr)
-
-      if (isNaN(dateFrom.getTime()) || isNaN(dateTo.getTime())) {
-        return res.status(400).json({
-          error: 'INVALID_DATE_FORMAT',
-          message: 'Invalid date format',
-        })
-      }
-
-      dateTo.setHours(23, 59, 59, 999)
-      const report = await reportService.getMinoristaProfitReport(dateFrom, dateTo, limit)
-      res.json(ApiResponse.success(report))
-    } catch (error) {
-      console.error('Error fetching minorista profit report:', error)
-      res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' })
+    if (!dateFromStr || !dateToStr) {
+      return res.status(400).json({
+        error: 'MISSING_PARAMETERS',
+        message: 'dateFrom and dateTo are required',
+      })
     }
+
+    const dateFrom = new Date(dateFromStr)
+    const dateTo = new Date(dateToStr)
+
+    if (isNaN(dateFrom.getTime()) || isNaN(dateTo.getTime())) {
+      return res.status(400).json({
+        error: 'INVALID_DATE_FORMAT',
+        message: 'Invalid date format',
+      })
+    }
+
+    dateTo.setHours(23, 59, 59, 999)
+    const report = await reportService.getMinoristaProfitReport(dateFrom, dateTo, limit)
+    res.json(ApiResponse.success(report))
+  } catch (error) {
+    console.error('Error fetching minorista profit report:', error)
+    res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' })
   }
-)
+})
 
 /**
  * GET /api/reports/bank-transactions
  * Get bank transaction report for a date range (SUPER_ADMIN only)
  */
-router.get(
-  '/bank-transactions',
-  requireRole(UserRole.SUPER_ADMIN),
-  async (req: Request, res: Response) => {
-    try {
-      const dateFromStr = req.query.dateFrom as string
-      const dateToStr = req.query.dateTo as string
+router.get('/bank-transactions', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
+  try {
+    const dateFromStr = req.query.dateFrom as string
+    const dateToStr = req.query.dateTo as string
 
-      if (!dateFromStr || !dateToStr) {
-        return res.status(400).json({
-          error: 'MISSING_PARAMETERS',
-          message: 'dateFrom and dateTo are required',
-        })
-      }
-
-      const dateFrom = new Date(dateFromStr)
-      const dateTo = new Date(dateToStr)
-
-      if (isNaN(dateFrom.getTime()) || isNaN(dateTo.getTime())) {
-        return res.status(400).json({
-          error: 'INVALID_DATE_FORMAT',
-          message: 'Invalid date format',
-        })
-      }
-
-      dateTo.setHours(23, 59, 59, 999)
-
-      const report = await reportService.getBankTransactionReport(dateFrom, dateTo)
-      res.json(ApiResponse.success(report))
-    } catch (error) {
-      console.error('Error fetching bank transaction report:', error)
-      res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' })
+    if (!dateFromStr || !dateToStr) {
+      return res.status(400).json({
+        error: 'MISSING_PARAMETERS',
+        message: 'dateFrom and dateTo are required',
+      })
     }
+
+    const dateFrom = new Date(dateFromStr)
+    const dateTo = new Date(dateToStr)
+
+    if (isNaN(dateFrom.getTime()) || isNaN(dateTo.getTime())) {
+      return res.status(400).json({
+        error: 'INVALID_DATE_FORMAT',
+        message: 'Invalid date format',
+      })
+    }
+
+    dateTo.setHours(23, 59, 59, 999)
+
+    const report = await reportService.getBankTransactionReport(dateFrom, dateTo)
+    res.json(ApiResponse.success(report))
+  } catch (error) {
+    console.error('Error fetching bank transaction report:', error)
+    res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' })
   }
-)
+})
 
 /**
  * GET /api/reports/minorista-transactions
  * Get minorista transaction report for a date range (SUPER_ADMIN only)
  */
-router.get(
-  '/minorista-transactions',
-  requireRole(UserRole.SUPER_ADMIN),
-  async (req: Request, res: Response) => {
-    try {
-      const dateFromStr = req.query.dateFrom as string
-      const dateToStr = req.query.dateTo as string
+router.get('/minorista-transactions', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
+  try {
+    const dateFromStr = req.query.dateFrom as string
+    const dateToStr = req.query.dateTo as string
 
-      if (!dateFromStr || !dateToStr) {
-        return res.status(400).json({
-          error: 'MISSING_PARAMETERS',
-          message: 'dateFrom and dateTo are required',
-        })
-      }
-
-      const dateFrom = new Date(dateFromStr)
-      const dateTo = new Date(dateToStr)
-
-      if (isNaN(dateFrom.getTime()) || isNaN(dateTo.getTime())) {
-        return res.status(400).json({
-          error: 'INVALID_DATE_FORMAT',
-          message: 'Invalid date format',
-        })
-      }
-
-      dateTo.setHours(23, 59, 59, 999)
-
-      const report = await reportService.getMinoristaTransactionReport(dateFrom, dateTo)
-      res.json(ApiResponse.success(report))
-    } catch (error) {
-      console.error('Error fetching minorista transaction report:', error)
-      res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' })
+    if (!dateFromStr || !dateToStr) {
+      return res.status(400).json({
+        error: 'MISSING_PARAMETERS',
+        message: 'dateFrom and dateTo are required',
+      })
     }
+
+    const dateFrom = new Date(dateFromStr)
+    const dateTo = new Date(dateToStr)
+
+    if (isNaN(dateFrom.getTime()) || isNaN(dateTo.getTime())) {
+      return res.status(400).json({
+        error: 'INVALID_DATE_FORMAT',
+        message: 'Invalid date format',
+      })
+    }
+
+    dateTo.setHours(23, 59, 59, 999)
+
+    const report = await reportService.getMinoristaTransactionReport(dateFrom, dateTo)
+    res.json(ApiResponse.success(report))
+  } catch (error) {
+    console.error('Error fetching minorista transaction report:', error)
+    res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' })
   }
-)
+})
 
 export default router

@@ -110,18 +110,14 @@ if (CORS_ORIGINS_ENV) {
 } else if (IS_DEVELOPMENT) {
   CORS_ALLOWED_ORIGINS = [
     'https://zkq86shq.use2.devtunnels.ms:5173',
-    'http://localhost:8000', 
-    'http://localhost:3000', 
-    'http://localhost:5173', 
-    'http://192.168.40.12:5173', 
-    'http://192.168.40.15:5173', 
+    'http://localhost:8000',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://192.168.40.12:5173',
+    'http://192.168.40.15:5173',
   ]
 } else {
-  CORS_ALLOWED_ORIGINS = [
-    'https://app.useskald.com', 
-    'https://api.useskald.com', 
-    'https://platform.useskald.com'
-  ]
+  CORS_ALLOWED_ORIGINS = ['https://app.useskald.com', 'https://api.useskald.com', 'https://platform.useskald.com']
 }
 
 // Add self-hosted deployment URLs
@@ -143,18 +139,17 @@ interface CorsCallback {
 
 const corsOptions: CorsOptions = {
   origin: (origin: string | undefined, callback: CorsCallback) => {
-    console.log(`[CORS] Origin recibido: ${origin}`);
+    console.log(`[CORS] Origin recibido: ${origin}`)
     if (!origin || IS_DEVELOPMENT || CORS_ALLOWED_ORIGINS.includes(origin.replace(/\/$/, ''))) {
-      console.log(`[CORS] Permitido: ${origin}`);
+      console.log(`[CORS] Permitido: ${origin}`)
       callback(null, true)
     } else {
-      console.warn(`[CORS] Bloqueado: ${origin}`);
+      console.warn(`[CORS] Bloqueado: ${origin}`)
       callback(new Error(`CORS: Origen no permitido → ${origin}`))
     }
   },
-  credentials: CORS_ALLOW_CREDENTIALS
+  credentials: CORS_ALLOW_CREDENTIALS,
 }
-
 
 export { corsOptions }
 

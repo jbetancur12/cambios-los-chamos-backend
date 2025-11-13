@@ -18,7 +18,9 @@ router.get('/stats', requireAuth(), async (req: Request, res: Response) => {
     const stats = await dashboardService.getStats(req.context.requestUser)
     return res.status(200).json(ApiResponse.success(stats))
   } catch (error) {
-    return res.status(500).json(ApiResponse.serverError(error instanceof Error ? error.message : 'Error al obtener estadísticas'))
+    return res
+      .status(500)
+      .json(ApiResponse.serverError(error instanceof Error ? error.message : 'Error al obtener estadísticas'))
   }
 })
 
@@ -35,7 +37,9 @@ router.get('/recent-giros', requireAuth(), async (req: Request, res: Response) =
     const giros = await dashboardService.getRecentGiros(req.context.requestUser, limit)
     return res.status(200).json(ApiResponse.success({ giros }))
   } catch (error) {
-    return res.status(500).json(ApiResponse.serverError(error instanceof Error ? error.message : 'Error al obtener giros recientes'))
+    return res
+      .status(500)
+      .json(ApiResponse.serverError(error instanceof Error ? error.message : 'Error al obtener giros recientes'))
   }
 })
 

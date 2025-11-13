@@ -25,7 +25,7 @@ export class MinoristaTransaction {
   @Enum(() => MinoristaTransactionType)
   type!: MinoristaTransactionType
 
-    @Property({ type: 'decimal' })
+  @Property({ type: 'decimal' })
   previousAvailableCredit!: number
 
   @Property({ type: 'decimal' })
@@ -48,7 +48,7 @@ export class MinoristaTransaction {
 
   @Property({ type: 'decimal', nullable: true })
   accumulatedDebt?: number // Deuda acumulada después de esta transacción
-  
+
   @Property({ type: 'decimal', nullable: true })
   accumulatedProfit?: number // Ganancia Acumulada depues de esta tranasaccion
 

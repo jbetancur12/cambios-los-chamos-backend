@@ -81,7 +81,6 @@ giroRouter.post(
     } else if (currencyInput === Currency.COP) {
       // COP → Bs: amountInput / sellRate
       amountBs = amountInput / rateApplied.sellRate
-    
     } else {
       // VES (bolivares directos)
       amountBs = amountInput
@@ -99,7 +98,7 @@ giroRouter.post(
         currencyInput,
         amountBs,
         rateApplied,
-        executionType: ExecutionType.TRANSFERENCIA
+        executionType: ExecutionType.TRANSFERENCIA,
       },
       user
     )
@@ -238,123 +237,111 @@ giroRouter.post('/:giroId/execute', requireRole(UserRole.TRANSFERENCISTA), async
 })
 
 // ------------------ CREAR RECARGA ------------------
-giroRouter.post(
-  '/recharge/create',
-  requireRole(UserRole.MINORISTA),
-  async (req: Request, res: Response) => {
-    const user = req.context?.requestUser?.user
-    if (!user) {
-      return res.status(401).json(ApiResponse.unauthorized())
-    }
-
-    const { operatorId, amountBsId, phone, contactoEnvia } = req.body
-
-    if (!operatorId || !amountBsId || !phone || !contactoEnvia) {
-      return res.status(400).json(
-        ApiResponse.validationError([
-          { field: 'operatorId', message: 'El operador es requerido' },
-          { field: 'amountBsId', message: 'El monto es requerido' },
-          { field: 'phone', message: 'El teléfono es requerido' },
-          { field: 'contactoEnvia', message: 'El contacto que envía es requerido' },
-        ])
-      )
-    }
-
-    // Obtener tasa de cambio actual
-    const currentRateResult = await exchangeRateService.getCurrentRate()
-    if ('error' in currentRateResult) {
-      return res
-        .status(404)
-        .json(ApiResponse.notFound('No hay tasa de cambio configurada. Contacte al administrador.'))
-    }
-
-    const result = await giroService.createRecharge(
-      {
-        operatorId,
-        amountBsId,
-        phone,
-        contactoEnvia,
-      },
-      user,
-      currentRateResult
-    )
-
-    if ('error' in result) {
-      switch (result.error) {
-        case 'MINORISTA_NOT_FOUND':
-          return res.status(400).json(ApiResponse.notFound('Minorista'))
-        case 'NO_TRANSFERENCISTA_ASSIGNED':
-          return res.status(400).json(ApiResponse.badRequest('No hay transferencistas disponibles'))
-        case 'INSUFFICIENT_BALANCE':
-          return res.status(400).json(ApiResponse.badRequest('Balance insuficiente del minorista'))
-        case 'OPERATOR_NOT_FOUND':
-          return res.status(404).json(ApiResponse.notFound('Operador', operatorId))
-        case 'AMOUNT_NOT_FOUND':
-          return res.status(404).json(ApiResponse.notFound('Monto', amountBsId))
-      }
-    }
-
-    res.status(201).json(ApiResponse.success({ giro: result, message: 'Recarga creada exitosamente' }))
+giroRouter.post('/recharge/create', requireRole(UserRole.MINORISTA), async (req: Request, res: Response) => {
+  const user = req.context?.requestUser?.user
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
   }
-)
+
+  const { operatorId, amountBsId, phone, contactoEnvia } = req.body
+
+  if (!operatorId || !amountBsId || !phone || !contactoEnvia) {
+    return res.status(400).json(
+      ApiResponse.validationError([
+        { field: 'operatorId', message: 'El operador es requerido' },
+        { field: 'amountBsId', message: 'El monto es requerido' },
+        { field: 'phone', message: 'El teléfono es requerido' },
+        { field: 'contactoEnvia', message: 'El contacto que envía es requerido' },
+      ])
+    )
+  }
+
+  // Obtener tasa de cambio actual
+  const currentRateResult = await exchangeRateService.getCurrentRate()
+  if ('error' in currentRateResult) {
+    return res.status(404).json(ApiResponse.notFound('No hay tasa de cambio configurada. Contacte al administrador.'))
+  }
+
+  const result = await giroService.createRecharge(
+    {
+      operatorId,
+      amountBsId,
+      phone,
+      contactoEnvia,
+    },
+    user,
+    currentRateResult
+  )
+
+  if ('error' in result) {
+    switch (result.error) {
+      case 'MINORISTA_NOT_FOUND':
+        return res.status(400).json(ApiResponse.notFound('Minorista'))
+      case 'NO_TRANSFERENCISTA_ASSIGNED':
+        return res.status(400).json(ApiResponse.badRequest('No hay transferencistas disponibles'))
+      case 'INSUFFICIENT_BALANCE':
+        return res.status(400).json(ApiResponse.badRequest('Balance insuficiente del minorista'))
+      case 'OPERATOR_NOT_FOUND':
+        return res.status(404).json(ApiResponse.notFound('Operador', operatorId))
+      case 'AMOUNT_NOT_FOUND':
+        return res.status(404).json(ApiResponse.notFound('Monto', amountBsId))
+    }
+  }
+
+  res.status(201).json(ApiResponse.success({ giro: result, message: 'Recarga creada exitosamente' }))
+})
 
 // ------------------ CREAR PAGO MÓVIL ------------------
-giroRouter.post(
-  '/mobile-payment/create',
-  requireRole(UserRole.MINORISTA),
-  async (req: Request, res: Response) => {
-    const user = req.context?.requestUser?.user
-    if (!user) {
-      return res.status(401).json(ApiResponse.unauthorized())
-    }
-
-    const { cedula, bankId, phone, contactoEnvia, amountCop } = req.body
-
-    if (!cedula || !bankId || !phone || !contactoEnvia || !amountCop) {
-      return res.status(400).json(
-        ApiResponse.validationError([
-          { field: 'cedula', message: 'La cédula es requerida' },
-          { field: 'bankId', message: 'El banco es requerido' },
-          { field: 'phone', message: 'El teléfono es requerido' },
-          { field: 'contactoEnvia', message: 'El contacto que envía es requerido' },
-          { field: 'amountCop', message: 'El monto es requerido' },
-        ])
-      )
-    }
-
-    // Obtener tasa de cambio actual
-    const currentRateResult = await exchangeRateService.getCurrentRate()
-    if ('error' in currentRateResult) {
-      return res
-        .status(404)
-        .json(ApiResponse.notFound('No hay tasa de cambio configurada. Contacte al administrador.'))
-    }
-
-    const result = await giroService.createMobilePayment(
-      {
-        cedula,
-        bankId,
-        phone,
-        contactoEnvia,
-        amountCop: Number(amountCop),
-      },
-      user,
-      currentRateResult
-    )
-
-    if ('error' in result) {
-      switch (result.error) {
-        case 'MINORISTA_NOT_FOUND':
-          return res.status(400).json(ApiResponse.notFound('Minorista'))
-        case 'NO_TRANSFERENCISTA_ASSIGNED':
-          return res.status(400).json(ApiResponse.badRequest('No hay transferencistas disponibles'))
-        case 'INSUFFICIENT_BALANCE':
-          return res.status(400).json(ApiResponse.badRequest('Balance insuficiente del minorista'))
-        case 'BANK_NOT_FOUND':
-          return res.status(404).json(ApiResponse.notFound('Banco', bankId))
-      }
-    }
-
-    res.status(201).json(ApiResponse.success({ giro: result, message: 'Pago móvil creado exitosamente' }))
+giroRouter.post('/mobile-payment/create', requireRole(UserRole.MINORISTA), async (req: Request, res: Response) => {
+  const user = req.context?.requestUser?.user
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
   }
-)
+
+  const { cedula, bankId, phone, contactoEnvia, amountCop } = req.body
+
+  if (!cedula || !bankId || !phone || !contactoEnvia || !amountCop) {
+    return res.status(400).json(
+      ApiResponse.validationError([
+        { field: 'cedula', message: 'La cédula es requerida' },
+        { field: 'bankId', message: 'El banco es requerido' },
+        { field: 'phone', message: 'El teléfono es requerido' },
+        { field: 'contactoEnvia', message: 'El contacto que envía es requerido' },
+        { field: 'amountCop', message: 'El monto es requerido' },
+      ])
+    )
+  }
+
+  // Obtener tasa de cambio actual
+  const currentRateResult = await exchangeRateService.getCurrentRate()
+  if ('error' in currentRateResult) {
+    return res.status(404).json(ApiResponse.notFound('No hay tasa de cambio configurada. Contacte al administrador.'))
+  }
+
+  const result = await giroService.createMobilePayment(
+    {
+      cedula,
+      bankId,
+      phone,
+      contactoEnvia,
+      amountCop: Number(amountCop),
+    },
+    user,
+    currentRateResult
+  )
+
+  if ('error' in result) {
+    switch (result.error) {
+      case 'MINORISTA_NOT_FOUND':
+        return res.status(400).json(ApiResponse.notFound('Minorista'))
+      case 'NO_TRANSFERENCISTA_ASSIGNED':
+        return res.status(400).json(ApiResponse.badRequest('No hay transferencistas disponibles'))
+      case 'INSUFFICIENT_BALANCE':
+        return res.status(400).json(ApiResponse.badRequest('Balance insuficiente del minorista'))
+      case 'BANK_NOT_FOUND':
+        return res.status(404).json(ApiResponse.notFound('Banco', bankId))
+    }
+  }
+
+  res.status(201).json(ApiResponse.success({ giro: result, message: 'Pago móvil creado exitosamente' }))
+})

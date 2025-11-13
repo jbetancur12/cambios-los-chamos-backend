@@ -34,7 +34,6 @@ export interface MinoriastaProfit {
   email: string
   totalProfit: number
   giroCount: number
-
 }
 
 export interface TopMinoristaReport {
@@ -69,10 +68,7 @@ export class ReportService {
   /**
    * Calcula ganancias del sistema dentro de un rango de fechas
    */
-  async getSystemProfitReport(
-    dateFrom: Date,
-    dateTo: Date
-  ): Promise<SystemProfitReport> {
+  async getSystemProfitReport(dateFrom: Date, dateTo: Date): Promise<SystemProfitReport> {
     console.log('Generating system profit report from', dateFrom, 'to', dateTo)
     const giros = await DI.giros.find({
       createdAt: { $gte: dateFrom, $lte: dateTo },
@@ -111,10 +107,7 @@ export class ReportService {
   /**
    * Obtiene la tendencia de ganancias del sistema por fecha
    */
-  async getSystemProfitTrendReport(
-    dateFrom: Date,
-    dateTo: Date
-  ): Promise<SystemProfitTrendReport> {
+  async getSystemProfitTrendReport(dateFrom: Date, dateTo: Date): Promise<SystemProfitTrendReport> {
     const giros = await DI.giros.find({
       createdAt: { $gte: dateFrom, $lte: dateTo },
     })
@@ -152,11 +145,7 @@ export class ReportService {
   /**
    * Calcula ganancias de minoristas dentro de un rango de fechas
    */
-  async getMinoristaProfitReport(
-    dateFrom: Date,
-    dateTo: Date,
-    limit: number = 100
-  ): Promise<TopMinoristaReport> {
+  async getMinoristaProfitReport(dateFrom: Date, dateTo: Date, limit: number = 100): Promise<TopMinoristaReport> {
     const minoristas = await DI.minoristas.find({}, { populate: ['user', 'giros'] })
     const minoristasProfits: MinoriastaProfit[] = []
 
@@ -173,7 +162,7 @@ export class ReportService {
         minoristaName: minorista.user.fullName,
         email: minorista.user.email,
         totalProfit,
-        giroCount: giros.length,  
+        giroCount: giros.length,
       })
     }
 
@@ -189,10 +178,7 @@ export class ReportService {
   /**
    * Obtiene transacciones bancarias dentro de un rango de fechas
    */
-  async getBankTransactionReport(
-    dateFrom: Date,
-    dateTo: Date
-  ): Promise<BankTransactionReport> {
+  async getBankTransactionReport(dateFrom: Date, dateTo: Date): Promise<BankTransactionReport> {
     const transactions = await DI.bankAccountTransactions.find({
       createdAt: { $gte: dateFrom, $lte: dateTo },
     })
@@ -225,10 +211,7 @@ export class ReportService {
   /**
    * Obtiene transacciones de minoristas dentro de un rango de fechas
    */
-  async getMinoristaTransactionReport(
-    dateFrom: Date,
-    dateTo: Date
-  ): Promise<MinoristaTransactionReport> {
+  async getMinoristaTransactionReport(dateFrom: Date, dateTo: Date): Promise<MinoristaTransactionReport> {
     const transactions = await DI.minoristaTransactions.find({
       createdAt: { $gte: dateFrom, $lte: dateTo },
     })

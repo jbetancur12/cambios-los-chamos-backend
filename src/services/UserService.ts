@@ -161,7 +161,7 @@ export class UserService {
   async toggleUserActiveStatus(userId: string): Promise<User | false> {
     const userRepo = DI.em.getRepository(User)
     const user = await userRepo.findOne({ id: userId })
-    console.log("🚀 ~ UserService ~ toggleUserActiveStatus ~ user:", user)
+    console.log('🚀 ~ UserService ~ toggleUserActiveStatus ~ user:', user)
 
     if (!user) {
       return false

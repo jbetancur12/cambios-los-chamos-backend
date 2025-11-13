@@ -28,7 +28,6 @@ export class MinoristaService {
         }
         minorista: {
           id: string
-          
         }
       }
     | { error: 'EMAIL_ALREADY_EXISTS' }
@@ -84,7 +83,6 @@ export class MinoristaService {
       },
       minorista: {
         id: minorista.id,
-
       },
     }
   }
@@ -98,7 +96,7 @@ export class MinoristaService {
     limit: number
     minoristas: Array<{
       id: string
-      
+
       creditLimit: number
       availableCredit: number
       user: {
@@ -127,7 +125,7 @@ export class MinoristaService {
 
     // Retornar solo campos públicos
     const data = minoristas.map((m) => ({
-      id: m.id,     
+      id: m.id,
       creditLimit: m.creditLimit,
       availableCredit: m.availableCredit,
       user: {
@@ -153,7 +151,7 @@ export class MinoristaService {
   async getMinoristaByUserId(userId: string): Promise<
     | {
         id: string
-        
+
         creditLimit: number
         availableCredit: number
         user: {
@@ -193,7 +191,7 @@ export class MinoristaService {
    */
   async getMinoristaById(minoristaId: string): Promise<
     | {
-        id: string       
+        id: string
         creditLimit: number
         availableCredit: number
         user: {
@@ -253,12 +251,10 @@ export class MinoristaService {
       return { error: 'MINORISTA_NOT_FOUND' }
     }
 
-   
     await DI.em.persistAndFlush(minorista)
 
     return {
       id: minorista.id,
-    
     }
   }
 

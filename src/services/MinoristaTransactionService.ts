@@ -19,98 +19,89 @@ export class MinoristaTransactionService {
    * 3. Crea el registro de transacción con balance anterior y nuevo
    * 4. Actualiza el balance del minorista
    */
- async createTransaction(
-  data: CreateTransactionInput
-): Promise<MinoristaTransaction | { error: 'MINORISTA_NOT_FOUND' | 'INSUFFICIENT_BALANCE' }> {
-  const minoristaRepo = DI.em.getRepository(Minorista)
-  const transactionRepo = DI.em.getRepository(MinoristaTransaction)
+  async createTransaction(
+    data: CreateTransactionInput
+  ): Promise<MinoristaTransaction | { error: 'MINORISTA_NOT_FOUND' | 'INSUFFICIENT_BALANCE' }> {
+    const minoristaRepo = DI.em.getRepository(Minorista)
+    const transactionRepo = DI.em.getRepository(MinoristaTransaction)
 
-  // Buscar minorista
-  const minorista = await minoristaRepo.findOne({ id: data.minoristaId })
-  if (!minorista) {
-    return { error: 'MINORISTA_NOT_FOUND' }
+    // Buscar minorista
+    const minorista = await minoristaRepo.findOne({ id: data.minoristaId })
+    if (!minorista) {
+      return { error: 'MINORISTA_NOT_FOUND' }
+    }
+
+    const previousAvailableCredit = minorista.availableCredit
+    const { creditLimit } = minorista
+
+    let newAvailableCredit = previousAvailableCredit
+
+    // Calcular nuevo balance según tipo de transacción
+    switch (data.type) {
+      case MinoristaTransactionType.RECHARGE:
+        newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
+        break
+
+      case MinoristaTransactionType.DISCOUNT:
+        if (previousAvailableCredit < data.amount) {
+          return { error: 'INSUFFICIENT_BALANCE' }
+        }
+        newAvailableCredit = previousAvailableCredit - data.amount
+        break
+
+      case MinoristaTransactionType.PROFIT:
+        newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
+        break
+
+      case MinoristaTransactionType.ADJUSTMENT:
+        newAvailableCredit = previousAvailableCredit + data.amount
+        if (newAvailableCredit < 0) {
+          return { error: 'INSUFFICIENT_BALANCE' }
+        }
+        break
+    }
+
+    const profitEarned = data.type === MinoristaTransactionType.PROFIT ? data.amount : 0
+    const creditConsumed = data.type === MinoristaTransactionType.DISCOUNT ? data.amount : 0
+
+    //Obtener la última transacción para mantener o reiniciar el profit acumulado
+    const lastTransaction = await transactionRepo.findOne({ minorista }, { orderBy: { createdAt: 'DESC' } })
+
+    let accumulatedProfit = 0
+
+    if (data.type === MinoristaTransactionType.RECHARGE) {
+      accumulatedProfit = 0 // Reinicia en recarga
+    } else if (data.type === MinoristaTransactionType.PROFIT) {
+      accumulatedProfit = (lastTransaction?.accumulatedProfit ?? 0) + data.amount
+    } else {
+      accumulatedProfit = lastTransaction?.accumulatedProfit ?? 0
+    }
+
+    // Crear transacción
+    const transaction = transactionRepo.create({
+      minorista,
+      amount: data.amount,
+      type: data.type,
+      creditConsumed,
+      profitEarned,
+      previousAvailableCredit,
+      accumulatedDebt: creditLimit - newAvailableCredit,
+      accumulatedProfit,
+      availableCredit: newAvailableCredit,
+      createdBy: data.createdBy,
+      createdAt: new Date(),
+    })
+
+    // Actualizar el crédito disponible del minorista
+    minorista.availableCredit = newAvailableCredit
+
+    // Guardar en una transacción atómica
+    await DI.em.transactional(async (em) => {
+      await em.persistAndFlush([transaction, minorista])
+    })
+
+    return transaction
   }
-
-  const previousAvailableCredit = minorista.availableCredit
-  const { creditLimit } = minorista
-
-  let newAvailableCredit = previousAvailableCredit
-
-  // Calcular nuevo balance según tipo de transacción
-  switch (data.type) {
-    case MinoristaTransactionType.RECHARGE:
-      newAvailableCredit = Math.min(
-        previousAvailableCredit + data.amount,
-        minorista.creditLimit
-      )
-      break
-
-    case MinoristaTransactionType.DISCOUNT:
-      if (previousAvailableCredit < data.amount) {
-        return { error: 'INSUFFICIENT_BALANCE' }
-      }
-      newAvailableCredit = previousAvailableCredit - data.amount
-      break
-
-    case MinoristaTransactionType.PROFIT:
-      newAvailableCredit = Math.min(
-        previousAvailableCredit + data.amount,
-        minorista.creditLimit
-      )
-      break
-
-    case MinoristaTransactionType.ADJUSTMENT:
-      newAvailableCredit = previousAvailableCredit + data.amount
-      if (newAvailableCredit < 0) {
-        return { error: 'INSUFFICIENT_BALANCE' }
-      }
-      break
-  }
-
-  const profitEarned = data.type === MinoristaTransactionType.PROFIT ? data.amount : 0
-  const creditConsumed = data.type === MinoristaTransactionType.DISCOUNT ? data.amount : 0
-
-  //Obtener la última transacción para mantener o reiniciar el profit acumulado
-  const lastTransaction = await transactionRepo.findOne(
-    { minorista },
-    { orderBy: { createdAt: 'DESC' } }
-  )
-
-  let accumulatedProfit = 0
-
-  if (data.type === MinoristaTransactionType.RECHARGE) {
-    accumulatedProfit = 0 // Reinicia en recarga
-  } else if (data.type === MinoristaTransactionType.PROFIT) {
-    accumulatedProfit = (lastTransaction?.accumulatedProfit ?? 0) + data.amount
-  } else {
-    accumulatedProfit = lastTransaction?.accumulatedProfit ?? 0
-  }
-
-  // Crear transacción
-  const transaction = transactionRepo.create({
-    minorista,
-    amount: data.amount,
-    type: data.type,
-    creditConsumed,
-    profitEarned,
-    previousAvailableCredit,
-    accumulatedDebt: creditLimit - newAvailableCredit,
-    accumulatedProfit,
-    availableCredit: newAvailableCredit,
-    createdBy: data.createdBy,
-    createdAt: new Date(),
-  })
-
-  // Actualizar el crédito disponible del minorista
-  minorista.availableCredit = newAvailableCredit
-
-  // Guardar en una transacción atómica
-  await DI.em.transactional(async (em) => {
-    await em.persistAndFlush([transaction, minorista])
-  })
-
-  return transaction
-}
 
   /**
    * Lista las transacciones de un minorista con paginación

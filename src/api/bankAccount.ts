@@ -248,61 +248,59 @@ bankAccountRouter.patch(
 )
 
 // ------------------ LISTAR TRANSACCIONES DE UNA CUENTA ------------------
-bankAccountRouter.get(
-  '/:bankAccountId/transactions',
-  requireAuth(),
-  async (req: Request, res: Response) => {
-    const { bankAccountId } = req.params
-    const user = req.context?.requestUser?.user
+bankAccountRouter.get('/:bankAccountId/transactions', requireAuth(), async (req: Request, res: Response) => {
+  const { bankAccountId } = req.params
+  const user = req.context?.requestUser?.user
 
-    if (!user) {
-      return res.status(401).json(ApiResponse.unauthorized())
-    }
-
-    // Verificar que la cuenta bancaria existe
-    const bankAccountRepo = DI.em.getRepository(BankAccount)
-    const bankAccount = await bankAccountRepo.findOne({ id: bankAccountId }, { populate: ['transferencista'] })
-
-    if (!bankAccount) {
-      return res.status(404).json(ApiResponse.notFound('Cuenta bancaria'))
-    }
-
-    // Verificar permisos según rol
-    if (user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.ADMIN) {
-      // Si es transferencista, debe ser el dueño de la cuenta
-      if (user.role === UserRole.TRANSFERENCISTA) {
-        const transferencista = await DI.transferencistas.findOne({ user: user.id })
-        if (!transferencista || bankAccount.transferencista.id !== transferencista.id) {
-          return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver las transacciones de esta cuenta'))
-        }
-      } else {
-        // Otros roles no tienen acceso
-        return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver las transacciones de esta cuenta'))
-      }
-    }
-
-    const page = parseInt(req.query.page as string) || 1
-    const limit = parseInt(req.query.limit as string) || 50
-
-    const result = await bankAccountTransactionService.listTransactionsByBankAccount(bankAccountId, {
-      page,
-      limit,
-    })
-
-    if ('error' in result) {
-      return res.status(404).json(ApiResponse.notFound('Cuenta bancaria'))
-    }
-
-    res.json(
-      ApiResponse.success({
-        transactions: result.transactions,
-        pagination: {
-          total: result.total,
-          page: result.page,
-          limit: result.limit,
-          totalPages: Math.ceil(result.total / result.limit),
-        },
-      })
-    )
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
   }
-)
+
+  // Verificar que la cuenta bancaria existe
+  const bankAccountRepo = DI.em.getRepository(BankAccount)
+  const bankAccount = await bankAccountRepo.findOne({ id: bankAccountId }, { populate: ['transferencista'] })
+
+  if (!bankAccount) {
+    return res.status(404).json(ApiResponse.notFound('Cuenta bancaria'))
+  }
+
+  // Verificar permisos según rol
+  if (user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.ADMIN) {
+    // Si es transferencista, debe ser el dueño de la cuenta
+    if (user.role === UserRole.TRANSFERENCISTA) {
+      const transferencista = await DI.transferencistas.findOne({ user: user.id })
+      if (!transferencista || bankAccount.transferencista.id !== transferencista.id) {
+        return res
+          .status(403)
+          .json(ApiResponse.forbidden('No tienes permisos para ver las transacciones de esta cuenta'))
+      }
+    } else {
+      // Otros roles no tienen acceso
+      return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver las transacciones de esta cuenta'))
+    }
+  }
+
+  const page = parseInt(req.query.page as string) || 1
+  const limit = parseInt(req.query.limit as string) || 50
+
+  const result = await bankAccountTransactionService.listTransactionsByBankAccount(bankAccountId, {
+    page,
+    limit,
+  })
+
+  if ('error' in result) {
+    return res.status(404).json(ApiResponse.notFound('Cuenta bancaria'))
+  }
+
+  res.json(
+    ApiResponse.success({
+      transactions: result.transactions,
+      pagination: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: Math.ceil(result.total / result.limit),
+      },
+    })
+  )
+})

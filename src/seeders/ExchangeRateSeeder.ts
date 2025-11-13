@@ -21,12 +21,12 @@ export class ExchangeRateSeeder extends Seeder {
     // Crear la tasa de cambio
     const exchangeRate = em.create(ExchangeRate, {
       buyRate: 12.47,
-      sellRate: 13.90,
+      sellRate: 13.9,
       usd: 232,
       bcv: 226.13,
       createdBy: superAdmin,
       createdAt: new Date(),
-      isCustom: false
+      isCustom: false,
     })
 
     await em.persistAndFlush(exchangeRate)
