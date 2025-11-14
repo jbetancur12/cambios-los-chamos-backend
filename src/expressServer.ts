@@ -29,7 +29,7 @@ import { logger } from '@/lib/logger'
 import { posthog } from '@/lib/posthogUtils'
 import * as Sentry from '@sentry/node'
 import { ApiResponse } from '@/lib/apiResponse'
-import {notificationRouter} from './api/notification'
+import { notificationRouter } from './api/notification'
 
 export const startExpressServer = async () => {
   // DI stands for Dependency Injection. the naming/acronym is a bit confusing, but we're using it
@@ -81,7 +81,7 @@ export const startExpressServer = async () => {
   app.use('/api/reports', reportsRouter)
   app.use('/api/recharge-operators', rechargeOperatorRouter)
   app.use('/api/recharge-amounts', rechargeAmountRouter)
-  app.use('/api/notification',notificationRouter)
+  app.use('/api/notification', notificationRouter)
 
   // Rutas privadas (requieren autenticación)
   privateRoutesRouter.use('/giro', giroRouter)

@@ -16,7 +16,7 @@ import { BankAssignment } from './entities/BankAssignment'
 import { TransferencistaAssignmentTracker } from './entities/TransferencistaAssignmentTracker'
 import { RechargeOperator } from './entities/RechargeOperator'
 import { RechargeAmount } from './entities/RechargeAmount'
-import { UserFcmToken} from './entities/UserFcmToken';
+import { UserFcmToken } from './entities/UserFcmToken'
 
 export const DI = {} as {
   server: http.Server
