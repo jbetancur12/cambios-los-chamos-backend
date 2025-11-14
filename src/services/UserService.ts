@@ -19,6 +19,10 @@ export class UserService {
       return null
     }
 
+    if (user.emailVerified === false) {
+      throw new Error('Correo no verificado')
+    }
+
     const token = generateAccessToken({
       email: user.email,
       id: user.id,

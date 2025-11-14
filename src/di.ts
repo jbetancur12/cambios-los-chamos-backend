@@ -16,6 +16,7 @@ import { BankAssignment } from './entities/BankAssignment'
 import { TransferencistaAssignmentTracker } from './entities/TransferencistaAssignmentTracker'
 import { RechargeOperator } from './entities/RechargeOperator'
 import { RechargeAmount } from './entities/RechargeAmount'
+import { UserFcmToken} from './entities/UserFcmToken';
 
 export const DI = {} as {
   server: http.Server
@@ -36,6 +37,7 @@ export const DI = {} as {
   transferencistaAssignmentTracker: EntityRepository<TransferencistaAssignmentTracker>
   rechargeOperators: EntityRepository<RechargeOperator>
   rechargeAmounts: EntityRepository<RechargeAmount>
+  userFcmTokens: EntityRepository<UserFcmToken>
 }
 
 export const initDI = async (): Promise<typeof DI> => {
@@ -56,6 +58,7 @@ export const initDI = async (): Promise<typeof DI> => {
   DI.transferencistaAssignmentTracker = DI.orm.em.getRepository(TransferencistaAssignmentTracker)
   DI.rechargeOperators = DI.orm.em.getRepository(RechargeOperator)
   DI.rechargeAmounts = DI.orm.em.getRepository(RechargeAmount)
+  DI.userFcmTokens = DI.orm.em.getRepository(UserFcmToken)
 
   return DI
 }
