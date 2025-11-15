@@ -82,15 +82,11 @@ userRouter.post(
         .json(ApiResponse.conflict('Ya existe un usuario con este email', { field: 'email', value: email }))
     }
 
-    const { user, token: accessToken } = result
+    const { user } = result
 
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-      path: '/',
-    })
+    // Nota: NO creamos una cookie para el nuevo usuario
+    // El SuperAdmin mantiene su sesión actual
+    // El nuevo usuario podrá iniciar sesión después con sus credenciales
 
     res.status(201).json(
       ApiResponse.success({
