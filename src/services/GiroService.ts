@@ -9,6 +9,8 @@ import { MinoristaTransactionType } from '@/entities/MinoristaTransaction'
 import { bankAccountTransactionService } from '@/services/BankAccountTransactionService'
 import { BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 import { sendGiroAssignedNotification } from '@/lib/notification_sender'
+import { exchangeRateService } from '@/services/ExchangeRateService'
+import { Currency } from '@/entities/Bank'
 
 export class GiroService {
   /**
@@ -735,6 +737,77 @@ export class GiroService {
     giro.updatedAt = new Date()
 
     await DI.em.persistAndFlush(giro)
+    return giro
+  }
+
+  /**
+   * Actualiza la tasa aplicada a un giro específico
+   * Recalcula amountBs y ganancias
+   * NO afecta la tasa global del sistema
+   */
+  async updateGiroRate(
+    giroId: string,
+    newRate: { buyRate: number; sellRate: number; usd: number; bcv: number },
+    createdBy: User
+  ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' }> {
+    const giro = await DI.giros.findOne({ id: giroId }, { populate: ['minorista', 'transferencista', 'rateApplied'] })
+
+    if (!giro) {
+      return { error: 'GIRO_NOT_FOUND' }
+    }
+
+    // Solo giros en estado PENDIENTE o ASIGNADO pueden tener su tasa modificada
+    if (giro.status !== GiroStatus.ASIGNADO && giro.status !== GiroStatus.PENDIENTE) {
+      return { error: 'INVALID_STATUS' }
+    }
+
+    // Crear una nueva ExchangeRate personalizada solo para este giro
+    const customExchangeRate = await exchangeRateService.createExchangeRate({
+      buyRate: newRate.buyRate,
+      sellRate: newRate.sellRate,
+      usd: newRate.usd,
+      bcv: newRate.bcv,
+      createdBy,
+      isCustom: true,
+    })
+
+    // Recalcular amountBs basado en la nueva tasa y currencyInput original
+    let newAmountBs: number
+    if (giro.currencyInput === Currency.USD) {
+      newAmountBs = giro.amountInput * newRate.bcv
+    } else if (giro.currencyInput === Currency.COP) {
+      newAmountBs = giro.amountInput / newRate.sellRate
+    } else {
+      // VES (directo)
+      newAmountBs = giro.amountInput
+    }
+
+    // Recalcular ganancias totales
+    const newTotalProfit = giro.amountInput - (giro.amountInput / newRate.sellRate) * newRate.buyRate
+
+    let newSystemProfit = 0
+    let newMinoristaProfit = 0
+
+    if (giro.minorista) {
+      // Minorista: 5% para él, resto para el sistema
+      newMinoristaProfit = giro.amountInput * 0.05
+      newSystemProfit = newTotalProfit - newMinoristaProfit
+    } else {
+      // Admin/SuperAdmin: 100% para el sistema
+      newSystemProfit = newTotalProfit
+      newMinoristaProfit = 0
+    }
+
+    // Actualizar el giro con los nuevos valores
+    giro.rateApplied = customExchangeRate
+    giro.amountBs = newAmountBs
+    giro.bcvValueApplied = newRate.bcv
+    giro.systemProfit = newSystemProfit
+    giro.minoristaProfit = newMinoristaProfit
+    giro.updatedAt = new Date()
+
+    await DI.em.persistAndFlush(giro)
+
     return giro
   }
 }

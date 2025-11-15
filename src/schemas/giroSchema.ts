@@ -21,3 +21,10 @@ export const createGiroSchema = z.object({
     .optional(),
   // amountBs se calcula en el backend basado en la tasa del día o customRate
 })
+
+export const updateGiroRateSchema = z.object({
+  buyRate: z.number().positive('La tasa de compra debe ser mayor a 0'),
+  sellRate: z.number().positive('La tasa de venta debe ser mayor a 0'),
+  usd: z.number().positive('El valor USD debe ser mayor a 0'),
+  bcv: z.number().positive('El valor BCV debe ser mayor a 0'),
+})

@@ -3,7 +3,7 @@ import { requireAuth, requireRole } from '@/middleware/authMiddleware'
 import { UserRole } from '@/entities/User'
 import { ApiResponse } from '@/lib/apiResponse'
 import { validateBody } from '@/lib/zodUtils'
-import { createGiroSchema } from '@/schemas/giroSchema'
+import { createGiroSchema, updateGiroRateSchema } from '@/schemas/giroSchema'
 import { giroService } from '@/services/GiroService'
 import { DI } from '@/di'
 import { Currency } from '@/entities/Bank'
@@ -224,6 +224,41 @@ giroRouter.post(
     }
 
     res.json(ApiResponse.success({ giro: result, message: 'Giro marcado como procesando' }))
+  }
+)
+
+// ------------------ ACTUALIZAR TASA DEL GIRO ------------------
+giroRouter.patch(
+  '/:giroId/rate',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  validateBody(updateGiroRateSchema),
+  async (req: Request, res: Response) => {
+    const { giroId } = req.params
+    const user = req.context?.requestUser?.user
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
+    const { buyRate, sellRate, usd, bcv } = req.body
+
+    const result = await giroService.updateGiroRate(giroId, { buyRate, sellRate, usd, bcv }, user)
+
+    if ('error' in result) {
+      switch (result.error) {
+        case 'GIRO_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+        case 'INVALID_STATUS':
+          return res
+            .status(400)
+            .json(
+              ApiResponse.badRequest(
+                'El giro no está en estado válido para actualizar la tasa. Solo giros en estado ASIGNADO o PENDIENTE pueden modificarse.'
+              )
+            )
+      }
+    }
+
+    res.json(ApiResponse.success({ giro: result, message: 'Tasa del giro actualizada exitosamente' }))
   }
 )
 
