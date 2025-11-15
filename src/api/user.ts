@@ -193,7 +193,15 @@ userRouter.get(
 
     try {
       const users = await userService.getUsersByRole(role)
-      res.json(ApiResponse.success({ users }))
+      const usersResponse = users.map((user) => ({
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        emailVerified: user.emailVerified,
+      }))
+      res.json(ApiResponse.success({ users: usersResponse }))
     } catch (err: any) {
       res.status(500).json(ApiResponse.error('Error al obtener usuarios por rol'))
     }
