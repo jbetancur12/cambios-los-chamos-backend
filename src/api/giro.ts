@@ -9,6 +9,7 @@ import { DI } from '@/di'
 import { Currency } from '@/entities/Bank'
 import { exchangeRateService } from '@/services/ExchangeRateService'
 import { ExecutionType, GiroStatus } from '@/entities/Giro'
+import { giroSocketManager } from '@/websocket'
 
 export const giroRouter = express.Router({ mergeParams: true })
 
@@ -116,6 +117,11 @@ giroRouter.post(
       }
     }
 
+    // Emitir evento de WebSocket
+    if (giroSocketManager) {
+      giroSocketManager.broadcastGiroCreated(result)
+    }
+
     res.json(ApiResponse.success({ giro: result, message: 'Giro creado exitosamente' }))
   }
 )
@@ -201,6 +207,11 @@ giroRouter.patch(
       }
     }
 
+    // Emitir evento de WebSocket
+    if (giroSocketManager) {
+      giroSocketManager.broadcastGiroUpdated(result, 'beneficiary')
+    }
+
     res.json(ApiResponse.success({ giro: result, message: 'Giro actualizado exitosamente' }))
   }
 )
@@ -221,6 +232,11 @@ giroRouter.post(
         case 'INVALID_STATUS':
           return res.status(400).json(ApiResponse.badRequest('El giro no está en estado válido para ser procesado'))
       }
+    }
+
+    // Emitir evento de WebSocket
+    if (giroSocketManager) {
+      giroSocketManager.broadcastGiroProcessing(result)
     }
 
     res.json(ApiResponse.success({ giro: result, message: 'Giro marcado como procesando' }))
@@ -256,6 +272,11 @@ giroRouter.patch(
               )
             )
       }
+    }
+
+    // Emitir evento de WebSocket
+    if (giroSocketManager) {
+      giroSocketManager.broadcastGiroUpdated(result, 'rate')
     }
 
     res.json(ApiResponse.success({ giro: result, message: 'Tasa del giro actualizada exitosamente' }))
@@ -295,6 +316,11 @@ giroRouter.post('/:giroId/execute', requireRole(UserRole.TRANSFERENCISTA), async
     }
   }
 
+  // Emitir evento de WebSocket
+  if (giroSocketManager) {
+    giroSocketManager.broadcastGiroExecuted(result)
+  }
+
   res.json(ApiResponse.success({ giro: result, message: 'Giro ejecutado exitosamente' }))
 })
 
@@ -321,6 +347,11 @@ giroRouter.post(
         case 'INVALID_STATUS':
           return res.status(400).json(ApiResponse.badRequest('El giro no está en estado válido para ser devuelto'))
       }
+    }
+
+    // Emitir evento de WebSocket
+    if (giroSocketManager) {
+      giroSocketManager.broadcastGiroReturned(result, reason)
     }
 
     res.json(ApiResponse.success({ giro: result, message: 'Giro devuelto exitosamente' }))
@@ -379,6 +410,11 @@ giroRouter.post('/recharge/create', requireRole(UserRole.MINORISTA), async (req:
     }
   }
 
+  // Emitir evento de WebSocket
+  if (giroSocketManager) {
+    giroSocketManager.broadcastGiroCreated(result)
+  }
+
   res.status(201).json(ApiResponse.success({ giro: result, message: 'Recarga creada exitosamente' }))
 })
 
@@ -432,6 +468,11 @@ giroRouter.post('/mobile-payment/create', requireRole(UserRole.MINORISTA), async
       case 'BANK_NOT_FOUND':
         return res.status(404).json(ApiResponse.notFound('Banco', bankId))
     }
+  }
+
+  // Emitir evento de WebSocket
+  if (giroSocketManager) {
+    giroSocketManager.broadcastGiroCreated(result)
   }
 
   res.status(201).json(ApiResponse.success({ giro: result, message: 'Pago móvil creado exitosamente' }))

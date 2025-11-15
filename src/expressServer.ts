@@ -30,6 +30,9 @@ import { posthog } from '@/lib/posthogUtils'
 import * as Sentry from '@sentry/node'
 import { ApiResponse } from '@/lib/apiResponse'
 import { notificationRouter } from './api/notification'
+import { Server as SocketIOServer } from 'socket.io'
+import http from 'http'
+import { GiroSocketManager, setGiroSocketManager } from '@/websocket'
 
 export const startExpressServer = async () => {
   // DI stands for Dependency Injection. the naming/acronym is a bit confusing, but we're using it
@@ -106,13 +109,28 @@ export const startExpressServer = async () => {
   })
 
   const HOST = '0.0.0.0'
-  DI.server = app.listen(EXPRESS_SERVER_PORT, HOST, async (err) => {
+
+  // Crear servidor HTTP que será usado por Express y Socket.IO
+  const httpServer = http.createServer(app)
+
+  // Configurar Socket.IO
+  const io = new SocketIOServer(httpServer, {
+    cors: corsOptions,
+    transports: ['websocket', 'polling'],
+  })
+
+  // Inicializar GiroSocketManager
+  const giroSocketManager = new GiroSocketManager(io)
+  setGiroSocketManager(giroSocketManager)
+
+  DI.server = httpServer.listen(EXPRESS_SERVER_PORT, HOST, (err?: Error) => {
     if (err) {
       logger.error({ error: err }, `Could not start Express server on http://${HOST}:${EXPRESS_SERVER_PORT}`)
-      await gracefulShutdown('listen-error', 1)
+      gracefulShutdown('listen-error', 1)
       return
     }
     logger.info(`Express server started at http://${HOST}:${EXPRESS_SERVER_PORT}`)
+    logger.info(`Socket.IO listening on http://${HOST}:${EXPRESS_SERVER_PORT}`)
   })
 
   const closeServer = (): Promise<void> =>
