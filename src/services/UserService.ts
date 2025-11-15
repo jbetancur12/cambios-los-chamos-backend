@@ -63,11 +63,15 @@ export class UserService {
     await DI.em.persistAndFlush(user)
 
     // Enviar email de verificación (no bloqueante)
-    try {
-      await sendVerificationEmail(user)
-    } catch (error) {
-      console.error('❌ Error enviando correo de verificación:', error)
-    }
+    // Si falla, el usuario se crea de todas formas pero no podrá iniciar sesión hasta verificar
+    setImmediate(async () => {
+      try {
+        await sendVerificationEmail(user)
+      } catch (error) {
+        console.error('❌ Error enviando correo de verificación para:', user.email, error)
+        // Log para investigación, pero no afecta la creación del usuario
+      }
+    })
 
     const token = generateAccessToken({
       email: user.email,
@@ -104,23 +108,37 @@ export class UserService {
       return true
     }
 
-    const record = await createUserToken(user, TokenType.PASSWORD_RESET, 15)
-    const link = `${process.env.FRONTEND_URL || 'https://tuservidor.com'}/reset-password?token=${record.token}`
+    try {
+      const record = await createUserToken(user, TokenType.PASSWORD_RESET, 15)
+      const link = `${process.env.FRONTEND_URL || 'https://tuservidor.com'}/reset-password?token=${record.token}`
 
-    await sendEmail(
-      user.email,
-      'Restablece tu contraseña - Sistema de Giros',
-      `
-        <h2>Restablecer contraseña</h2>
-        <p>Haz clic en el siguiente enlace para cambiar tu contraseña:</p>
-        <a href="${link}" style="background:#28a745;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;">
-          Restablecer contraseña
-        </a>
-        <p>Este enlace expirará en 15 minutos.</p>
-      `
-    )
+      const { error } = await sendEmail(
+        user.email,
+        'Restablece tu contraseña - Sistema de Giros',
+        `
+          <h2>Restablecer contraseña</h2>
+          <p>Haz clic en el siguiente enlace para cambiar tu contraseña:</p>
+          <a href="${link}" style="background:#28a745;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;">
+            Restablecer contraseña
+          </a>
+          <p>Este enlace expirará en 15 minutos.</p>
+          <p>Si no solicitaste un restablecimiento, ignora este correo y tu contraseña permanecerá sin cambios.</p>
+        `
+      )
 
-    return true
+      if (error) {
+        console.error('❌ Error enviando email de reset de contraseña:', error)
+        // Retornar true de todas formas para no revelar errores internos
+        return true
+      }
+
+      console.log('✅ Email de reset de contraseña enviado a', user.email)
+      return true
+    } catch (error) {
+      console.error('❌ Error inesperado en sendResetPasswordEmail:', error)
+      // Retornar true de todas formas para no revelar errores internos
+      return true
+    }
   }
 
   /**
