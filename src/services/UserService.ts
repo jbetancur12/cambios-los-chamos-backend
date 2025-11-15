@@ -20,7 +20,7 @@ export class UserService {
     }
 
     if (user.emailVerified === false) {
-      throw new Error('Correo no verificado')
+      throw new Error('Tu correo electrónico no ha sido verificado. Por favor, verifica tu correo antes de iniciar sesión.')
     }
 
     const token = generateAccessToken({

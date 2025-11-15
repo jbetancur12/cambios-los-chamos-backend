@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express'
 import { requireAuth, requireRole } from '@/middleware/authMiddleware'
 import { UserRole } from '@/entities/User'
 import { ApiResponse } from '@/lib/apiResponse'
+import { ErrorCode } from '@/types/ApiResponse'
 import { validateBody } from '@/lib/zodUtils'
 import {
   loginSchema,
@@ -20,33 +21,43 @@ export const userRouter = express.Router({ mergeParams: true })
 userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: Response) => {
   const { email, password } = req.body
 
-  const result = await userService.login(email, password)
+  try {
+    const result = await userService.login(email, password)
 
-  if (!result) {
-    return res.status(401).json(ApiResponse.unauthorized('Credenciales inválidas'))
-  }
+    if (!result) {
+      return res.status(401).json(ApiResponse.unauthorized('Credenciales inválidas'))
+    }
 
-  const { user, token: accessToken } = result
+    const { user, token: accessToken } = result
 
-  res.cookie('accessToken', accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
-    path: '/',
-  })
-
-  res.json(
-    ApiResponse.success({
-      message: 'Inicio de sesión exitoso',
-      user: {
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-      },
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
+      path: '/',
     })
-  )
+
+    res.json(
+      ApiResponse.success({
+        message: 'Inicio de sesión exitoso',
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+        },
+      })
+    )
+  } catch (error: any) {
+    // Capturar error de correo no verificado
+    if (error?.message?.includes('no ha sido verificado')) {
+      return res.status(403).json(ApiResponse.error(error.message, ErrorCode.EMAIL_NOT_VERIFIED))
+    }
+    // Cualquier otro error
+    console.error('Error en login:', error)
+    return res.status(500).json(ApiResponse.serverError())
+  }
 })
 
 // ------------------ LOGOUT ------------------
