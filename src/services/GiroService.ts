@@ -206,7 +206,7 @@ export class GiroService {
       }
   > {
     console.log('🚀 ~ GiroService ~ executeGiro ~ fee:', fee)
-    const giro = await DI.giros.findOne({ id: giroId }, { populate: ['transferencista', 'minorista'] })
+    const giro = await DI.giros.findOne({ id: giroId }, { populate: ['transferencista', 'transferencista.user', 'minorista', 'minorista.user', 'rateApplied', 'createdBy', 'bankAccountUsed', 'bankAccountUsed.bank'] })
 
     if (!giro) {
       return { error: 'GIRO_NOT_FOUND' }
@@ -260,7 +260,23 @@ export class GiroService {
   }
 
   async returnGiro(giroId: string, reason: string): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' }> {
-    const giro = await DI.giros.findOne({ id: giroId }, { populate: ['minorista'] })
+    const giroRepo = DI.em.getRepository(Giro)
+
+    const giro = await giroRepo.findOne(
+      { id: giroId },
+      {
+        populate: [
+          'minorista',
+          'minorista.user',
+          'transferencista',
+          'transferencista.user',
+          'rateApplied',
+          'createdBy',
+          'bankAccountUsed',
+          'bankAccountUsed.bank',
+        ],
+      }
+    )
 
     if (!giro) {
       return { error: 'GIRO_NOT_FOUND' }
@@ -294,7 +310,23 @@ export class GiroService {
    * Permite al transferencista marcar un giro como en proceso
    */
   async markAsProcessing(giroId: string): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' }> {
-    const giro = await DI.giros.findOne({ id: giroId })
+    const giroRepo = DI.em.getRepository(Giro)
+
+    const giro = await giroRepo.findOne(
+      { id: giroId },
+      {
+        populate: [
+          'minorista',
+          'minorista.user',
+          'transferencista',
+          'transferencista.user',
+          'rateApplied',
+          'createdBy',
+          'bankAccountUsed',
+          'bankAccountUsed.bank',
+        ],
+      }
+    )
 
     if (!giro) {
       return { error: 'GIRO_NOT_FOUND' }
@@ -715,7 +747,23 @@ export class GiroService {
       phone: string
     }
   ): Promise<Giro> {
-    const giro = await DI.giros.findOne({ id: giroId })
+    const giroRepo = DI.em.getRepository(Giro)
+
+    const giro = await giroRepo.findOne(
+      { id: giroId },
+      {
+        populate: [
+          'minorista',
+          'minorista.user',
+          'transferencista',
+          'transferencista.user',
+          'rateApplied',
+          'createdBy',
+          'bankAccountUsed',
+          'bankAccountUsed.bank',
+        ],
+      }
+    )
     if (!giro) {
       throw new Error('Giro no encontrado')
     }
@@ -750,7 +798,23 @@ export class GiroService {
     newRate: { buyRate: number; sellRate: number; usd: number; bcv: number },
     createdBy: User
   ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' }> {
-    const giro = await DI.giros.findOne({ id: giroId }, { populate: ['minorista', 'transferencista', 'rateApplied'] })
+    const giroRepo = DI.em.getRepository(Giro)
+
+    const giro = await giroRepo.findOne(
+      { id: giroId },
+      {
+        populate: [
+          'minorista',
+          'minorista.user',
+          'transferencista',
+          'transferencista.user',
+          'rateApplied',
+          'createdBy',
+          'bankAccountUsed',
+          'bankAccountUsed.bank',
+        ],
+      }
+    )
 
     if (!giro) {
       return { error: 'GIRO_NOT_FOUND' }
