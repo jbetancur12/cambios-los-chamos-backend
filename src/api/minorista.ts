@@ -119,7 +119,7 @@ minoristaRouter.post(
       return res.status(400).json(ApiResponse.badRequest('El cupo de crédito debe ser mayor a 0'))
     }
 
-    const result = await minoristaService.setCreditLimit(minoristaId, creditLimit, user)
+    const result = await minoristaService.setCreditLimit(minoristaId, creditLimit)
 
     if ('error' in result) {
       switch (result.error) {

@@ -264,8 +264,7 @@ export class MinoristaService {
    */
   async setCreditLimit(
     minoristaId: string,
-    creditLimit: number,
-    createdBy: User
+    creditLimit: number
   ): Promise<
     | {
         id: string
@@ -286,7 +285,6 @@ export class MinoristaService {
       return { error: 'MINORISTA_NOT_FOUND' }
     }
 
-    const oldCreditLimit = minorista.creditLimit
     minorista.creditLimit = creditLimit
     minorista.availableCredit = creditLimit
 

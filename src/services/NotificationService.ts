@@ -1,4 +1,3 @@
-import { EntityManager } from '@mikro-orm/core'
 // Importamos la entidad User para la relación.
 import { User } from '../entities/User'
 // Usamos el nombre y la ruta de la entidad de tokens que especificaste
@@ -30,7 +29,7 @@ export class NotificationService {
       const user = await userRepo.findOneOrFail({ id: userId as any })
 
       // 2. Intentar encontrar un registro de token existente
-      let tokenRecord = await userFcmTokenRepo.findOne({ fcmToken })
+      const tokenRecord = await userFcmTokenRepo.findOne({ fcmToken })
 
       if (tokenRecord) {
         // Caso 1: El token ya existe (ej: el usuario recargó la app o es el mismo dispositivo).

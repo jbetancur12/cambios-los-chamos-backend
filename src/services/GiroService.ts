@@ -8,6 +8,7 @@ import { minoristaTransactionService } from '@/services/MinoristaTransactionServ
 import { MinoristaTransactionType } from '@/entities/MinoristaTransaction'
 import { bankAccountTransactionService } from '@/services/BankAccountTransactionService'
 import { BankAccountTransactionType } from '@/entities/BankAccountTransaction'
+import { sendGiroAssignedNotification } from '@/lib/notification_sender'
 
 export class GiroService {
   /**
@@ -74,7 +75,7 @@ export class GiroService {
 
     let minorista: Minorista | undefined = undefined
     let transferencista: Transferencista | undefined = undefined
-    let status = GiroStatus.ASIGNADO // Por defecto ASIGNADO cuando hay transferencista
+    const status = GiroStatus.ASIGNADO // Por defecto ASIGNADO cuando hay transferencista
     const entitiesToFlush: (Giro | Minorista)[] = []
 
     // Asignar transferencista usando round-robin (distribución equitativa)
@@ -172,6 +173,8 @@ export class GiroService {
       createdAt: new Date(),
       updatedAt: new Date(),
     })
+
+    await sendGiroAssignedNotification(transferencista.user.id, giro.id, giro.amountBs)
 
     entitiesToFlush.push(giro)
     await DI.em.persistAndFlush(entitiesToFlush)

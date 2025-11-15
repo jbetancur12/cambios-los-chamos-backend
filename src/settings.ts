@@ -95,6 +95,9 @@ export const RABBITMQ_USER = process.env.RABBITMQ_USER || 'guest'
 export const RABBITMQ_PASSWORD = process.env.RABBITMQ_PASSWORD || 'guest'
 export const RABBITMQ_VHOST = process.env.RABBITMQ_VHOST || '/'
 export const RABBITMQ_QUEUE_NAME = process.env.RABBITMQ_QUEUE_NAME || 'process_memo'
+export const PROJECT_ID = process.env.PROJECT_ID
+export const CLIENT_EMAIL = process.env.CLIENT_EMAIL
+export const PRIVATE_KEY = process.env.PRIVATE_KEY
 
 export const SENTRY_DSN = process.env.SENTRY_DSN
 

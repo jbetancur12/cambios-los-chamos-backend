@@ -1,8 +1,7 @@
 import { Router, Request, Response } from 'express'
-import { requireAuth, requireRole } from '@/middleware/authMiddleware'
+import { requireRole } from '@/middleware/authMiddleware'
 import { UserRole } from '@/entities/User'
 import { reportService } from '@/services/ReportService'
-import { json } from 'zod'
 import { ApiResponse } from '@/lib/apiResponse'
 
 const router = Router()

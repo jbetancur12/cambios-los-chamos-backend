@@ -4,7 +4,6 @@ import { UserRole } from '@/entities/User'
 import { DI } from '@/di'
 import { ApiResponse } from '@/lib/apiResponse'
 import { RechargeAmount } from '@/entities/RechargeAmount'
-import { RequestContext } from '@mikro-orm/postgresql'
 
 const router = Router()
 

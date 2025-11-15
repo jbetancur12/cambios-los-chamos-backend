@@ -81,7 +81,7 @@ export const startExpressServer = async () => {
   app.use('/api/reports', reportsRouter)
   app.use('/api/recharge-operators', rechargeOperatorRouter)
   app.use('/api/recharge-amounts', rechargeAmountRouter)
-  app.use('/api/notification', notificationRouter)
+  app.use('/api/notifications', notificationRouter)
 
   // Rutas privadas (requieren autenticación)
   privateRoutesRouter.use('/giro', giroRouter)
