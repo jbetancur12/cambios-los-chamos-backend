@@ -6,6 +6,8 @@ import { generateAccessToken } from '@/lib/tokenUtils'
 import { createUserToken, validateUserToken, markTokenUsed } from '@/lib/userTokenUtils'
 import { sendEmail } from '@/lib/emailUtils'
 import { sendVerificationEmail } from '@/api/emailVerification'
+import { Transferencista } from '@/entities/Transferencista'
+import { Minorista } from '@/entities/Minorista'
 
 export class UserService {
   /**
@@ -49,18 +51,48 @@ export class UserService {
     }
 
     const hashedPassword = makePassword(data.password)
+    const role = data.role || UserRole.MINORISTA
+
     const user = userRepo.create({
       email: data.email,
       fullName: data.fullName,
       password: hashedPassword,
-      role: data.role || UserRole.MINORISTA,
+      role,
       isActive: true,
       emailVerified: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     })
 
-    await DI.em.persistAndFlush(user)
+    // Transacción para crear usuario y sus relaciones
+    await DI.em.transactional(async (em) => {
+      await em.persistAndFlush(user)
+
+      // Crear Transferencista si el rol es TRANSFERENCISTA
+      if (role === UserRole.TRANSFERENCISTA) {
+        const transferencistaRepo = em.getRepository(Transferencista)
+        const transferencista = transferencistaRepo.create({
+          user,
+          available: true,
+          bankAccounts: [],
+          giros: [],
+        })
+        await em.persistAndFlush(transferencista)
+      }
+
+      // Crear Minorista si el rol es MINORISTA
+      if (role === UserRole.MINORISTA) {
+        const minoristaRepo = em.getRepository(Minorista)
+        const minorista = minoristaRepo.create({
+          user,
+          creditLimit: 0,
+          availableCredit: 0,
+          transactions: [],
+          giros: [],
+        })
+        await em.persistAndFlush(minorista)
+      }
+    })
 
     // Enviar email de verificación (no bloqueante)
     // Si falla, el usuario se crea de todas formas pero no podrá iniciar sesión hasta verificar
