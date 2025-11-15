@@ -80,7 +80,7 @@ export const startExpressServer = async () => {
   app.use('/api/bank-account', bankAccountRouter)
   app.use('/api/bank-transaction', bankTransactionRouter)
   app.use('/api/exchange-rate', exchangeRateRouter)
-  app.use('/email-verification', emailVerificationRouter)
+  app.use('/api/email_verification', emailVerificationRouter)
   app.use('/api/reports', reportsRouter)
   app.use('/api/recharge-operators', rechargeOperatorRouter)
   app.use('/api/recharge-amounts', rechargeAmountRouter)
