@@ -77,7 +77,7 @@ export class ReportService {
     const totalProfit = giros.reduce((sum, g) => sum + (g.systemProfit || 0), 0)
     const completedGiros = giros.filter((g) => g.status === GiroStatus.COMPLETADO).length
     const totalGiros = giros.length
-    const averageProfitPerGiro = totalGiros > 0 ? totalProfit / completedGiros : 0
+    const averageProfitPerGiro = completedGiros > 0 ? totalProfit / completedGiros : 0
 
     // Group by status
     const statusMap = new Map<string, { count: number; profit: number }>()
@@ -131,7 +131,7 @@ export class ReportService {
     const totalProfit = giros.reduce((sum, g) => sum + (g.systemProfit || 0), 0)
     const completedGiros = giros.filter((g) => g.status === GiroStatus.COMPLETADO).length
     const totalGiros = giros.length
-    const averageProfitPerGiro = totalGiros > 0 ? totalProfit / completedGiros : 0
+    const averageProfitPerGiro = completedGiros > 0 ? totalProfit / completedGiros : 0
 
     return {
       trendData,
