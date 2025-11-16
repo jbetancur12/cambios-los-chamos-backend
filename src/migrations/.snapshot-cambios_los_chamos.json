@@ -1455,6 +1455,28 @@
           "scale": 0,
           "mappedType": "decimal"
         },
+        "previous_balance_in_favor": {
+          "name": "previous_balance_in_favor",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
+        "current_balance_in_favor": {
+          "name": "current_balance_in_favor",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
         "giro_id": {
           "name": "giro_id",
           "type": "varchar(255)",
@@ -1533,6 +1555,17 @@
         },
         "remaining_balance": {
           "name": "remaining_balance",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
+        "external_debt": {
+          "name": "external_debt",
           "type": "numeric(10,0)",
           "unsigned": false,
           "autoincrement": false,

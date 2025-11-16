@@ -31,11 +31,11 @@ export class MinoristaTransaction {
   @Property({ type: 'decimal' })
   availableCredit!: number
 
-  // @Property({ type: 'decimal' })
-  // previousBalance!: number
+  @Property({ type: 'decimal', nullable: true })
+  previousBalanceInFavor?: number // Saldo a favor antes de esta transacción
 
-  // @Property({ type: 'decimal' })
-  // currentBalance!: number
+  @Property({ type: 'decimal', nullable: true })
+  currentBalanceInFavor?: number // Saldo a favor después de esta transacción
 
   @OneToOne(() => Giro, { nullable: true, deleteRule: 'restrict', updateRule: 'cascade' })
   giro?: Giro

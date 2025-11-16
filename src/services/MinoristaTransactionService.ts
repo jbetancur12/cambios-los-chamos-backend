@@ -172,9 +172,11 @@ export class MinoristaTransactionService {
       creditConsumed,
       profitEarned,
       previousAvailableCredit,
+      previousBalanceInFavor: minorista.creditBalance || 0, // Saldo a favor anterior
       accumulatedDebt: realDebt,
       accumulatedProfit,
       availableCredit: newAvailableCredit,
+      currentBalanceInFavor: newBalanceInFavor, // Saldo a favor nuevo
       balanceInFavorUsed: balanceInFavorUsed > 0 ? balanceInFavorUsed : undefined,
       creditUsed: creditUsed > 0 ? creditUsed : undefined,
       remainingBalance: newBalanceInFavor > 0 ? newBalanceInFavor : undefined,
@@ -258,6 +260,12 @@ export class MinoristaTransactionService {
       type: t.type,
       previousBalance: t.previousAvailableCredit,
       currentBalance: t.availableCredit,
+      previousBalanceInFavor: t.previousBalanceInFavor ?? 0,
+      currentBalanceInFavor: t.currentBalanceInFavor ?? 0,
+      balanceInFavorUsed: t.balanceInFavorUsed,
+      creditUsed: t.creditUsed,
+      externalDebt: t.externalDebt,
+      profitEarned: t.profitEarned,
       createdBy: {
         id: t.createdBy.id,
         fullName: t.createdBy.fullName,
