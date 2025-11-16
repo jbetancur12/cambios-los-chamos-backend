@@ -88,6 +88,14 @@ export class MinoristaTransactionService {
           newAvailableCredit = previousAvailableCredit
         }
 
+        // Validación: Si hay deuda externa, debe poder ser cubierta por la ganancia (5% del monto)
+        if (externalDebt > 0) {
+          const profitEarned = data.amount * 0.05
+          if (externalDebt > profitEarned) {
+            return { error: 'INSUFFICIENT_BALANCE' }
+          }
+        }
+
         minorista.creditBalance = newBalanceInFavor
         break
 
