@@ -886,8 +886,8 @@ export class GiroService {
       return { error: 'GIRO_NOT_FOUND' }
     }
 
-    // Solo se pueden eliminar giros en estado PENDIENTE o ASIGNADO
-    if (giro.status !== GiroStatus.PENDIENTE && giro.status !== GiroStatus.ASIGNADO) {
+    // Solo se pueden eliminar giros en estado PENDIENTE, ASIGNADO o DEVUELTO
+    if (giro.status !== GiroStatus.PENDIENTE && giro.status !== GiroStatus.ASIGNADO && giro.status !== GiroStatus.DEVUELTO) {
       return { error: 'INVALID_STATUS' }
     }
 
