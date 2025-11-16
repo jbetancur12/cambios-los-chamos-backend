@@ -874,6 +874,28 @@ export class GiroService {
 
     return giro
   }
+
+  /**
+   * Elimina un giro (solo minoristas pueden eliminar sus propios giros)
+   * Solo se pueden eliminar giros en estado PENDIENTE o ASIGNADO
+   */
+  async deleteGiro(giroId: string): Promise<{ success: boolean } | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'UNAUTHORIZED' }> {
+    const giro = await DI.giros.findOne({ id: giroId }, { populate: ['minorista'] })
+
+    if (!giro) {
+      return { error: 'GIRO_NOT_FOUND' }
+    }
+
+    // Solo se pueden eliminar giros en estado PENDIENTE o ASIGNADO
+    if (giro.status !== GiroStatus.PENDIENTE && giro.status !== GiroStatus.ASIGNADO) {
+      return { error: 'INVALID_STATUS' }
+    }
+
+    // Eliminar el giro
+    await DI.em.removeAndFlush(giro)
+
+    return { success: true }
+  }
 }
 
 export const giroService = new GiroService()

@@ -477,3 +477,55 @@ giroRouter.post('/mobile-payment/create', requireRole(UserRole.MINORISTA), async
 
   res.status(201).json(ApiResponse.success({ giro: result, message: 'Pago móvil creado exitosamente' }))
 })
+
+// ------------------ ELIMINAR GIRO ------------------
+giroRouter.delete(
+  '/:giroId',
+  requireRole(UserRole.MINORISTA),
+  async (req: Request, res: Response) => {
+    const user = req.context?.requestUser?.user
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
+    const { giroId } = req.params
+
+    try {
+      // Obtener el giro
+      const giro = await DI.giros.findOne({ id: giroId }, { populate: ['minorista', 'minorista.user'] })
+
+      if (!giro) {
+        return res.status(404).json(ApiResponse.notFound('Giro'))
+      }
+
+      // Validar que el minorista sea el propietario del giro
+      if (!giro.minorista || giro.minorista.user.id !== user.id) {
+        return res.status(403).json(ApiResponse.forbidden('No puedes eliminar giros de otros minoristas'))
+      }
+
+      // Eliminar el giro
+      const result = await giroService.deleteGiro(giroId)
+
+      if ('error' in result) {
+        switch (result.error) {
+          case 'GIRO_NOT_FOUND':
+            return res.status(404).json(ApiResponse.notFound('Giro'))
+          case 'INVALID_STATUS':
+            return res.status(400).json(ApiResponse.badRequest('Solo se pueden eliminar giros en estado PENDIENTE o ASIGNADO'))
+          case 'UNAUTHORIZED':
+            return res.status(403).json(ApiResponse.forbidden())
+        }
+      }
+
+      // Emitir evento de WebSocket
+      if (giroSocketManager) {
+        giroSocketManager.broadcastGiroDeleted(giroId)
+      }
+
+      res.json(ApiResponse.success({ message: 'Giro eliminado exitosamente' }))
+    } catch (error: any) {
+      console.error('Error eliminando giro:', error)
+      res.status(500).json(ApiResponse.serverError())
+    }
+  }
+)

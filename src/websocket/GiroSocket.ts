@@ -163,6 +163,19 @@ export class GiroSocketManager {
   }
 
   /**
+   * Emitir evento cuando se elimina un giro
+   */
+  broadcastGiroDeleted(giroId: string) {
+    console.log(`[WS] Broadcast: Giro eliminado - ${giroId}`)
+
+    // Enviar a todos los clientes
+    this.io.emit('giro:deleted', {
+      giroId,
+      timestamp: new Date().toISOString(),
+    })
+  }
+
+  /**
    * Obtener número de usuarios conectados
    */
   getConnectedCount(): number {
