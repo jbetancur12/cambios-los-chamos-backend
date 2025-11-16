@@ -10,7 +10,6 @@ interface UploadOptions {
 interface ProcessedImages {
   original: Buffer
   compressed: Buffer
-  thumbnail: Buffer
   withWatermark: Buffer
 }
 
@@ -81,29 +80,6 @@ class MinIOService {
   }
 
   /**
-   * Generar thumbnail
-   */
-  private async generateThumbnail(buffer: Buffer, mimetype: string): Promise<Buffer> {
-    if (mimetype === 'application/pdf') {
-      return buffer
-    }
-
-    try {
-      return await sharp(buffer)
-        .rotate() // Auto-rotate based on EXIF
-        .resize(this.THUMBNAIL_SIZE, this.THUMBNAIL_SIZE, {
-          fit: 'cover',
-          position: 'center',
-        })
-        .jpeg({ quality: 70 })
-        .toBuffer()
-    } catch (error) {
-      console.error('Error generating thumbnail:', error)
-      return buffer
-    }
-  }
-
-  /**
    * Agregar watermark/firma digital con timestamp y usuario
    */
   private async addWatermark(buffer: Buffer, mimetype: string, options: UploadOptions): Promise<Buffer> {
@@ -150,17 +126,15 @@ class MinIOService {
   }
 
   /**
-   * Procesar imagen: comprimir, crear thumbnail, agregar watermark
+   * Procesar imagen: comprimir y agregar watermark
    */
   async processImage(fileBuffer: Buffer, mimetype: string, options: UploadOptions): Promise<ProcessedImages> {
     const compressed = await this.compressImage(fileBuffer, mimetype)
-    const thumbnail = await this.generateThumbnail(fileBuffer, mimetype)
     const withWatermark = await this.addWatermark(compressed, mimetype, options)
 
     return {
       original: fileBuffer,
       compressed,
-      thumbnail,
       withWatermark,
     }
   }
@@ -183,27 +157,21 @@ class MinIOService {
     baseFilename: string,
     images: ProcessedImages,
     mimetype: string
-  ): Promise<{ key: string; thumbnailKey: string }> {
+  ): Promise<{ key: string }> {
     try {
       await this.ensureBucket(bucketName)
 
       const [nameWithoutExt, ext] = baseFilename.split(/\.(?=[^.]+$)/)
 
-      // Subir comprimido con watermark (es el que se mostrará)
+      // Subir comprimido con watermark
       const mainKey = `${nameWithoutExt}-main.${ext}`
       await this.minioClient.putObject(bucketName, mainKey, images.withWatermark, images.withWatermark.length, {
         'Content-Type': mimetype,
       })
 
-      // Subir thumbnail
-      const thumbnailKey = `${nameWithoutExt}-thumb.jpg`
-      await this.minioClient.putObject(bucketName, thumbnailKey, images.thumbnail, images.thumbnail.length, {
-        'Content-Type': 'image/jpeg',
-      })
+      console.log(`Uploaded payment proof: ${mainKey}`)
 
-      console.log(`Uploaded payment proof: ${mainKey} with thumbnail: ${thumbnailKey}`)
-
-      return { key: mainKey, thumbnailKey }
+      return { key: mainKey }
     } catch (error) {
       console.error(`Error uploading processed file to MinIO:`, error)
       throw error
@@ -213,10 +181,6 @@ class MinIOService {
   async deleteFile(bucketName: string, filename: string): Promise<void> {
     try {
       await this.minioClient.removeObject(bucketName, filename)
-      // También eliminar thumbnail si existe
-      const [nameWithoutExt] = filename.split(/\.(?=[^.]+$)/)
-      const thumbnailKey = `${nameWithoutExt}-thumb.jpg`
-      await this.minioClient.removeObject(bucketName, thumbnailKey)
     } catch (error) {
       console.error(`Error deleting file from MinIO:`, error)
       throw error

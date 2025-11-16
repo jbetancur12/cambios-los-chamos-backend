@@ -597,9 +597,9 @@ giroRouter.post(
         fullName: user.fullName,
       })
 
-      // Upload processed files to MinIO
+      // Upload processed file to MinIO
       const bucketName = process.env.MINIO_BUCKET_NAME || 'ultrathink'
-      const { key: paymentProofKey, thumbnailKey } = await minioService.uploadProcessedFile(
+      const { key: paymentProofKey } = await minioService.uploadProcessedFile(
         bucketName,
         filename,
         processedImages,
@@ -610,15 +610,13 @@ giroRouter.post(
       giro.paymentProofKey = paymentProofKey
       await em.persistAndFlush(giro)
 
-      // Generate presigned URLs for response
+      // Generate presigned URL for response
       const presignedUrl = await minioService.getPresignedUrl(bucketName, paymentProofKey)
-      const thumbnailUrl = await minioService.getPresignedUrl(bucketName, thumbnailKey)
 
       res.json(
         ApiResponse.success({
           giro,
           paymentProofUrl: presignedUrl,
-          thumbnailUrl: thumbnailUrl,
           message: 'Payment proof uploaded successfully',
         })
       )
