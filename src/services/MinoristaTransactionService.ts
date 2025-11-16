@@ -33,58 +33,99 @@ export class MinoristaTransactionService {
 
     const previousAvailableCredit = minorista.availableCredit
     const { creditLimit } = minorista
+    const initialCredit = creditLimit // Para calcular deuda interna
 
     let newAvailableCredit = previousAvailableCredit
     let balanceInFavorUsed = 0
     let creditUsed = 0
     let newBalanceInFavor = minorista.creditBalance || 0
+    let externalDebt = 0
+
+    // Para PROFIT: obtener la transacción de descuento anterior
+    let lastDiscountTransaction = null
+    if (data.type === MinoristaTransactionType.PROFIT) {
+      lastDiscountTransaction = await transactionRepo.findOne(
+        { minorista: data.minoristaId, type: MinoristaTransactionType.DISCOUNT },
+        { orderBy: { createdAt: 'DESC' } }
+      )
+    }
 
     // Calcular nuevo balance según tipo de transacción
     switch (data.type) {
       case MinoristaTransactionType.RECHARGE:
         newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
+        newBalanceInFavor = minorista.creditBalance || 0
         break
 
       case MinoristaTransactionType.DISCOUNT:
-        // Prioridad: usar primero saldo a favor, luego crédito disponible
-        const balanceInFavor = minorista.creditBalance || 0
-        const totalAvailable = balanceInFavor + previousAvailableCredit
+        // Paso 1: Descontar primero del saldo a favor
+        let userBalance = minorista.creditBalance || 0
+        let remainingAmount = data.amount
 
-        if (totalAvailable < data.amount) {
-          return { error: 'INSUFFICIENT_BALANCE' }
+        if (remainingAmount <= userBalance) {
+          balanceInFavorUsed = remainingAmount
+          newBalanceInFavor = userBalance - remainingAmount
+          remainingAmount = 0
+        } else {
+          balanceInFavorUsed = userBalance
+          remainingAmount -= userBalance
+          newBalanceInFavor = 0
         }
 
-        // Descontar primero del saldo a favor
-        let remainingDiscount = data.amount
-        if (balanceInFavor > 0) {
-          balanceInFavorUsed = Math.min(balanceInFavor, remainingDiscount)
-          newBalanceInFavor = balanceInFavor - balanceInFavorUsed
-          minorista.creditBalance = newBalanceInFavor
-          remainingDiscount -= balanceInFavorUsed
+        // Paso 2: Descontar del crédito disponible
+        if (remainingAmount > 0) {
+          if (remainingAmount <= previousAvailableCredit) {
+            creditUsed = remainingAmount
+            newAvailableCredit = previousAvailableCredit - remainingAmount
+            remainingAmount = 0
+          } else {
+            creditUsed = previousAvailableCredit
+            externalDebt = remainingAmount - previousAvailableCredit
+            newAvailableCredit = 0
+            remainingAmount = 0
+          }
+        } else {
+          newAvailableCredit = previousAvailableCredit
         }
 
-        // Luego del crédito disponible
-        creditUsed = remainingDiscount
-        newAvailableCredit = previousAvailableCredit - creditUsed
+        minorista.creditBalance = newBalanceInFavor
         break
 
       case MinoristaTransactionType.PROFIT:
-        // La ganancia se suma al crédito disponible si hay espacio, si no va al saldo a favor
+        // Paso 3: Aplicar ganancia
         const currentBalance = minorista.creditBalance || 0
-        const spaceInCredit = minorista.creditLimit - previousAvailableCredit
 
-        if (spaceInCredit > 0) {
-          // Hay espacio en el crédito
-          const profitToCredit = Math.min(data.amount, spaceInCredit)
-          const profitToBalance = data.amount - profitToCredit
+        if (lastDiscountTransaction) {
+          const creditConsumed = lastDiscountTransaction.creditUsed || 0
+          const externalDebtFromDiscount = lastDiscountTransaction.externalDebt || 0
+          let profit = data.amount
 
-          newAvailableCredit = previousAvailableCredit + profitToCredit
-          minorista.creditBalance = currentBalance + profitToBalance
+          if (creditConsumed === 0 && externalDebtFromDiscount === 0) {
+            // Solo se usó saldo a favor → ganancia va al saldo a favor
+            newBalanceInFavor = currentBalance + profit
+            newAvailableCredit = previousAvailableCredit
+          } else {
+            // Se consumió crédito o hay deuda externa
+            // Ganancia primero cubre deuda externa
+            const paidExternalDebt = Math.min(profit, externalDebtFromDiscount)
+            externalDebt = externalDebtFromDiscount - paidExternalDebt
+            let remainingProfit = profit - paidExternalDebt
+
+            // Luego restaura crédito consumido
+            const restoreCredit = Math.min(remainingProfit, creditConsumed)
+            newAvailableCredit = previousAvailableCredit + restoreCredit
+            remainingProfit -= restoreCredit
+
+            // Lo que sobre va al saldo a favor
+            newBalanceInFavor = currentBalance + remainingProfit
+          }
         } else {
-          // Crédito lleno, toda la ganancia va al saldo a favor
-          minorista.creditBalance = currentBalance + data.amount
-          newAvailableCredit = previousAvailableCredit
+          // Sin transacción de descuento anterior, ganancia va al crédito
+          newAvailableCredit = previousAvailableCredit + data.amount
+          newBalanceInFavor = currentBalance
         }
+
+        minorista.creditBalance = newBalanceInFavor
         break
 
       case MinoristaTransactionType.ADJUSTMENT:
@@ -92,6 +133,7 @@ export class MinoristaTransactionService {
         if (newAvailableCredit < 0) {
           return { error: 'INSUFFICIENT_BALANCE' }
         }
+        newBalanceInFavor = minorista.creditBalance || 0
         break
     }
 
@@ -128,6 +170,7 @@ export class MinoristaTransactionService {
       balanceInFavorUsed: balanceInFavorUsed > 0 ? balanceInFavorUsed : undefined,
       creditUsed: creditUsed > 0 ? creditUsed : undefined,
       remainingBalance: newBalanceInFavor > 0 ? newBalanceInFavor : undefined,
+      externalDebt: externalDebt > 0 ? externalDebt : undefined,
       createdBy: data.createdBy,
       createdAt: new Date(),
     })

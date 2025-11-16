@@ -12,6 +12,7 @@ import { exchangeRateService } from '@/services/ExchangeRateService'
 import { ExecutionType, GiroStatus, Giro } from '@/entities/Giro'
 import { giroSocketManager } from '@/websocket'
 import { minioService } from '@/services/MinIOService'
+import { MinoristaTransaction } from '@/entities/MinoristaTransaction'
 
 export const giroRouter = express.Router({ mergeParams: true })
 
@@ -176,6 +177,57 @@ giroRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
       },
     })
   )
+})
+
+// ------------------- GET MINORISTA TRANSACTION FOR GIRO (More specific route - must come before /:giroId) ------------------
+giroRouter.get('/:giroId/minorista-transaction', requireAuth(), async (req: Request, res: Response) => {
+  const { giroId } = req.params
+  const user = req.context?.requestUser?.user
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
+  }
+
+  try {
+    // First, get the giro to verify user access and check if minorista exists
+    const giro = await DI.em.getRepository(Giro).findOne(
+      { id: giroId },
+      { populate: ['minorista'] }
+    )
+
+    if (!giro) {
+      return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+    }
+
+    // Only minoristas, admins, and super admins can view transaction details
+    if (!['MINORISTA', 'ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+      return res.status(403).json(ApiResponse.forbidden('Tu rol no tiene acceso a esta información'))
+    }
+
+    // Get the minorista transaction for this giro
+    const transactionRepo = DI.em.getRepository(MinoristaTransaction)
+    const transaction = await transactionRepo.findOne(
+      { giro: giroId },
+      { populate: ['createdBy', 'minorista'] }
+    )
+
+    // For minoristas, check if they own the giro
+    if (user.role === 'MINORISTA') {
+      // Check if the minorista created this giro - either via giro.minorista reference or via transaction
+      if (giro.minorista?.id !== user.id && transaction?.minorista?.id !== user.id) {
+        return res.status(403).json(ApiResponse.forbidden('No tienes acceso a los detalles de esta transacción'))
+      }
+    }
+
+    if (!transaction) {
+      // No transaction found - this might be a giro created by admin without minorista involved
+      return res.json(ApiResponse.success({ transaction: null, message: 'No hay transacción asociada a este giro' }))
+    }
+
+    res.json(ApiResponse.success({ transaction }))
+  } catch (error: any) {
+    console.error('Error fetching minorista transaction:', error)
+    res.status(500).json(ApiResponse.serverError('Error al obtener los detalles de la transacción'))
+  }
 })
 
 // ------------------ OBTENER GIRO ------------------

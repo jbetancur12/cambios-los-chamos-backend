@@ -61,6 +61,9 @@ export class MinoristaTransaction {
   @Property({ type: 'decimal', nullable: true })
   remainingBalance?: number // Saldo a favor restante después de esta transacción
 
+  @Property({ type: 'decimal', nullable: true })
+  externalDebt?: number // Deuda externa cuando se excede el crédito disponible
+
   @Property({ nullable: true })
   description?: string // Descripción clara de la transacción
 
