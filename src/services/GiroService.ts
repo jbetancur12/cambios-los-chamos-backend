@@ -249,6 +249,7 @@ export class GiroService {
     giro.bankAccountUsed = bankAccount
     giro.executionType = executionType
     giro.status = GiroStatus.COMPLETADO
+    giro.completedAt = new Date()
     if (proofUrl) {
       giro.proofUrl = proofUrl
     }

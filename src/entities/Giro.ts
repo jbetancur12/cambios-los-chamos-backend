@@ -101,4 +101,7 @@ export class Giro {
 
   @Property({ onUpdate: () => new Date() })
   updatedAt: Date = new Date()
+
+  @Property({ nullable: true })
+  completedAt?: Date
 }

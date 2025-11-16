@@ -137,6 +137,7 @@ export class GiroSocketManager {
       proofUrl: giro.proofUrl,
       createdAt: giro.createdAt,
       updatedAt: giro.updatedAt,
+      completedAt: giro.completedAt,
       minorista: giro.minorista ? { id: giro.minorista.id } : undefined,
       transferencista: giro.transferencista
         ? {
