@@ -69,9 +69,16 @@ export class MinoristaTransactionService {
         break
 
       case MinoristaTransactionType.PROFIT:
-        // La ganancia SIEMPRE se suma al saldo a favor (creditBalance)
-        minorista.creditBalance = (minorista.creditBalance || 0) + data.amount
-        newAvailableCredit = previousAvailableCredit
+        // Si hay saldo a favor, la ganancia va ahí. Si no, va al crédito disponible
+        const currentBalance = minorista.creditBalance || 0
+        if (currentBalance > 0) {
+          // Hay saldo a favor, suma la ganancia al saldo
+          minorista.creditBalance = currentBalance + data.amount
+          newAvailableCredit = previousAvailableCredit
+        } else {
+          // No hay saldo a favor, suma al crédito disponible (capeado por límite)
+          newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
+        }
         break
 
       case MinoristaTransactionType.ADJUSTMENT:
