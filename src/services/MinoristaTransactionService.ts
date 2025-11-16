@@ -69,15 +69,21 @@ export class MinoristaTransactionService {
         break
 
       case MinoristaTransactionType.PROFIT:
-        // Si hay saldo a favor, la ganancia va ahí. Si no, va al crédito disponible
+        // La ganancia se suma al crédito disponible si hay espacio, si no va al saldo a favor
         const currentBalance = minorista.creditBalance || 0
-        if (currentBalance > 0) {
-          // Hay saldo a favor, suma la ganancia al saldo
+        const spaceInCredit = minorista.creditLimit - previousAvailableCredit
+
+        if (spaceInCredit > 0) {
+          // Hay espacio en el crédito
+          const profitToCredit = Math.min(data.amount, spaceInCredit)
+          const profitToBalance = data.amount - profitToCredit
+
+          newAvailableCredit = previousAvailableCredit + profitToCredit
+          minorista.creditBalance = currentBalance + profitToBalance
+        } else {
+          // Crédito lleno, toda la ganancia va al saldo a favor
           minorista.creditBalance = currentBalance + data.amount
           newAvailableCredit = previousAvailableCredit
-        } else {
-          // No hay saldo a favor, suma al crédito disponible (capeado por límite)
-          newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
         }
         break
 
