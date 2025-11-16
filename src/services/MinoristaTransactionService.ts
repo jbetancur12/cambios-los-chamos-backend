@@ -69,7 +69,9 @@ export class MinoristaTransactionService {
         break
 
       case MinoristaTransactionType.PROFIT:
-        newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
+        // La ganancia SIEMPRE se suma al saldo a favor (creditBalance)
+        minorista.creditBalance = (minorista.creditBalance || 0) + data.amount
+        newAvailableCredit = previousAvailableCredit
         break
 
       case MinoristaTransactionType.ADJUSTMENT:
