@@ -35,6 +35,9 @@ export class MinoristaTransactionService {
     const { creditLimit } = minorista
 
     let newAvailableCredit = previousAvailableCredit
+    let balanceInFavorUsed = 0
+    let creditUsed = 0
+    let newBalanceInFavor = minorista.creditBalance || 0
 
     // Calcular nuevo balance según tipo de transacción
     switch (data.type) {
@@ -43,10 +46,26 @@ export class MinoristaTransactionService {
         break
 
       case MinoristaTransactionType.DISCOUNT:
-        if (previousAvailableCredit < data.amount) {
+        // Prioridad: usar primero saldo a favor, luego crédito disponible
+        const balanceInFavor = minorista.creditBalance || 0
+        const totalAvailable = balanceInFavor + previousAvailableCredit
+
+        if (totalAvailable < data.amount) {
           return { error: 'INSUFFICIENT_BALANCE' }
         }
-        newAvailableCredit = previousAvailableCredit - data.amount
+
+        // Descontar primero del saldo a favor
+        let remainingDiscount = data.amount
+        if (balanceInFavor > 0) {
+          balanceInFavorUsed = Math.min(balanceInFavor, remainingDiscount)
+          newBalanceInFavor = balanceInFavor - balanceInFavorUsed
+          minorista.creditBalance = newBalanceInFavor
+          remainingDiscount -= balanceInFavorUsed
+        }
+
+        // Luego del crédito disponible
+        creditUsed = remainingDiscount
+        newAvailableCredit = previousAvailableCredit - creditUsed
         break
 
       case MinoristaTransactionType.PROFIT:
@@ -88,6 +107,9 @@ export class MinoristaTransactionService {
       accumulatedDebt: creditLimit - newAvailableCredit,
       accumulatedProfit,
       availableCredit: newAvailableCredit,
+      balanceInFavorUsed: balanceInFavorUsed > 0 ? balanceInFavorUsed : undefined,
+      creditUsed: creditUsed > 0 ? creditUsed : undefined,
+      remainingBalance: newBalanceInFavor > 0 ? newBalanceInFavor : undefined,
       createdBy: data.createdBy,
       createdAt: new Date(),
     })

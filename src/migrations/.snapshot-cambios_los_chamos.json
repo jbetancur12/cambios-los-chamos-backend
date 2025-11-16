@@ -1509,6 +1509,39 @@
           "scale": 0,
           "mappedType": "decimal"
         },
+        "balance_in_favor_used": {
+          "name": "balance_in_favor_used",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
+        "credit_used": {
+          "name": "credit_used",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
+        "remaining_balance": {
+          "name": "remaining_balance",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "precision": 10,
+          "scale": 0,
+          "mappedType": "decimal"
+        },
         "description": {
           "name": "description",
           "type": "varchar(255)",

@@ -52,6 +52,15 @@ export class MinoristaTransaction {
   @Property({ type: 'decimal', nullable: true })
   accumulatedProfit?: number // Ganancia Acumulada depues de esta tranasaccion
 
+  @Property({ type: 'decimal', nullable: true })
+  balanceInFavorUsed?: number // Saldo a favor usado en este descuento
+
+  @Property({ type: 'decimal', nullable: true })
+  creditUsed?: number // Crédito disponible usado en este descuento
+
+  @Property({ type: 'decimal', nullable: true })
+  remainingBalance?: number // Saldo a favor restante después de esta transacción
+
   @Property({ nullable: true })
   description?: string // Descripción clara de la transacción
 
