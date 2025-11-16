@@ -111,6 +111,9 @@ export class MinoristaTransactionService {
       accumulatedProfit = lastTransaction?.accumulatedProfit ?? 0
     }
 
+    // Calcular deuda real: si hay saldo a favor, no hay deuda. Si no, deuda = creditLimit - availableCredit
+    const realDebt = newBalanceInFavor > 0 ? 0 : creditLimit - newAvailableCredit
+
     // Crear transacción
     const transaction = transactionRepo.create({
       minorista,
@@ -119,7 +122,7 @@ export class MinoristaTransactionService {
       creditConsumed,
       profitEarned,
       previousAvailableCredit,
-      accumulatedDebt: creditLimit - newAvailableCredit,
+      accumulatedDebt: realDebt,
       accumulatedProfit,
       availableCredit: newAvailableCredit,
       balanceInFavorUsed: balanceInFavorUsed > 0 ? balanceInFavorUsed : undefined,
