@@ -284,10 +284,14 @@ bankAccountRouter.get('/:bankAccountId/transactions', requireAuth(), async (req:
 
   const page = parseInt(req.query.page as string) || 1
   const limit = parseInt(req.query.limit as string) || 50
+  const startDate = req.query.startDate as string | undefined
+  const endDate = req.query.endDate as string | undefined
 
   const result = await bankAccountTransactionService.listTransactionsByBankAccount(bankAccountId, {
     page,
     limit,
+    startDate,
+    endDate,
   })
 
   if ('error' in result) {

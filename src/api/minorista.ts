@@ -5,6 +5,7 @@ import { validateBody } from '@/lib/zodUtils'
 import { createMinoristaSchema, updateMinoristaBalanceSchema } from '@/schemas/minoristaSchema'
 import { UserRole } from '@/entities/User'
 import { minoristaService } from '@/services/MinoristaService'
+import { minoristaTransactionService } from '@/services/MinoristaTransactionService'
 
 export const minoristaRouter = express.Router()
 
@@ -207,36 +208,52 @@ minoristaRouter.get(
 
       const page = parseInt(req.query.page as string) || 1
       const limit = parseInt(req.query.limit as string) || 50
-      const offset = (page - 1) * limit
+      const startDate = req.query.startDate as string | undefined
+      const endDate = req.query.endDate as string | undefined
 
-      const transactions = await transactionRepo.find(
-        { minorista: minoristaId },
-        { orderBy: { createdAt: -1 }, limit, offset }
+      const result = await minoristaTransactionService.listTransactionsByMinorista(minoristaId, {
+        page,
+        limit,
+        startDate,
+        endDate,
+      })
+
+      if ('error' in result) {
+        return res.status(404).json(ApiResponse.notFound('Minorista', minoristaId))
+      }
+
+      const transactions = result.transactions
+      const total = result.total
+      // Obtener transacciones completas del repositorio para tener todos los campos
+      const fullTransactions = await transactionRepo.find(
+        result.transactions.map((t: any) => t.id).length > 0
+          ? { id: { $in: result.transactions.map((t: any) => t.id) } }
+          : {},
+        { populate: ['minorista'] }
       )
-      const total = await transactionRepo.count({ minorista: minoristaId })
+
       res.json(
         ApiResponse.success({
-          transactions: transactions.map((t: any) => ({
+          transactions: fullTransactions.map((t: any) => ({
             id: t.id,
             amount: t.amount,
             type: t.type,
             previousAvailableCredit: t.previousAvailableCredit,
+            availableCredit: t.availableCredit,
+            currentBalance: t.availableCredit,
             creditConsumed: t.creditConsumed,
             profitEarned: t.profitEarned,
             accumulatedDebt: t.accumulatedDebt,
             accumulatedProfit: t.accumulatedProfit,
             description: t.description,
-            availableCredit: t.availableCredit,
-            creditLimit: minorista.creditLimit,
-            createdAt: t.createdAt.toISOString(),
+            createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : t.createdAt,
           })),
           pagination: {
-            total: total, // Total de registros
-            page: page, // Página actual
-            limit: limit, // Límite por página
-            totalPages: total, // Total de páginas disponibles
+            total: total,
+            page: page,
+            limit: limit,
+            totalPages: Math.ceil(total / limit),
           },
-          message: 'Transacciones obtenidas exitosamente',
         })
       )
     } catch (error) {

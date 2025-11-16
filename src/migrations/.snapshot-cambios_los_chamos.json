@@ -827,6 +827,18 @@
           "scale": 0,
           "default": "0",
           "mappedType": "decimal"
+        },
+        "credit_balance": {
+          "name": "credit_balance",
+          "type": "numeric(10,0)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "precision": 10,
+          "scale": 0,
+          "default": "0",
+          "mappedType": "decimal"
         }
       },
       "name": "minoristas",

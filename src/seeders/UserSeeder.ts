@@ -79,6 +79,7 @@ export class UserSeeder extends Seeder {
           user,
           creditLimit: 0,
           availableCredit: 0,
+          creditBalance: 0,
           transactions: [],
           giros: [],
         })

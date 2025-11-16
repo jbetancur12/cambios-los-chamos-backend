@@ -21,6 +21,9 @@ export class Minorista {
   @Property({ type: 'decimal', default: 0 })
   availableCredit: number = 0
 
+  @Property({ type: 'decimal', default: 0 })
+  creditBalance: number = 0
+
   @OneToMany(() => MinoristaTransaction, (tx) => tx.minorista)
   transactions = new Array<MinoristaTransaction>()
 

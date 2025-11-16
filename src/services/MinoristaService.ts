@@ -61,6 +61,7 @@ export class MinoristaService {
       user,
       creditLimit: 0,
       availableCredit: 0,
+      creditBalance: 0,
       transactions: [],
       giros: [],
     })
@@ -99,6 +100,7 @@ export class MinoristaService {
 
       creditLimit: number
       availableCredit: number
+      creditBalance: number
       user: {
         id: string
         fullName: string
@@ -128,6 +130,7 @@ export class MinoristaService {
       id: m.id,
       creditLimit: m.creditLimit,
       availableCredit: m.availableCredit,
+      creditBalance: m.creditBalance,
       user: {
         id: m.user.id,
         fullName: m.user.fullName,
@@ -154,6 +157,7 @@ export class MinoristaService {
 
         creditLimit: number
         availableCredit: number
+        creditBalance: number
         user: {
           id: string
           fullName: string
@@ -176,6 +180,7 @@ export class MinoristaService {
       id: minorista.id,
       creditLimit: minorista.creditLimit,
       availableCredit: minorista.availableCredit,
+      creditBalance: minorista.creditBalance,
       user: {
         id: minorista.user.id,
         fullName: minorista.user.fullName,
@@ -194,6 +199,7 @@ export class MinoristaService {
         id: string
         creditLimit: number
         availableCredit: number
+        creditBalance: number
         user: {
           id: string
           fullName: string
@@ -216,6 +222,7 @@ export class MinoristaService {
       id: minorista.id,
       creditLimit: minorista.creditLimit,
       availableCredit: minorista.availableCredit,
+      creditBalance: minorista.creditBalance,
       user: {
         id: minorista.user.id,
         fullName: minorista.user.fullName,
@@ -270,6 +277,7 @@ export class MinoristaService {
         id: string
         creditLimit: number
         availableCredit: number
+        creditBalance: number
         user: {
           id: string
           fullName: string
@@ -305,6 +313,7 @@ export class MinoristaService {
       id: minorista.id,
       creditLimit: minorista.creditLimit,
       availableCredit: minorista.availableCredit,
+      creditBalance: minorista.creditBalance,
       user: {
         id: minorista.user.id,
         fullName: minorista.user.fullName,
@@ -315,7 +324,7 @@ export class MinoristaService {
 
   /**
    * Procesa un pago de deuda que restaura el crédito disponible
-   * El monto pagado se suma al crédito disponible (hasta el límite)
+   * Si paga más de la deuda, el exceso se convierte en saldo a favor
    */
   async payDebt(
     minoristaId: string,
@@ -326,6 +335,7 @@ export class MinoristaService {
         id: string
         creditLimit: number
         availableCredit: number
+        creditBalance: number
         debtAmount: number
         user: {
           id: string
@@ -345,21 +355,38 @@ export class MinoristaService {
     // Calcular la deuda (cuanto crédito falta para llegar al límite)
     const debtAmount = minorista.creditLimit - minorista.availableCredit
 
-    // El monto pagado no puede ser mayor que la deuda
-    if (amount > debtAmount) {
-      return { error: 'INSUFFICIENT_PAYMENT' }
-    }
+    // Procesar el pago
+    if (amount <= debtAmount) {
+      // Pago parcial o exacto: solo restaurar crédito
+      const transactionResult = await minoristaTransactionService.createTransaction({
+        minoristaId,
+        amount,
+        type: MinoristaTransactionType.RECHARGE,
+        createdBy,
+      })
 
-    // Crear transacción de recarga (restaura el crédito disponible)
-    const transactionResult = await minoristaTransactionService.createTransaction({
-      minoristaId,
-      amount,
-      type: MinoristaTransactionType.RECHARGE,
-      createdBy,
-    })
+      if ('error' in transactionResult) {
+        return { error: 'MINORISTA_NOT_FOUND' }
+      }
+    } else {
+      // Pago mayor a la deuda: usar deuda para restaurar crédito y resto va a saldo a favor
+      const excessAmount = amount - debtAmount
 
-    if ('error' in transactionResult) {
-      return { error: 'MINORISTA_NOT_FOUND' }
+      // Restaurar todo el crédito (pagar toda la deuda)
+      const transactionResult = await minoristaTransactionService.createTransaction({
+        minoristaId,
+        amount: debtAmount,
+        type: MinoristaTransactionType.RECHARGE,
+        createdBy,
+      })
+
+      if ('error' in transactionResult) {
+        return { error: 'MINORISTA_NOT_FOUND' }
+      }
+
+      // Agregar el exceso al saldo a favor
+      minorista.creditBalance += excessAmount
+      await DI.em.persistAndFlush(minorista)
     }
 
     // Refrescar los datos del minorista
@@ -369,6 +396,7 @@ export class MinoristaService {
       id: minorista.id,
       creditLimit: minorista.creditLimit,
       availableCredit: minorista.availableCredit,
+      creditBalance: minorista.creditBalance,
       debtAmount: Math.max(0, minorista.creditLimit - minorista.availableCredit),
       user: {
         id: minorista.user.id,

@@ -108,7 +108,7 @@ export class MinoristaTransactionService {
    */
   async listTransactionsByMinorista(
     minoristaId: string,
-    options?: { page?: number; limit?: number }
+    options?: { page?: number; limit?: number; startDate?: string; endDate?: string }
   ): Promise<
     | {
         total: number
@@ -143,8 +143,19 @@ export class MinoristaTransactionService {
     const limit = options?.limit ?? 50
     const offset = (page - 1) * limit
 
+    // Construir filtro con fechas si se proporcionan
+    const where: Record<string, any> = { minorista: minoristaId }
+
+    if (options?.startDate && options?.endDate) {
+      const startDate = new Date(options.startDate)
+      const endDate = new Date(options.endDate)
+      endDate.setHours(23, 59, 59, 999)
+
+      where.createdAt = { $gte: startDate, $lte: endDate }
+    }
+
     const [transactions, total] = await transactionRepo.findAndCount(
-      { minorista: minoristaId },
+      where,
       {
         limit,
         offset,
