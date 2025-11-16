@@ -154,15 +154,12 @@ export class MinoristaTransactionService {
       where.createdAt = { $gte: startDate, $lte: endDate }
     }
 
-    const [transactions, total] = await transactionRepo.findAndCount(
-      where,
-      {
-        limit,
-        offset,
-        populate: ['createdBy'],
-        orderBy: { createdAt: 'DESC' }, // Más recientes primero
-      }
-    )
+    const [transactions, total] = await transactionRepo.findAndCount(where, {
+      limit,
+      offset,
+      populate: ['createdBy'],
+      orderBy: { createdAt: 'DESC' }, // Más recientes primero
+    })
 
     const data = transactions.map((t) => ({
       id: t.id,

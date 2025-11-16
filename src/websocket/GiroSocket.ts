@@ -24,16 +24,19 @@ export class GiroSocketManager {
       console.log(`[WS] Usuario conectado: ${socket.id}`)
 
       // Evento: Usuario se conecta y proporciona su información
-      socket.on('user:connected', (data: { userId: string; role: UserRole; minoristaId?: string; transferencistaId?: string }) => {
-        this.connectedUsers.set(socket.id, {
-          socketId: socket.id,
-          userId: data.userId,
-          role: data.role,
-          minoristaId: data.minoristaId,
-          transferencistaId: data.transferencistaId,
-        })
-        console.log(`[WS] Usuario autenticado: ${data.userId} (${data.role})`)
-      })
+      socket.on(
+        'user:connected',
+        (data: { userId: string; role: UserRole; minoristaId?: string; transferencistaId?: string }) => {
+          this.connectedUsers.set(socket.id, {
+            socketId: socket.id,
+            userId: data.userId,
+            role: data.role,
+            minoristaId: data.minoristaId,
+            transferencistaId: data.transferencistaId,
+          })
+          console.log(`[WS] Usuario autenticado: ${data.userId} (${data.role})`)
+        }
+      )
 
       // Evento: Usuario se desconecta
       socket.on('disconnect', () => {
@@ -134,7 +137,7 @@ export class GiroSocketManager {
       status: giro.status,
       executionType: giro.executionType,
       returnReason: giro.returnReason,
-      proofUrl: giro.proofUrl,
+      paymentProofKey: giro.paymentProofKey,
       createdAt: giro.createdAt,
       updatedAt: giro.updatedAt,
       completedAt: giro.completedAt,

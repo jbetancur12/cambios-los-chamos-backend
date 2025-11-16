@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express'
+import multer from 'multer'
 import { requireAuth, requireRole } from '@/middleware/authMiddleware'
 import { UserRole } from '@/entities/User'
 import { ApiResponse } from '@/lib/apiResponse'
@@ -8,10 +9,25 @@ import { giroService } from '@/services/GiroService'
 import { DI } from '@/di'
 import { Currency } from '@/entities/Bank'
 import { exchangeRateService } from '@/services/ExchangeRateService'
-import { ExecutionType, GiroStatus } from '@/entities/Giro'
+import { ExecutionType, GiroStatus, Giro } from '@/entities/Giro'
 import { giroSocketManager } from '@/websocket'
+import { minioService } from '@/services/MinIOService'
 
 export const giroRouter = express.Router({ mergeParams: true })
+
+// Multer configuration for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req: any, file: any, cb: any) => {
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf']
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true)
+    } else {
+      cb(new Error('Invalid file type. Only images and PDFs are allowed.'))
+    }
+  },
+})
 
 // ------------------ CREAR GIRO ------------------
 giroRouter.post(
@@ -297,7 +313,7 @@ giroRouter.post('/:giroId/execute', requireRole(UserRole.TRANSFERENCISTA), async
     )
   }
 
-  const result = await giroService.executeGiro(giroId, bankAccountId, executionType, fee, proofUrl)
+  const result = await giroService.executeGiro(giroId, bankAccountId, executionType, fee)
 
   if ('error' in result) {
     switch (result.error) {
@@ -479,53 +495,156 @@ giroRouter.post('/mobile-payment/create', requireRole(UserRole.MINORISTA), async
 })
 
 // ------------------ ELIMINAR GIRO ------------------
-giroRouter.delete(
-  '/:giroId',
-  requireRole(UserRole.MINORISTA),
-  async (req: Request, res: Response) => {
-    const user = req.context?.requestUser?.user
-    if (!user) {
-      return res.status(401).json(ApiResponse.unauthorized())
+giroRouter.delete('/:giroId', requireRole(UserRole.MINORISTA), async (req: Request, res: Response) => {
+  const user = req.context?.requestUser?.user
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
+  }
+
+  const { giroId } = req.params
+
+  try {
+    // Obtener el giro
+    const giro = await DI.giros.findOne({ id: giroId }, { populate: ['minorista', 'minorista.user'] })
+
+    if (!giro) {
+      return res.status(404).json(ApiResponse.notFound('Giro'))
     }
 
-    const { giroId } = req.params
+    // Validar que el minorista sea el propietario del giro
+    if (!giro.minorista || giro.minorista.user.id !== user.id) {
+      return res.status(403).json(ApiResponse.forbidden('No puedes eliminar giros de otros minoristas'))
+    }
 
+    // Eliminar el giro
+    const result = await giroService.deleteGiro(giroId)
+
+    if ('error' in result) {
+      switch (result.error) {
+        case 'GIRO_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Giro'))
+        case 'INVALID_STATUS':
+          return res
+            .status(400)
+            .json(ApiResponse.badRequest('Solo se pueden eliminar giros en estado PENDIENTE o ASIGNADO'))
+        case 'UNAUTHORIZED':
+          return res.status(403).json(ApiResponse.forbidden())
+      }
+    }
+
+    // Emitir evento de WebSocket
+    if (giroSocketManager) {
+      giroSocketManager.broadcastGiroDeleted(giroId)
+    }
+
+    res.json(ApiResponse.success({ message: 'Giro eliminado exitosamente' }))
+  } catch (error: any) {
+    console.error('Error eliminando giro:', error)
+    res.status(500).json(ApiResponse.serverError())
+  }
+})
+
+// ------------------ UPLOAD PAYMENT PROOF ------------------
+giroRouter.post(
+  '/:giroId/payment-proof/upload',
+  upload.single('file'),
+  requireRole(UserRole.TRANSFERENCISTA),
+  async (req: Request & { file?: any }, res: Response) => {
     try {
-      // Obtener el giro
-      const giro = await DI.giros.findOne({ id: giroId }, { populate: ['minorista', 'minorista.user'] })
+      const { giroId } = req.params
+      const file = req.file
 
+      if (!file) {
+        return res.status(400).json(ApiResponse.badRequest('No file provided'))
+      }
+
+      // Use forked EM to avoid global context issues with multer
+      const em = DI.em.fork()
+
+      // Get the giro
+      const giro = await em.findOne(Giro, { id: giroId })
       if (!giro) {
-        return res.status(404).json(ApiResponse.notFound('Giro'))
+        return res.status(404).json(ApiResponse.notFound('Giro', giroId))
       }
 
-      // Validar que el minorista sea el propietario del giro
-      if (!giro.minorista || giro.minorista.user.id !== user.id) {
-        return res.status(403).json(ApiResponse.forbidden('No puedes eliminar giros de otros minoristas'))
-      }
-
-      // Eliminar el giro
-      const result = await giroService.deleteGiro(giroId)
-
-      if ('error' in result) {
-        switch (result.error) {
-          case 'GIRO_NOT_FOUND':
-            return res.status(404).json(ApiResponse.notFound('Giro'))
-          case 'INVALID_STATUS':
-            return res.status(400).json(ApiResponse.badRequest('Solo se pueden eliminar giros en estado PENDIENTE o ASIGNADO'))
-          case 'UNAUTHORIZED':
-            return res.status(403).json(ApiResponse.forbidden())
+      // Delete old payment proof if exists
+      if (giro.paymentProofKey) {
+        try {
+          await minioService.deleteFile(process.env.MINIO_BUCKET_NAME || 'ultrathink', giro.paymentProofKey)
+        } catch (error) {
+          console.warn('Could not delete old payment proof:', error)
         }
       }
 
-      // Emitir evento de WebSocket
-      if (giroSocketManager) {
-        giroSocketManager.broadcastGiroDeleted(giroId)
-      }
+      // Upload new file to MinIO
+      const bucketName = process.env.MINIO_BUCKET_NAME || 'ultrathink'
+      // Use shorter filename: giroId-timestamp-extension
+      const fileExt = file.originalname.split('.').pop() || 'bin'
+      const filename = `${giroId}-${Date.now()}.${fileExt}`
+      const paymentProofKey = await minioService.uploadFile(bucketName, filename, file.buffer, file.mimetype)
 
-      res.json(ApiResponse.success({ message: 'Giro eliminado exitosamente' }))
+      // Update giro with payment proof key (store only the key, not the full URL)
+      giro.paymentProofKey = paymentProofKey
+      await em.persistAndFlush(giro)
+
+      // Generate presigned URL for response
+      const presignedUrl = await minioService.getPresignedUrl(bucketName, paymentProofKey)
+
+      res.json(
+        ApiResponse.success({
+          giro,
+          paymentProofUrl: presignedUrl,
+          message: 'Payment proof uploaded successfully',
+        })
+      )
     } catch (error: any) {
-      console.error('Error eliminando giro:', error)
+      console.error('Error uploading payment proof:', error)
       res.status(500).json(ApiResponse.serverError())
     }
   }
 )
+
+// ------------------ GET PAYMENT PROOF URL ------------------
+giroRouter.get('/:giroId/payment-proof/download', requireAuth(), async (req: Request, res: Response) => {
+  try {
+    const { giroId } = req.params
+    const user = req.context?.requestUser?.user
+
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
+    // Get the giro
+    const giro = await DI.giros.findOne({ id: giroId }, { populate: ['minorista', 'transferencista'] })
+    if (!giro) {
+      return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+    }
+
+    // Verify authorization
+    if (user.role === UserRole.MINORISTA && (!giro.minorista || giro.minorista.user.id !== user.id)) {
+      return res.status(403).json(ApiResponse.forbidden('No tienes permisos para descargar este soporte'))
+    }
+
+    if (user.role === UserRole.TRANSFERENCISTA && (!giro.transferencista || giro.transferencista.user.id !== user.id)) {
+      return res.status(403).json(ApiResponse.forbidden('No tienes permisos para descargar este soporte'))
+    }
+
+    if (!giro.paymentProofKey) {
+      return res.status(404).json(ApiResponse.notFound('Payment proof for this giro'))
+    }
+
+    // Generate presigned URL
+    const bucketName = process.env.MINIO_BUCKET_NAME || 'ultrathink'
+    const presignedUrl = await minioService.getPresignedUrl(bucketName, giro.paymentProofKey, 3600)
+
+    res.json(
+      ApiResponse.success({
+        paymentProofUrl: presignedUrl,
+        filename: giro.paymentProofKey,
+      })
+    )
+  } catch (error: any) {
+    console.error('Error getting payment proof URL:', error)
+    res.status(500).json(ApiResponse.serverError())
+  }
+})

@@ -1203,8 +1203,8 @@
           "length": 255,
           "mappedType": "string"
         },
-        "proof_url": {
-          "name": "proof_url",
+        "payment_proof_key": {
+          "name": "payment_proof_key",
           "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,

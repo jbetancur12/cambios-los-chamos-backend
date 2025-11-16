@@ -192,8 +192,7 @@ export class GiroService {
     giroId: string,
     bankAccountId: string,
     executionType: ExecutionType,
-    fee: number,
-    proofUrl?: string
+    fee: number
   ): Promise<
     | Giro
     | {
@@ -206,7 +205,21 @@ export class GiroService {
       }
   > {
     console.log('🚀 ~ GiroService ~ executeGiro ~ fee:', fee)
-    const giro = await DI.giros.findOne({ id: giroId }, { populate: ['transferencista', 'transferencista.user', 'minorista', 'minorista.user', 'rateApplied', 'createdBy', 'bankAccountUsed', 'bankAccountUsed.bank'] })
+    const giro = await DI.giros.findOne(
+      { id: giroId },
+      {
+        populate: [
+          'transferencista',
+          'transferencista.user',
+          'minorista',
+          'minorista.user',
+          'rateApplied',
+          'createdBy',
+          'bankAccountUsed',
+          'bankAccountUsed.bank',
+        ],
+      }
+    )
 
     if (!giro) {
       return { error: 'GIRO_NOT_FOUND' }
@@ -245,14 +258,11 @@ export class GiroService {
     // Recargar cuenta para obtener balance actualizado
     await DI.em.refresh(bankAccount)
 
-    // Actualizar giro
+    // Actualizar giro - DO NOT store proofUrl, only the key
     giro.bankAccountUsed = bankAccount
     giro.executionType = executionType
     giro.status = GiroStatus.COMPLETADO
     giro.completedAt = new Date()
-    if (proofUrl) {
-      giro.proofUrl = proofUrl
-    }
     giro.updatedAt = new Date()
 
     await DI.em.persistAndFlush(giro)
@@ -880,7 +890,9 @@ export class GiroService {
    * Elimina un giro (solo minoristas pueden eliminar sus propios giros)
    * Solo se pueden eliminar giros en estado PENDIENTE o ASIGNADO
    */
-  async deleteGiro(giroId: string): Promise<{ success: boolean } | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'UNAUTHORIZED' }> {
+  async deleteGiro(
+    giroId: string
+  ): Promise<{ success: boolean } | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'UNAUTHORIZED' }> {
     const giro = await DI.giros.findOne({ id: giroId }, { populate: ['minorista'] })
 
     if (!giro) {
@@ -888,7 +900,11 @@ export class GiroService {
     }
 
     // Solo se pueden eliminar giros en estado PENDIENTE, ASIGNADO o DEVUELTO
-    if (giro.status !== GiroStatus.PENDIENTE && giro.status !== GiroStatus.ASIGNADO && giro.status !== GiroStatus.DEVUELTO) {
+    if (
+      giro.status !== GiroStatus.PENDIENTE &&
+      giro.status !== GiroStatus.ASIGNADO &&
+      giro.status !== GiroStatus.DEVUELTO
+    ) {
       return { error: 'INVALID_STATUS' }
     }
 

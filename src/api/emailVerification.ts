@@ -51,9 +51,7 @@ export async function confirmEmail(req: Request, res: Response) {
 
   // Validar passwords
   if (!password || !passwordConfirm) {
-    return res
-      .status(400)
-      .json(ApiResponse.validationErrorSingle('password', 'La contraseña es requerida'))
+    return res.status(400).json(ApiResponse.validationErrorSingle('password', 'La contraseña es requerida'))
   }
 
   if (password !== passwordConfirm) {

@@ -84,7 +84,7 @@ export class Giro {
   returnReason?: string
 
   @Property({ nullable: true })
-  proofUrl?: string
+  paymentProofKey?: string
 
   @ManyToOne(() => BankAccount, { nullable: true, deleteRule: 'restrict', updateRule: 'cascade' })
   bankAccountUsed?: BankAccount
