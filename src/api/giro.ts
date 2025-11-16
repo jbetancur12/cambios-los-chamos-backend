@@ -559,10 +559,15 @@ giroRouter.post(
         return res.status(400).json(ApiResponse.badRequest('No file provided'))
       }
 
+      // Check user context
+      if (!user) {
+        return res.status(401).json(ApiResponse.unauthorized())
+      }
+
       // Validate file type and size
       const validation = minioService.validateFile(file.buffer, file.mimetype)
       if (!validation.valid) {
-        return res.status(400).json(ApiResponse.badRequest(validation.error))
+        return res.status(400).json(ApiResponse.badRequest(validation.error || 'Invalid file'))
       }
 
       // Use forked EM to avoid global context issues with multer
