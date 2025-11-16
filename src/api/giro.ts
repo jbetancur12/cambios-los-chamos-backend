@@ -553,9 +553,16 @@ giroRouter.post(
     try {
       const { giroId } = req.params
       const file = req.file
+      const user = req.context?.requestUser?.user
 
       if (!file) {
         return res.status(400).json(ApiResponse.badRequest('No file provided'))
+      }
+
+      // Validate file type and size
+      const validation = minioService.validateFile(file.buffer, file.mimetype)
+      if (!validation.valid) {
+        return res.status(400).json(ApiResponse.badRequest(validation.error))
       }
 
       // Use forked EM to avoid global context issues with multer
@@ -576,24 +583,37 @@ giroRouter.post(
         }
       }
 
-      // Upload new file to MinIO
-      const bucketName = process.env.MINIO_BUCKET_NAME || 'ultrathink'
-      // Use shorter filename: giroId-timestamp-extension
+      // Process image: compress, generate thumbnail, add watermark
       const fileExt = file.originalname.split('.').pop() || 'bin'
       const filename = `${giroId}-${Date.now()}.${fileExt}`
-      const paymentProofKey = await minioService.uploadFile(bucketName, filename, file.buffer, file.mimetype)
+
+      const processedImages = await minioService.processImage(file.buffer, file.mimetype, {
+        userId: user.id,
+        fullName: user.fullName,
+      })
+
+      // Upload processed files to MinIO
+      const bucketName = process.env.MINIO_BUCKET_NAME || 'ultrathink'
+      const { key: paymentProofKey, thumbnailKey } = await minioService.uploadProcessedFile(
+        bucketName,
+        filename,
+        processedImages,
+        file.mimetype
+      )
 
       // Update giro with payment proof key (store only the key, not the full URL)
       giro.paymentProofKey = paymentProofKey
       await em.persistAndFlush(giro)
 
-      // Generate presigned URL for response
+      // Generate presigned URLs for response
       const presignedUrl = await minioService.getPresignedUrl(bucketName, paymentProofKey)
+      const thumbnailUrl = await minioService.getPresignedUrl(bucketName, thumbnailKey)
 
       res.json(
         ApiResponse.success({
           giro,
           paymentProofUrl: presignedUrl,
+          thumbnailUrl: thumbnailUrl,
           message: 'Payment proof uploaded successfully',
         })
       )

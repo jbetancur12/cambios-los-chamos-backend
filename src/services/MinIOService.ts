@@ -1,8 +1,24 @@
 import { Client } from 'minio'
 import path from 'path'
+import sharp from 'sharp'
+
+interface UploadOptions {
+  userId: string
+  fullName: string
+}
+
+interface ProcessedImages {
+  original: Buffer
+  compressed: Buffer
+  thumbnail: Buffer
+  withWatermark: Buffer
+}
 
 class MinIOService {
   private minioClient: Client
+  private readonly ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
+  private readonly MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+  private readonly THUMBNAIL_SIZE = 200
 
   constructor() {
     const accessKey = process.env.MINIO_ACCESS_KEY || 'admin'
@@ -20,6 +36,135 @@ class MinIOService {
     })
   }
 
+  /**
+   * Validar tipo y tamaño de archivo
+   */
+  validateFile(fileBuffer: Buffer, mimetype: string): { valid: boolean; error?: string } {
+    if (!this.ALLOWED_MIME_TYPES.includes(mimetype)) {
+      return {
+        valid: false,
+        error: `Tipo de archivo no permitido. Solo se aceptan: ${this.ALLOWED_MIME_TYPES.join(', ')}`,
+      }
+    }
+
+    if (fileBuffer.length > this.MAX_FILE_SIZE) {
+      return {
+        valid: false,
+        error: `Archivo demasiado grande. Máximo: ${this.MAX_FILE_SIZE / 1024 / 1024}MB`,
+      }
+    }
+
+    return { valid: true }
+  }
+
+  /**
+   * Comprimir imagen (solo JPG/PNG)
+   */
+  private async compressImage(buffer: Buffer, mimetype: string): Promise<Buffer> {
+    if (mimetype === 'application/pdf') {
+      return buffer
+    }
+
+    try {
+      return await sharp(buffer)
+        .rotate() // Auto-rotate based on EXIF
+        .resize(2000, 2000, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: 80, progressive: true })
+        .toBuffer()
+    } catch (error) {
+      console.error('Error compressing image:', error)
+      return buffer
+    }
+  }
+
+  /**
+   * Generar thumbnail
+   */
+  private async generateThumbnail(buffer: Buffer, mimetype: string): Promise<Buffer> {
+    if (mimetype === 'application/pdf') {
+      return buffer
+    }
+
+    try {
+      return await sharp(buffer)
+        .rotate() // Auto-rotate based on EXIF
+        .resize(this.THUMBNAIL_SIZE, this.THUMBNAIL_SIZE, {
+          fit: 'cover',
+          position: 'center',
+        })
+        .jpeg({ quality: 70 })
+        .toBuffer()
+    } catch (error) {
+      console.error('Error generating thumbnail:', error)
+      return buffer
+    }
+  }
+
+  /**
+   * Agregar watermark/firma digital con timestamp y usuario
+   */
+  private async addWatermark(buffer: Buffer, mimetype: string, options: UploadOptions): Promise<Buffer> {
+    if (mimetype === 'application/pdf') {
+      return buffer
+    }
+
+    try {
+      const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19)
+      const watermarkText = `Subido por: ${options.fullName}\n${timestamp}`
+
+      // Crear SVG con texto
+      const svgText = `
+        <svg width="800" height="150">
+          <rect width="800" height="150" fill="rgba(0,0,0,0.3)" />
+          <text x="20" y="50" font-size="28" fill="white" font-family="Arial, sans-serif" font-weight="bold">
+            COMPROBANTE DE PAGO
+          </text>
+          <text x="20" y="90" font-size="18" fill="white" font-family="Arial, sans-serif">
+            ${watermarkText.split('\n')[0]}
+          </text>
+          <text x="20" y="120" font-size="18" fill="white" font-family="Arial, sans-serif">
+            ${watermarkText.split('\n')[1]}
+          </text>
+        </svg>
+      `
+
+      const svgBuffer = Buffer.from(svgText)
+
+      return await sharp(buffer)
+        .rotate()
+        .composite([
+          {
+            input: svgBuffer,
+            gravity: 'northwest' as const,
+          },
+        ])
+        .jpeg({ quality: 80, progressive: true })
+        .toBuffer()
+    } catch (error) {
+      console.error('Error adding watermark:', error)
+      return buffer
+    }
+  }
+
+  /**
+   * Procesar imagen: comprimir, crear thumbnail, agregar watermark
+   */
+  async processImage(fileBuffer: Buffer, mimetype: string, options: UploadOptions): Promise<ProcessedImages> {
+    const compressed = await this.compressImage(fileBuffer, mimetype)
+    const thumbnail = await this.generateThumbnail(fileBuffer, mimetype)
+    const withWatermark = await this.addWatermark(compressed, mimetype, options)
+
+    return {
+      original: fileBuffer,
+      compressed,
+      thumbnail,
+      withWatermark,
+    }
+  }
+
   async ensureBucket(bucketName: string): Promise<void> {
     try {
       const exists = await this.minioClient.bucketExists(bucketName)
@@ -33,17 +178,34 @@ class MinIOService {
     }
   }
 
-  async uploadFile(bucketName: string, filename: string, fileBuffer: Buffer, mimetype: string): Promise<string> {
+  async uploadProcessedFile(
+    bucketName: string,
+    baseFilename: string,
+    images: ProcessedImages,
+    mimetype: string
+  ): Promise<{ key: string; thumbnailKey: string }> {
     try {
       await this.ensureBucket(bucketName)
 
-      await this.minioClient.putObject(bucketName, filename, fileBuffer, fileBuffer.length, {
+      const [nameWithoutExt, ext] = baseFilename.split(/\.(?=[^.]+$)/)
+
+      // Subir comprimido con watermark (es el que se mostrará)
+      const mainKey = `${nameWithoutExt}-main.${ext}`
+      await this.minioClient.putObject(bucketName, mainKey, images.withWatermark, images.withWatermark.length, {
         'Content-Type': mimetype,
       })
 
-      return filename
+      // Subir thumbnail
+      const thumbnailKey = `${nameWithoutExt}-thumb.jpg`
+      await this.minioClient.putObject(bucketName, thumbnailKey, images.thumbnail, images.thumbnail.length, {
+        'Content-Type': 'image/jpeg',
+      })
+
+      console.log(`Uploaded payment proof: ${mainKey} with thumbnail: ${thumbnailKey}`)
+
+      return { key: mainKey, thumbnailKey }
     } catch (error) {
-      console.error(`Error uploading file to MinIO:`, error)
+      console.error(`Error uploading processed file to MinIO:`, error)
       throw error
     }
   }
@@ -51,6 +213,10 @@ class MinIOService {
   async deleteFile(bucketName: string, filename: string): Promise<void> {
     try {
       await this.minioClient.removeObject(bucketName, filename)
+      // También eliminar thumbnail si existe
+      const [nameWithoutExt] = filename.split(/\.(?=[^.]+$)/)
+      const thumbnailKey = `${nameWithoutExt}-thumb.jpg`
+      await this.minioClient.removeObject(bucketName, thumbnailKey)
     } catch (error) {
       console.error(`Error deleting file from MinIO:`, error)
       throw error
