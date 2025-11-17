@@ -14,6 +14,7 @@ import {
 } from '@/schemas/userSchemas'
 import { userService } from '@/services/UserService'
 import { validateParams } from '@/lib/validateParams'
+import { IS_DEVELOPMENT } from '@/settings'
 
 export const userRouter = express.Router({ mergeParams: true })
 
@@ -31,8 +32,8 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
     const { user, token: accessToken } = result
 
     // Cookie configuration for cross-domain/cross-subdomain access
-    // - sameSite: 'none' allows cookies to be sent across different domains
-    // - secure: true required when sameSite: 'none' (HTTPS only)
+    // - In production: sameSite: 'none' with secure: true (HTTPS required)
+    // - In development: sameSite: 'lax' with secure: false (HTTP allowed)
     // - httpOnly: true prevents JavaScript access (security)
     // This works for:
     //   - Cloudflare tunnels (different domains for frontend/backend)
@@ -40,8 +41,8 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
     //   - LocalHost development (same domain, different ports)
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: true, // Always true for sameSite: 'none'
-      sameSite: 'none', // Allow cross-origin cookie transmission
+      secure: !IS_DEVELOPMENT, // true in production (HTTPS), false in development (HTTP)
+      sameSite: IS_DEVELOPMENT ? 'lax' : 'none', // 'lax' for dev, 'none' for production
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
       path: '/',
     })
@@ -73,8 +74,8 @@ userRouter.post('/logout', requireAuth(), async (_req: Request, res: Response) =
   // Clear cookie with same settings as when it was created
   res.clearCookie('accessToken', {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
+    secure: !IS_DEVELOPMENT, // true in production, false in development
+    sameSite: IS_DEVELOPMENT ? 'lax' : 'none',
     path: '/',
   })
   res.json(ApiResponse.success({ message: 'Sesión cerrada correctamente' }))
