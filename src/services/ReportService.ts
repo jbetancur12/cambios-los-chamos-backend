@@ -65,6 +65,35 @@ export interface MinoristaTransactionReport {
   totalProfitAmount: number
 }
 
+export interface MinoristaGiroReport {
+  totalMoneyTransferred: number
+  totalProfit: number
+  totalGiros: number
+  completedGiros: number
+  averageProfitPerGiro: number
+  moneyTransferredByStatus: {
+    status: string
+    count: number
+    totalAmount: number
+    totalProfit: number
+  }[]
+}
+
+export interface MinoristaGiroTrendData {
+  date: string
+  moneyTransferred: number
+  profit: number
+}
+
+export interface MinoristaGiroTrendReport {
+  trendData: MinoristaGiroTrendData[]
+  totalMoneyTransferred: number
+  totalProfit: number
+  totalGiros: number
+  completedGiros: number
+  averageProfitPerGiro: number
+}
+
 export class ReportService {
   /**
    * Calcula ganancias del sistema dentro de un rango de fechas
@@ -238,6 +267,94 @@ export class ReportService {
       totalDiscountAmount,
       totalAdjustmentAmount,
       totalProfitAmount,
+    }
+  }
+
+  /**
+   * Obtiene reporte de giros para un minorista específico en un rango de fechas
+   */
+  async getMinoristaGiroReport(minoristaId: string, dateFrom: Date, dateTo: Date): Promise<MinoristaGiroReport> {
+    const giros = await DI.giros.find({
+      minorista: minoristaId,
+      createdAt: { $gte: dateFrom, $lte: dateTo },
+    })
+
+    const totalMoneyTransferred = giros.reduce((sum, g) => sum + (g.amountBs || 0), 0)
+    const totalProfit = giros.reduce((sum, g) => sum + (g.minoristaProfit || 0), 0)
+    const completedGiros = giros.filter((g) => g.status === GiroStatus.COMPLETADO).length
+    const totalGiros = giros.length
+    const averageProfitPerGiro = completedGiros > 0 ? totalProfit / completedGiros : 0
+
+    // Group by status
+    const statusMap = new Map<string, { count: number; totalAmount: number; totalProfit: number }>()
+    giros.forEach((g) => {
+      const existing = statusMap.get(g.status) || { count: 0, totalAmount: 0, totalProfit: 0 }
+      statusMap.set(g.status, {
+        count: existing.count + 1,
+        totalAmount: existing.totalAmount + (g.amountBs || 0),
+        totalProfit: existing.totalProfit + (g.minoristaProfit || 0),
+      })
+    })
+
+    const moneyTransferredByStatus = Array.from(statusMap.entries()).map(([status, data]) => ({
+      status,
+      count: data.count,
+      totalAmount: data.totalAmount,
+      totalProfit: data.totalProfit,
+    }))
+
+    return {
+      totalMoneyTransferred,
+      totalProfit,
+      totalGiros,
+      completedGiros,
+      averageProfitPerGiro,
+      moneyTransferredByStatus,
+    }
+  }
+
+  /**
+   * Obtiene la tendencia de giros para un minorista específico en un rango de fechas
+   */
+  async getMinoristaGiroTrendReport(minoristaId: string, dateFrom: Date, dateTo: Date): Promise<MinoristaGiroTrendReport> {
+    const giros = await DI.giros.find({
+      minorista: minoristaId,
+      createdAt: { $gte: dateFrom, $lte: dateTo },
+    })
+
+    // Group by date
+    const dateMap = new Map<string, { moneyTransferred: number; profit: number }>()
+    giros.forEach((g) => {
+      const dateStr = g.createdAt.toISOString().split('T')[0]
+      const existing = dateMap.get(dateStr) || { moneyTransferred: 0, profit: 0 }
+      dateMap.set(dateStr, {
+        moneyTransferred: existing.moneyTransferred + (g.amountBs || 0),
+        profit: existing.profit + (g.minoristaProfit || 0),
+      })
+    })
+
+    // Convert to sorted array
+    const trendData = Array.from(dateMap.entries())
+      .map(([date, data]) => ({
+        date,
+        moneyTransferred: data.moneyTransferred,
+        profit: data.profit,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+
+    const totalMoneyTransferred = giros.reduce((sum, g) => sum + (g.amountBs || 0), 0)
+    const totalProfit = giros.reduce((sum, g) => sum + (g.minoristaProfit || 0), 0)
+    const completedGiros = giros.filter((g) => g.status === GiroStatus.COMPLETADO).length
+    const totalGiros = giros.length
+    const averageProfitPerGiro = completedGiros > 0 ? totalProfit / completedGiros : 0
+
+    return {
+      trendData,
+      totalMoneyTransferred,
+      totalProfit,
+      totalGiros,
+      completedGiros,
+      averageProfitPerGiro,
     }
   }
 }

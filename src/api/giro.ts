@@ -572,7 +572,7 @@ giroRouter.delete('/:giroId', requireRole(UserRole.MINORISTA), async (req: Reque
         case 'INVALID_STATUS':
           return res
             .status(400)
-            .json(ApiResponse.badRequest('Solo se pueden eliminar giros en estado PENDIENTE o ASIGNADO'))
+            .json(ApiResponse.badRequest('Solo se pueden eliminar giros en estado PENDIENTE, ASIGNADO o DEVUELTO'))
         case 'UNAUTHORIZED':
           return res.status(403).json(ApiResponse.forbidden())
       }
