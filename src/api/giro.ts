@@ -189,10 +189,7 @@ giroRouter.get('/:giroId/minorista-transaction', requireAuth(), async (req: Requ
 
   try {
     // First, get the giro to verify user access and check if minorista exists
-    const giro = await DI.em.getRepository(Giro).findOne(
-      { id: giroId },
-      { populate: ['minorista'] }
-    )
+    const giro = await DI.em.getRepository(Giro).findOne({ id: giroId }, { populate: ['minorista'] })
 
     if (!giro) {
       return res.status(404).json(ApiResponse.notFound('Giro', giroId))
@@ -205,10 +202,7 @@ giroRouter.get('/:giroId/minorista-transaction', requireAuth(), async (req: Requ
 
     // Get the minorista transaction for this giro
     const transactionRepo = DI.em.getRepository(MinoristaTransaction)
-    const transaction = await transactionRepo.findOne(
-      { giro: giroId },
-      { populate: ['createdBy', 'minorista'] }
-    )
+    const transaction = await transactionRepo.findOne({ giro: giroId }, { populate: ['createdBy', 'minorista'] })
 
     // For minoristas, check if they own the giro
     if (user.role === 'MINORISTA') {

@@ -384,9 +384,25 @@ export class MinoristaService {
         return { error: 'MINORISTA_NOT_FOUND' }
       }
 
-      // Agregar el exceso al saldo a favor
-      minorista.creditBalance += excessAmount
-      await DI.em.persistAndFlush(minorista)
+      // Refrescar el minorista para obtener los valores actualizados después de la primera transacción
+      const updatedMinorista = await minoristaRepo.findOne({ id: minoristaId })
+      if (updatedMinorista) {
+        minorista.availableCredit = updatedMinorista.availableCredit
+        minorista.creditBalance = updatedMinorista.creditBalance
+      }
+
+      // Crear una transacción para el exceso que se convierte en saldo a favor
+      const excessTransactionResult = await minoristaTransactionService.createTransaction({
+        minoristaId,
+        amount: excessAmount,
+        type: MinoristaTransactionType.RECHARGE,
+        createdBy,
+        updateBalanceInFavor: true, // El exceso va al creditBalance (saldo a favor)
+      })
+
+      if ('error' in excessTransactionResult) {
+        return { error: 'MINORISTA_NOT_FOUND' }
+      }
     }
 
     // Refrescar los datos del minorista

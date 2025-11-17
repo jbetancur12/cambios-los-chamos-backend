@@ -239,6 +239,8 @@ minoristaRouter.get(
             amount: t.amount,
             type: t.type,
             previousAvailableCredit: t.previousAvailableCredit,
+            previousBalanceInFavor: t.previousBalanceInFavor,
+            currentBalanceInFavor: t.currentBalanceInFavor,
             availableCredit: t.availableCredit,
             currentBalance: t.availableCredit,
             creditConsumed: t.creditConsumed,

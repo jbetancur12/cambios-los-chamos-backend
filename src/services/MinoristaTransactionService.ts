@@ -8,6 +8,7 @@ export interface CreateTransactionInput {
   amount: number
   type: MinoristaTransactionType
   createdBy: User
+  updateBalanceInFavor?: boolean // Si true, el amount va a creditBalance, no a availableCredit
 }
 
 export class MinoristaTransactionService {
@@ -32,13 +33,14 @@ export class MinoristaTransactionService {
     }
 
     const previousAvailableCredit = minorista.availableCredit
+    const previousBalanceInFavorValue = minorista.creditBalance || 0 // Capturar ANTES de actualizar
     const { creditLimit } = minorista
     const initialCredit = creditLimit // Para calcular deuda interna
 
     let newAvailableCredit = previousAvailableCredit
     let balanceInFavorUsed = 0
     let creditUsed = 0
-    let newBalanceInFavor = minorista.creditBalance || 0
+    let newBalanceInFavor = previousBalanceInFavorValue
     let externalDebt = 0
 
     // Para PROFIT: obtener la transacción de descuento anterior
@@ -53,8 +55,14 @@ export class MinoristaTransactionService {
     // Calcular nuevo balance según tipo de transacción
     switch (data.type) {
       case MinoristaTransactionType.RECHARGE:
-        newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
-        newBalanceInFavor = minorista.creditBalance || 0
+        // Si updateBalanceInFavor es true, el amount va al saldo a favor, no al crédito disponible
+        if (data.updateBalanceInFavor) {
+          newAvailableCredit = previousAvailableCredit
+          newBalanceInFavor = previousBalanceInFavorValue + data.amount
+        } else {
+          newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
+          newBalanceInFavor = previousBalanceInFavorValue
+        }
         break
 
       case MinoristaTransactionType.DISCOUNT:
@@ -101,7 +109,7 @@ export class MinoristaTransactionService {
 
       case MinoristaTransactionType.PROFIT:
         // Paso 3: Aplicar ganancia
-        const currentBalance = minorista.creditBalance || 0
+        const currentBalance = previousBalanceInFavorValue // Usar el valor actual del minorista
 
         if (lastDiscountTransaction) {
           const creditConsumed = lastDiscountTransaction.creditUsed || 0
@@ -141,7 +149,7 @@ export class MinoristaTransactionService {
         if (newAvailableCredit < 0) {
           return { error: 'INSUFFICIENT_BALANCE' }
         }
-        newBalanceInFavor = minorista.creditBalance || 0
+        newBalanceInFavor = previousBalanceInFavorValue
         break
     }
 
@@ -172,7 +180,7 @@ export class MinoristaTransactionService {
       creditConsumed,
       profitEarned,
       previousAvailableCredit,
-      previousBalanceInFavor: minorista.creditBalance || 0, // Saldo a favor anterior
+      previousBalanceInFavor: previousBalanceInFavorValue, // Saldo a favor anterior (capturado al inicio)
       accumulatedDebt: realDebt,
       accumulatedProfit,
       availableCredit: newAvailableCredit,
@@ -185,8 +193,9 @@ export class MinoristaTransactionService {
       createdAt: new Date(),
     })
 
-    // Actualizar el crédito disponible del minorista
+    // Actualizar los balances del minorista
     minorista.availableCredit = newAvailableCredit
+    minorista.creditBalance = newBalanceInFavor
 
     // Guardar en una transacción atómica
     await DI.em.transactional(async (em) => {
