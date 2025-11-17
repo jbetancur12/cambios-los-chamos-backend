@@ -6,6 +6,9 @@ import { createMinoristaSchema, updateMinoristaBalanceSchema } from '@/schemas/m
 import { UserRole } from '@/entities/User'
 import { minoristaService } from '@/services/MinoristaService'
 import { minoristaTransactionService } from '@/services/MinoristaTransactionService'
+import { DI } from '@/di'
+import { Minorista } from '@/entities/Minorista'
+import { MinoristaTransaction } from '@/entities/MinoristaTransaction'
 
 export const minoristaRouter = express.Router()
 
@@ -148,7 +151,7 @@ minoristaRouter.post(
 
     // Si es minorista, solo puede pagar su propia deuda
     if (user.role === UserRole.MINORISTA) {
-      const minoristaRepo = require('@/di').DI.em.getRepository(require('@/entities/Minorista').Minorista)
+      const minoristaRepo = DI.em.getRepository(Minorista)
       const userMinorista = await minoristaRepo.findOne({ user: user.id })
       if (!userMinorista || userMinorista.id !== minoristaId) {
         return res.status(403).json(ApiResponse.forbidden('No tienes permiso para pagar la deuda de otro minorista'))
@@ -188,7 +191,7 @@ minoristaRouter.get(
 
     // Validar que el minorista no acceda a transacciones de otros
     if (user.role === UserRole.MINORISTA) {
-      const minoristaRepo = require('@/di').DI.em.getRepository(require('@/entities/Minorista').Minorista)
+      const minoristaRepo = DI.em.getRepository(Minorista)
       const userMinorista = await minoristaRepo.findOne({ user: user.id })
       if (!userMinorista || userMinorista.id !== minoristaId) {
         return res.status(403).json(ApiResponse.forbidden('No tienes permiso para ver transacciones de otro minorista'))
@@ -196,10 +199,8 @@ minoristaRouter.get(
     }
 
     try {
-      const minoristaRepo = require('@/di').DI.em.getRepository(require('@/entities/Minorista').Minorista)
-      const transactionRepo = require('@/di').DI.em.getRepository(
-        require('@/entities/MinoristaTransaction').MinoristaTransaction
-      )
+      const minoristaRepo = DI.em.getRepository(Minorista)
+      const transactionRepo = DI.em.getRepository(MinoristaTransaction)
 
       const minorista = await minoristaRepo.findOne({ id: minoristaId })
       if (!minorista) {

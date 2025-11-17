@@ -35,7 +35,6 @@ export class MinoristaTransactionService {
     const previousAvailableCredit = minorista.availableCredit
     const previousBalanceInFavorValue = minorista.creditBalance || 0 // Capturar ANTES de actualizar
     const { creditLimit } = minorista
-    const initialCredit = creditLimit // Para calcular deuda interna
 
     let newAvailableCredit = previousAvailableCredit
     let balanceInFavorUsed = 0
@@ -65,9 +64,9 @@ export class MinoristaTransactionService {
         }
         break
 
-      case MinoristaTransactionType.DISCOUNT:
+      case MinoristaTransactionType.DISCOUNT: {
         // Paso 1: Descontar primero del saldo a favor
-        let userBalance = minorista.creditBalance || 0
+        const userBalance = minorista.creditBalance || 0
         let remainingAmount = data.amount
 
         if (remainingAmount <= userBalance) {
@@ -106,15 +105,16 @@ export class MinoristaTransactionService {
 
         minorista.creditBalance = newBalanceInFavor
         break
+      }
 
-      case MinoristaTransactionType.PROFIT:
+      case MinoristaTransactionType.PROFIT: {
         // Paso 3: Aplicar ganancia
         const currentBalance = previousBalanceInFavorValue // Usar el valor actual del minorista
 
         if (lastDiscountTransaction) {
           const creditConsumed = lastDiscountTransaction.creditUsed || 0
           const externalDebtFromDiscount = lastDiscountTransaction.externalDebt || 0
-          let profit = data.amount
+          const profit = data.amount
 
           if (creditConsumed === 0 && externalDebtFromDiscount === 0) {
             // Solo se usó saldo a favor → ganancia va al saldo a favor
@@ -143,6 +143,7 @@ export class MinoristaTransactionService {
 
         minorista.creditBalance = newBalanceInFavor
         break
+      }
 
       case MinoristaTransactionType.ADJUSTMENT:
         newAvailableCredit = previousAvailableCredit + data.amount
