@@ -31,18 +31,18 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
 
     const { user, token: accessToken } = result
 
-    // Cookie configuration for cross-domain/cross-subdomain access
-    // - In production: sameSite: 'none' with secure: true (HTTPS required)
-    // - In development: sameSite: 'lax' with secure: false (HTTP allowed)
+    // Cookie configuration for Cloudflare tunnels
+    // - sameSite: 'lax' for Cloudflare (allows cookies through redirect/navigation)
+    // - secure: true in production (HTTPS), false in development (HTTP)
     // - httpOnly: true prevents JavaScript access (security)
     // This works for:
-    //   - Cloudflare tunnels (different domains for frontend/backend)
-    //   - Production nginx routing (api.domain.com vs app.domain.com)
+    //   - Cloudflare tunnels (same domain for frontend/backend)
     //   - LocalHost development (same domain, different ports)
+    console.log('[LOGIN] Setting cookie with secure:', !IS_DEVELOPMENT, 'sameSite: lax')
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: !IS_DEVELOPMENT, // true in production (HTTPS), false in development (HTTP)
-      sameSite: IS_DEVELOPMENT ? 'lax' : 'none', // 'lax' for dev, 'none' for production
+      sameSite: 'lax', // lax for Cloudflare, allows cookies in navigation
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
       path: '/',
     })
@@ -50,6 +50,7 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
     res.json(
       ApiResponse.success({
         message: 'Inicio de sesión exitoso',
+        token: accessToken, // Include token in response for clients that can't use cookies
         user: {
           id: user.id,
           fullName: user.fullName,
@@ -75,7 +76,7 @@ userRouter.post('/logout', requireAuth(), async (_req: Request, res: Response) =
   res.clearCookie('accessToken', {
     httpOnly: true,
     secure: !IS_DEVELOPMENT, // true in production, false in development
-    sameSite: IS_DEVELOPMENT ? 'lax' : 'none',
+    sameSite: 'lax',
     path: '/',
   })
   res.json(ApiResponse.success({ message: 'Sesión cerrada correctamente' }))

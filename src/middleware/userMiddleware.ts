@@ -22,10 +22,13 @@ export const userMiddleware = () => {
       }
     }
 
-    // Si no hay token => usuario no autenticado
+    // Debug logging
     if (!token) {
+      console.log('[AUTH] No token found - cookies:', Object.keys(req.cookies || {}), 'authHeader:', !!authHeader)
       return next()
     }
+
+    console.log('[AUTH] Token found from', accessToken ? 'cookie' : 'authHeader')
 
     try {
       // 2️⃣ Verificar token y decodificar información
