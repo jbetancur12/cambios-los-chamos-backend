@@ -30,10 +30,18 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
 
     const { user, token: accessToken } = result
 
+    // Cookie configuration for cross-domain/cross-subdomain access
+    // - sameSite: 'none' allows cookies to be sent across different domains
+    // - secure: true required when sameSite: 'none' (HTTPS only)
+    // - httpOnly: true prevents JavaScript access (security)
+    // This works for:
+    //   - Cloudflare tunnels (different domains for frontend/backend)
+    //   - Production nginx routing (api.domain.com vs app.domain.com)
+    //   - LocalHost development (same domain, different ports)
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      secure: true, // Always true for sameSite: 'none'
+      sameSite: 'none', // Allow cross-origin cookie transmission
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
       path: '/',
     })
@@ -62,7 +70,13 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
 
 // ------------------ LOGOUT ------------------
 userRouter.post('/logout', requireAuth(), async (_req: Request, res: Response) => {
-  res.clearCookie('accessToken')
+  // Clear cookie with same settings as when it was created
+  res.clearCookie('accessToken', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    path: '/',
+  })
   res.json(ApiResponse.success({ message: 'Sesión cerrada correctamente' }))
 })
 
