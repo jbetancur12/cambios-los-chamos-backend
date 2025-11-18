@@ -3,14 +3,6 @@ import { RequestUser } from '@/middleware/requestUser'
 import { Giro, GiroStatus } from '@/entities/Giro'
 import { wrap } from '@mikro-orm/core'
 
-export interface MinoristaGiroStats {
-  minoristaId: string
-  minoristaName: string
-  assignedTotal: number
-  processingToday: number
-  completedToday: number
-}
-
 export interface DashboardStats {
   girosCount: number
   girosLabel: string
@@ -21,7 +13,8 @@ export interface DashboardStats {
   systemEarnings?: number
   minoristaEarnings?: number
   earnings?: number // Para minoristas (solo su parte)
-  minoristaGiroStats?: MinoristaGiroStats[] // Para transferencistas - giros por minorista
+  processingToday?: number // Para transferencistas - procesando hoy
+  completedToday?: number // Para transferencistas - completados hoy
 }
 
 export interface RecentGiro {
@@ -111,66 +104,25 @@ export class DashboardService {
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 1)
 
-      // Get ALL giros assigned to this transferencista (regardless of date)
-      const allGiros = await DI.giros.find(
-        {
-          transferencista: transferencista.id,
-        },
-        { populate: ['minorista', 'minorista.user'] }
-      )
-
-      // Get only today's giros with PROCESANDO or COMPLETADO status
-      const girosToday = await DI.giros.find(
-        {
-          transferencista: transferencista.id,
-          createdAt: { $gte: today, $lt: tomorrow },
-          status: { $in: [GiroStatus.COMPLETADO, GiroStatus.PROCESANDO] },
-        },
-        { populate: ['minorista', 'minorista.user'] }
-      )
-
-      // Group by minorista - first initialize with all giros to get total count
-      const minoristaMap = new Map<string, MinoristaGiroStats>()
-
-      allGiros.forEach((giro) => {
-        if (giro.minorista) {
-          const minoristaId = giro.minorista.id
-          const minoristaName = giro.minorista.user?.fullName || 'Sin nombre'
-
-          if (!minoristaMap.has(minoristaId)) {
-            minoristaMap.set(minoristaId, {
-              minoristaId,
-              minoristaName,
-              assignedTotal: 0,
-              processingToday: 0,
-              completedToday: 0,
-            })
-          }
-
-          const stats = minoristaMap.get(minoristaId)!
-          stats.assignedTotal++
-        }
+      // Count giros in PROCESANDO status for today
+      const processingToday = await DI.giros.count({
+        transferencista: transferencista.id,
+        status: GiroStatus.PROCESANDO,
+        createdAt: { $gte: today, $lt: tomorrow },
       })
 
-      // Add today's counts
-      girosToday.forEach((giro) => {
-        if (giro.minorista) {
-          const minoristaId = giro.minorista.id
-          const stats = minoristaMap.get(minoristaId)
-          if (stats) {
-            if (giro.status === GiroStatus.COMPLETADO) {
-              stats.completedToday++
-            } else if (giro.status === GiroStatus.PROCESANDO) {
-              stats.processingToday++
-            }
-          }
-        }
+      // Count giros in COMPLETADO status for today
+      const completedToday = await DI.giros.count({
+        transferencista: transferencista.id,
+        status: GiroStatus.COMPLETADO,
+        createdAt: { $gte: today, $lt: tomorrow },
       })
 
       return {
         girosCount: myGiros,
         girosLabel: 'Mis Giros Asignados',
-        minoristaGiroStats: Array.from(minoristaMap.values()),
+        processingToday,
+        completedToday,
       }
     } else if (role === 'MINORISTA') {
       // Minorista stats
