@@ -13,6 +13,7 @@ import { ExecutionType, GiroStatus, Giro } from '@/entities/Giro'
 import { giroSocketManager } from '@/websocket'
 import { minioService } from '@/services/MinIOService'
 import { MinoristaTransaction } from '@/entities/MinoristaTransaction'
+import { thermalTicketService } from '@/services/ThermalTicketService'
 
 export const giroRouter = express.Router({ mergeParams: true })
 
@@ -714,6 +715,58 @@ giroRouter.get('/:giroId/payment-proof/download', requireAuth(), async (req: Req
     )
   } catch (error: any) {
     console.error('Error getting payment proof URL:', error)
+    res.status(500).json(ApiResponse.serverError())
+  }
+})
+
+/**
+ * GET /api/giro/:giroId/thermal-ticket
+ * Obtiene los datos formateados para impresión de tiquete térmico
+ */
+giroRouter.get('/:giroId/thermal-ticket', requireAuth(), async (req: Request, res: Response) => {
+  try {
+    const { giroId } = req.params
+    const userId = req.context?.requestUser?.user?.id
+    const userRole = req.user?.role
+
+    // Obtener el giro
+    const giro = await DI.giros.findOne(
+      { id: giroId },
+      {
+        populate: [
+          'createdBy',
+          'transferencista',
+          'transferencista.user',
+          'minorista',
+          'bankAccountUsed',
+          'bankAccountUsed.bank',
+          'bankAccountUsed.transferencista',
+          'bankAccountUsed.transferencista.user',
+        ],
+      }
+    )
+
+    if (!giro) {
+      return res.status(404).json(ApiResponse.notFound('Giro no encontrado'))
+    }
+
+    // Validar permisos: solo quien lo creó, el transferencista asignado, o admin
+    const isAdmin = userRole === UserRole.SUPER_ADMIN || userRole === UserRole.ADMIN
+    const isTransferencista = giro.transferencista?.user?.id === userId
+
+    console.log("🚀 ~ giro.transferencista?.user?.id:", giro.transferencista?.user?.id)
+    const isCreator = giro.createdBy?.id === userId
+
+    if (!isAdmin && !isTransferencista && !isCreator) {
+      return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver este tiquete'))
+    }
+
+    // Generar datos del tiquete
+    const ticketData = await thermalTicketService.generateTicketData(giro)
+
+    res.json(ApiResponse.success(ticketData))
+  } catch (error: any) {
+    console.error('Error getting thermal ticket data:', error)
     res.status(500).json(ApiResponse.serverError())
   }
 })

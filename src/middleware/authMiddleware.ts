@@ -12,7 +12,6 @@ export const requireAuth = () => {
     if (!req.context || !req.context.requestUser || req.context.requestUser.type === 'unauthenticatedUser') {
       return res.status(401).json(ApiResponse.unauthorized())
     }
-
     return next()
   }
 }
