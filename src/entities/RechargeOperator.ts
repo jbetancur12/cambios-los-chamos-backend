@@ -1,12 +1,5 @@
-import { Entity, PrimaryKey, Property, Enum } from '@mikro-orm/core'
+import { Entity, PrimaryKey, Property } from '@mikro-orm/core'
 import { v4 as uuidv4 } from 'uuid'
-
-export enum OperatorType {
-  MOVISTAR = 'MOVISTAR',
-  DIGITEL = 'DIGITEL',
-  INTER = 'INTER',
-  OTRO = 'OTRO',
-}
 
 @Entity({ tableName: 'recharge_operators' })
 export class RechargeOperator {
@@ -16,8 +9,8 @@ export class RechargeOperator {
   @Property()
   name!: string
 
-  @Enum(() => OperatorType)
-  type!: OperatorType
+  @Property({ type: 'varchar' })
+  type!: string
 
   @Property({ type: 'boolean', default: true })
   isActive: boolean = true

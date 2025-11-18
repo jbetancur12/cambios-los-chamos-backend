@@ -21,6 +21,7 @@ import dashboardRouter from '@/api/dashboard'
 import reportsRouter from '@/api/reports'
 import rechargeOperatorRouter from '@/api/rechargeOperator'
 import rechargeAmountRouter from '@/api/rechargeAmount'
+import operatorAmountRouter from '@/api/operatorAmount'
 import cookieParser from 'cookie-parser'
 import { IS_DEVELOPMENT, ENABLE_SECURITY_SETTINGS, EXPRESS_SERVER_PORT, corsOptions } from '@/settings'
 import { emailVerificationRouter } from '@/api/emailVerification'
@@ -85,6 +86,7 @@ export const startExpressServer = async () => {
   app.use('/api/reports', reportsRouter)
   app.use('/api/recharge-operators', rechargeOperatorRouter)
   app.use('/api/recharge-amounts', rechargeAmountRouter)
+  app.use('/api/operator-amounts', operatorAmountRouter)
   app.use('/api/notifications', notificationRouter)
   app.use('/api/beneficiary-suggestion', beneficiarySuggestionRouter)
 

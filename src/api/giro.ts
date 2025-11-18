@@ -441,6 +441,21 @@ giroRouter.post('/recharge/create', requireRole(UserRole.MINORISTA), async (req:
     )
   }
 
+  // Validar que la relación operador-monto exista
+  const operatorAmountExists = await DI.operatorAmounts.findOne({
+    operator: { id: operatorId },
+    amount: { id: amountBsId },
+    isActive: true,
+  })
+
+  if (!operatorAmountExists) {
+    return res.status(400).json(
+      ApiResponse.badRequest(
+        'El monto seleccionado no está disponible para este operador. Por favor, selecciona otro monto.'
+      )
+    )
+  }
+
   // Obtener tasa de cambio actual
   const currentRateResult = await exchangeRateService.getCurrentRate()
   if ('error' in currentRateResult) {

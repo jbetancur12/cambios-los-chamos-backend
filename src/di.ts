@@ -16,6 +16,7 @@ import { BankAssignment } from './entities/BankAssignment'
 import { TransferencistaAssignmentTracker } from './entities/TransferencistaAssignmentTracker'
 import { RechargeOperator } from './entities/RechargeOperator'
 import { RechargeAmount } from './entities/RechargeAmount'
+import { OperatorAmount } from './entities/OperatorAmount'
 import { UserFcmToken } from './entities/UserFcmToken'
 import { BeneficiarySuggestion } from './entities/BeneficiarySuggestion'
 
@@ -38,6 +39,7 @@ export const DI = {} as {
   transferencistaAssignmentTracker: EntityRepository<TransferencistaAssignmentTracker>
   rechargeOperators: EntityRepository<RechargeOperator>
   rechargeAmounts: EntityRepository<RechargeAmount>
+  operatorAmounts: EntityRepository<OperatorAmount>
   userFcmTokens: EntityRepository<UserFcmToken>
   beneficiarySuggestions: EntityRepository<BeneficiarySuggestion>
 }
@@ -60,6 +62,7 @@ export const initDI = async (): Promise<typeof DI> => {
   DI.transferencistaAssignmentTracker = DI.orm.em.getRepository(TransferencistaAssignmentTracker)
   DI.rechargeOperators = DI.orm.em.getRepository(RechargeOperator)
   DI.rechargeAmounts = DI.orm.em.getRepository(RechargeAmount)
+  DI.operatorAmounts = DI.orm.em.getRepository(OperatorAmount)
   DI.userFcmTokens = DI.orm.em.getRepository(UserFcmToken)
   DI.beneficiarySuggestions = DI.orm.em.getRepository(BeneficiarySuggestion)
 
