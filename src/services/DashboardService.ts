@@ -1,6 +1,6 @@
 import { DI } from '@/di'
 import { RequestUser } from '@/middleware/requestUser'
-import { Giro } from '@/entities/Giro'
+import { Giro, GiroStatus } from '@/entities/Giro'
 import { wrap } from '@mikro-orm/core'
 
 export interface DashboardStats {
@@ -13,6 +13,8 @@ export interface DashboardStats {
   systemEarnings?: number
   minoristaEarnings?: number
   earnings?: number // Para minoristas (solo su parte)
+  completedToday?: number // Para transferencistas
+  processingToday?: number // Para transferencistas
 }
 
 export interface RecentGiro {
@@ -96,9 +98,31 @@ export class DashboardService {
         transferencista: transferencista.id,
       })
 
+      // Get today's date range
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+
+      // Count completed giros from today
+      const completedToday = await DI.giros.count({
+        transferencista: transferencista.id,
+        status: GiroStatus.COMPLETADO,
+        createdAt: { $gte: today, $lt: tomorrow },
+      })
+
+      // Count processing giros from today
+      const processingToday = await DI.giros.count({
+        transferencista: transferencista.id,
+        status: GiroStatus.PROCESANDO,
+        createdAt: { $gte: today, $lt: tomorrow },
+      })
+
       return {
         girosCount: myGiros,
         girosLabel: 'Mis Giros Asignados',
+        completedToday,
+        processingToday,
       }
     } else if (role === 'MINORISTA') {
       // Minorista stats
