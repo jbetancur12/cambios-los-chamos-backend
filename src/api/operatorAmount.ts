@@ -109,7 +109,7 @@ router.post('/', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Re
 
 /**
  * DELETE /api/operator-amounts/:id
- * Soft delete an operator-amount relation - SUPER_ADMIN only
+ * Delete an operator-amount relation completely - SUPER_ADMIN only
  */
 router.delete('/:id', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
   try {
@@ -123,8 +123,8 @@ router.delete('/:id', requireRole(UserRole.SUPER_ADMIN), async (req: Request, re
       })
     }
 
-    await operatorAmountService.deactivateOperatorAmount(id)
-    res.json(ApiResponse.success({ message: 'Operator-amount relation deactivated' }))
+    await operatorAmountService.deleteOperatorAmount(id)
+    res.json(ApiResponse.success({ message: 'Operator-amount relation deleted' }))
   } catch (error) {
     console.error('Error deleting operator-amount relation:', error)
     res.status(500).json(ApiResponse.serverError())

@@ -47,7 +47,15 @@ export class OperatorAmountService {
   }
 
   /**
-   * Desactiva una relación operador-monto
+   * Elimina completamente una relación operador-monto (hard delete)
+   */
+  async deleteOperatorAmount(operatorAmountId: string): Promise<void> {
+    const operatorAmount = await DI.operatorAmounts.findOneOrFail(operatorAmountId)
+    await DI.em.removeAndFlush(operatorAmount)
+  }
+
+  /**
+   * Desactiva una relación operador-monto (soft delete - deprecated)
    */
   async deactivateOperatorAmount(operatorAmountId: string): Promise<void> {
     const operatorAmount = await DI.operatorAmounts.findOneOrFail(operatorAmountId)
