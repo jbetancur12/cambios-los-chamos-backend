@@ -30,6 +30,7 @@ import { posthog } from '@/lib/posthogUtils'
 import * as Sentry from '@sentry/node'
 import { ApiResponse } from '@/lib/apiResponse'
 import { notificationRouter } from './api/notification'
+import { beneficiarySuggestionRouter } from '@/api/beneficiarySuggestion'
 import { Server as SocketIOServer } from 'socket.io'
 import http from 'http'
 import { GiroSocketManager, setGiroSocketManager } from '@/websocket'
@@ -85,6 +86,7 @@ export const startExpressServer = async () => {
   app.use('/api/recharge-operators', rechargeOperatorRouter)
   app.use('/api/recharge-amounts', rechargeAmountRouter)
   app.use('/api/notifications', notificationRouter)
+  app.use('/api/beneficiary-suggestion', beneficiarySuggestionRouter)
 
   // Rutas privadas (requieren autenticación)
   privateRoutesRouter.use('/giro', giroRouter)

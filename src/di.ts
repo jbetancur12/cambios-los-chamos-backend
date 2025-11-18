@@ -17,6 +17,7 @@ import { TransferencistaAssignmentTracker } from './entities/TransferencistaAssi
 import { RechargeOperator } from './entities/RechargeOperator'
 import { RechargeAmount } from './entities/RechargeAmount'
 import { UserFcmToken } from './entities/UserFcmToken'
+import { BeneficiarySuggestion } from './entities/BeneficiarySuggestion'
 
 export const DI = {} as {
   server: http.Server
@@ -38,6 +39,7 @@ export const DI = {} as {
   rechargeOperators: EntityRepository<RechargeOperator>
   rechargeAmounts: EntityRepository<RechargeAmount>
   userFcmTokens: EntityRepository<UserFcmToken>
+  beneficiarySuggestions: EntityRepository<BeneficiarySuggestion>
 }
 
 export const initDI = async (): Promise<typeof DI> => {
@@ -59,6 +61,7 @@ export const initDI = async (): Promise<typeof DI> => {
   DI.rechargeOperators = DI.orm.em.getRepository(RechargeOperator)
   DI.rechargeAmounts = DI.orm.em.getRepository(RechargeAmount)
   DI.userFcmTokens = DI.orm.em.getRepository(UserFcmToken)
+  DI.beneficiarySuggestions = DI.orm.em.getRepository(BeneficiarySuggestion)
 
   return DI
 }

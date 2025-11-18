@@ -32,7 +32,7 @@ export interface ThermalTicketData {
   beneficiaryId: string
   bankName: string
   accountNumber: string
-  phone: string
+  phone?: string
 
   // Montos
   amountInput: string

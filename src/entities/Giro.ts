@@ -51,8 +51,8 @@ export class Giro {
   @Property()
   accountNumber!: string
 
-  @Property()
-  phone!: string
+  @Property({ nullable: true })
+  phone?: string
 
   @Property({ type: 'decimal' })
   amountInput!: number
