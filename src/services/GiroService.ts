@@ -67,8 +67,6 @@ export class GiroService {
   ): Promise<
     Giro | { error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND' }
   > {
-    const giroRepo = DI.em.getRepository(Giro)
-
     // VALIDACIÓN 1: Verificar que el banco destino exista
     const bank = await DI.banks.findOne({ id: data.bankId })
     if (!bank) {
@@ -103,93 +101,98 @@ export class GiroService {
       minorista = foundMinorista
     }
 
-    // TODAS LAS VALIDACIONES PASARON - Ahora proceder con transacciones
-    let transferencista = assigned
-    const status = GiroStatus.ASIGNADO // Por defecto ASIGNADO cuando hay transferencista
-    const entitiesToFlush: (Giro | Minorista)[] = []
+    // TODAS LAS VALIDACIONES PASARON - Ahora proceder con una transacción de base de datos
+    // Si algo falla dentro de esta transacción, todo se revierte (rollback)
+    return await DI.em.transactional(async (em) => {
+      const giroRepo = em.getRepository(Giro)
 
-    // Descontar balance del minorista si aplica
-    if (createdBy.role === UserRole.MINORISTA && minorista) {
-      // Crear transacción de descuento del balance del minorista
-      const transactionResult = await minoristaTransactionService.createTransaction({
-        minoristaId: minorista.id,
-        amount: data.amountInput,
-        type: MinoristaTransactionType.DISCOUNT,
-        createdBy,
-      })
+      // Descontar balance del minorista si aplica
+      if (createdBy.role === UserRole.MINORISTA && minorista) {
+        // Crear transacción de descuento del balance del minorista
+        const transactionResult = await minoristaTransactionService.createTransaction({
+          minoristaId: minorista.id,
+          amount: data.amountInput,
+          type: MinoristaTransactionType.DISCOUNT,
+          createdBy,
+        })
 
-      if ('error' in transactionResult) {
-        return { error: 'INSUFFICIENT_BALANCE' }
-      }
+        if ('error' in transactionResult) {
+          throw new Error('INSUFFICIENT_BALANCE')
+        }
 
-      // Recargar minorista para obtener balance actualizado
-      await DI.em.refresh(minorista)
-    }
-    // Admin/SuperAdmin: NO requiere minorista
-    // El dinero se descontará de la cuenta del transferencista cuando ejecute el giro
-
-    // Calcular ganancias: ((monto / sellRate) * buyRate) - monto
-    const totalProfit = data.amountInput - (data.amountInput / data.rateApplied.sellRate) * data.rateApplied.buyRate
-
-    // const totalProfit = (data.rateApplied.sellRate - data.rateApplied.buyRate) * (data.amountInput )
-    let systemProfit = 0
-    let minoristaProfit = 0
-
-    if (createdBy.role === UserRole.MINORISTA && minorista) {
-      // Minorista: 50% para él, 50% para el sistema
-      minoristaProfit = data.amountInput * 0.05
-      systemProfit = totalProfit - minoristaProfit
-
-      // Crear transacción de ganancia para el minorista
-      const profitTransaction = await minoristaTransactionService.createTransaction({
-        minoristaId: minorista.id,
-        amount: minoristaProfit,
-        type: MinoristaTransactionType.PROFIT,
-        createdBy,
-      })
-
-      if ('error' in profitTransaction) {
-        // Si falla la transacción de ganancia, no debería pasar pero manejamos el error
-        console.error('Error al crear transacción de ganancia:', profitTransaction.error)
-      } else {
         // Recargar minorista para obtener balance actualizado
-        await DI.em.refresh(minorista)
+        await em.refresh(minorista)
       }
-    } else {
-      // Admin/SuperAdmin: 100% para el sistema
-      systemProfit = totalProfit
-      minoristaProfit = 0
-    }
 
-    // Crear giro
-    const giro = giroRepo.create({
-      minorista, // Puede ser undefined para admin/superadmin
-      transferencista,
-      beneficiaryName: data.beneficiaryName,
-      beneficiaryId: data.beneficiaryId,
-      bankName: bank.name, // Nombre del banco destino para registro histórico
-      accountNumber: data.accountNumber,
-      phone: data.phone,
-      rateApplied: data.rateApplied,
-      amountInput: data.amountInput,
-      currencyInput: data.currencyInput,
-      amountBs: data.amountBs,
-      bcvValueApplied: data.rateApplied.bcv,
-      executionType: data.executionType,
-      systemProfit,
-      minoristaProfit,
-      status,
-      createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      // Calcular ganancias: ((monto / sellRate) * buyRate) - monto
+      const totalProfit = data.amountInput - (data.amountInput / data.rateApplied.sellRate) * data.rateApplied.buyRate
+
+      let systemProfit = 0
+      let minoristaProfit = 0
+
+      if (createdBy.role === UserRole.MINORISTA && minorista) {
+        // Minorista: 5% para él, 95% para el sistema
+        minoristaProfit = data.amountInput * 0.05
+        systemProfit = totalProfit - minoristaProfit
+
+        // Crear transacción de ganancia para el minorista
+        const profitTransaction = await minoristaTransactionService.createTransaction({
+          minoristaId: minorista.id,
+          amount: minoristaProfit,
+          type: MinoristaTransactionType.PROFIT,
+          createdBy,
+        })
+
+        if ('error' in profitTransaction) {
+          throw new Error('Error al crear transacción de ganancia')
+        }
+
+        // Recargar minorista para obtener balance actualizado
+        await em.refresh(minorista)
+      } else {
+        // Admin/SuperAdmin: 100% para el sistema
+        systemProfit = totalProfit
+        minoristaProfit = 0
+      }
+
+      // Crear giro
+      const giro = giroRepo.create({
+        minorista, // Puede ser undefined para admin/superadmin
+        transferencista: assigned,
+        beneficiaryName: data.beneficiaryName,
+        beneficiaryId: data.beneficiaryId,
+        bankName: bank.name, // Nombre del banco destino para registro histórico
+        accountNumber: data.accountNumber,
+        phone: data.phone,
+        rateApplied: data.rateApplied,
+        amountInput: data.amountInput,
+        currencyInput: data.currencyInput,
+        amountBs: data.amountBs,
+        bcvValueApplied: data.rateApplied.bcv,
+        executionType: data.executionType,
+        systemProfit,
+        minoristaProfit,
+        status: GiroStatus.ASIGNADO,
+        createdBy,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      // Persistir el giro dentro de la transacción
+      em.persist(giro)
+      await em.flush()
+
+      // Enviar notificación después de que la transacción se complete exitosamente
+      await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs)
+
+      return giro
+    }).catch((error) => {
+      if (error.message === 'INSUFFICIENT_BALANCE') {
+        return { error: 'INSUFFICIENT_BALANCE' as const }
+      }
+      console.error('Error al crear giro:', error)
+      throw error
     })
-
-    await sendGiroAssignedNotification(transferencista.user.id, giro.id, giro.amountBs)
-
-    entitiesToFlush.push(giro)
-    await DI.em.persistAndFlush(entitiesToFlush)
-
-    return giro
   }
 
   /**
