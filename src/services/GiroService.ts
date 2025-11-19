@@ -506,17 +506,18 @@ export class GiroService {
       where.createdAt = {}
 
       if (options.dateFrom) {
-        // Dates are already in local timezone (created by new Date(year, month, day))
-        // Convert to UTC by getting the timezone offset and subtracting it
+        // Dates are in local timezone (created by new Date(year, month, day))
+        // getTimezoneOffset() returns negative values for timezones EAST of UTC (e.g., -300 for UTC-5)
+        // To convert local to UTC: ADD the offset (negate the negative to get positive)
+        // Local 2025-11-18 00:00 UTC-5 = UTC 2025-11-18 05:00
         const offsetMillis = new Date().getTimezoneOffset() * 60 * 1000
-        const utcStart = new Date(options.dateFrom.getTime() - offsetMillis)
+        const utcStart = new Date(options.dateFrom.getTime() + offsetMillis)
         where.createdAt.$gte = utcStart
       }
       if (options.dateTo) {
-        // Dates are already in local timezone (created by new Date(year, month, day))
-        // Convert to UTC by getting the timezone offset and subtracting it
+        // Same logic as dateFrom
         const offsetMillis = new Date().getTimezoneOffset() * 60 * 1000
-        const utcEnd = new Date(options.dateTo.getTime() - offsetMillis)
+        const utcEnd = new Date(options.dateTo.getTime() + offsetMillis)
         where.createdAt.$lte = utcEnd
       }
     }
