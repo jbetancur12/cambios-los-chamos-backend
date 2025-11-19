@@ -506,14 +506,18 @@ export class GiroService {
       where.createdAt = {}
 
       if (options.dateFrom) {
-        // Las fechas están en UTC tanto en BD como en el request
-        // Comparar directamente sin conversión de timezone
-        where.createdAt.$gte = options.dateFrom
+        // Dates are already in local timezone (created by new Date(year, month, day))
+        // Convert to UTC by getting the timezone offset and subtracting it
+        const offsetMillis = new Date().getTimezoneOffset() * 60 * 1000
+        const utcStart = new Date(options.dateFrom.getTime() - offsetMillis)
+        where.createdAt.$gte = utcStart
       }
       if (options.dateTo) {
-        // Las fechas están en UTC tanto en BD como en el request
-        // Comparar directamente sin conversión de timezone
-        where.createdAt.$lte = options.dateTo
+        // Dates are already in local timezone (created by new Date(year, month, day))
+        // Convert to UTC by getting the timezone offset and subtracting it
+        const offsetMillis = new Date().getTimezoneOffset() * 60 * 1000
+        const utcEnd = new Date(options.dateTo.getTime() - offsetMillis)
+        where.createdAt.$lte = utcEnd
       }
     }
 
