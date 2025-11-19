@@ -93,6 +93,7 @@ export class UserSeeder extends Seeder {
           giros: [],
         })
         em.persist(transferencista)
+        await em.flush() // Flush después de crear el transferencista
 
         // Crear cuentas bancarias después de crear el transferencista
         const transferencistaData = bankAccountsData.find((d) => d.transferencista === i)
@@ -109,7 +110,6 @@ export class UserSeeder extends Seeder {
                 balance: 0,
               })
               em.persist(bankAccount)
-              transferencista.bankAccounts.push(bankAccount)
             }
           }
         }
