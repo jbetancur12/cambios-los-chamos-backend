@@ -1,2 +1,3 @@
 node_modules
 dist
+src/lib/firebase-admin-key.json
