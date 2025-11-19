@@ -10,6 +10,7 @@ import { bankAccountTransactionService } from '@/services/BankAccountTransaction
 import { BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 import { sendGiroAssignedNotification } from '@/lib/notification_sender'
 import { exchangeRateService } from '@/services/ExchangeRateService'
+import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionService'
 import { Currency } from '@/entities/Bank'
 
 export class GiroService {
@@ -201,6 +202,15 @@ export class GiroService {
         }
         await em.flush()
       }
+
+      // Guardar sugerencia de beneficiario para el usuario que crea el giro
+      await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
+        beneficiaryName: data.beneficiaryName,
+        beneficiaryId: data.beneficiaryId,
+        phone: data.phone || '',
+        bankId: data.bankId,
+        accountNumber: data.accountNumber,
+      })
 
       // Enviar notificación después de que la transacción se complete exitosamente
       await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs)
