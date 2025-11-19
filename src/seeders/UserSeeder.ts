@@ -116,7 +116,8 @@ export class UserSeeder extends Seeder {
       }
     }
 
-    // Crear Minoristas
+    // Crear Minoristas con cupo de crédito de 500,000
+    const creditLimit = 500000
     for (let i = 1; i <= 2; i++) {
       const email = `minorista${i}@test.com`
       const existingUser = await em.findOne(User, { email })
@@ -136,9 +137,9 @@ export class UserSeeder extends Seeder {
 
         const minorista = em.create(Minorista, {
           user,
-          creditLimit: 0,
-          availableCredit: 0,
-          creditBalance: 0,
+          creditLimit,
+          availableCredit: creditLimit, // Inicialmente todo el crédito está disponible
+          creditBalance: 0, // Sin saldo utilizado
           transactions: [],
           giros: [],
         })
