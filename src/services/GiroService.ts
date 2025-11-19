@@ -464,17 +464,19 @@ export class GiroService {
       where.createdAt = {}
 
       // Obtener el offset de zona horaria del servidor (en minutos)
+      // getTimezoneOffset() retorna negativos para timezones al OESTE de UTC (ej: UTC-5 retorna -300)
+      // Para convertir de UTC a hora local, necesitamos SUMAR el offset
       const now = new Date()
-      const offsetMinutes = now.getTimezoneOffset()
+      const offsetMillis = now.getTimezoneOffset() * 60 * 1000
 
       if (options.dateFrom) {
-        // Ajustar la fecha inicial: restar el offset para convertir de UTC a hora local
-        const adjustedFrom = new Date(options.dateFrom.getTime() - offsetMinutes * 60 * 1000)
+        // Ajustar la fecha inicial: sumar el offset para convertir de UTC a hora local
+        const adjustedFrom = new Date(options.dateFrom.getTime() + offsetMillis)
         where.createdAt.$gte = adjustedFrom
       }
       if (options.dateTo) {
-        // Ajustar la fecha final: restar el offset para convertir de UTC a hora local
-        const adjustedTo = new Date(options.dateTo.getTime() - offsetMinutes * 60 * 1000)
+        // Ajustar la fecha final: sumar el offset para convertir de UTC a hora local
+        const adjustedTo = new Date(options.dateTo.getTime() + offsetMillis)
         where.createdAt.$lte = adjustedTo
       }
     }

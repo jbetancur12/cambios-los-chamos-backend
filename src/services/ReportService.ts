@@ -98,11 +98,13 @@ export class ReportService {
   /**
    * Ajusta las fechas de UTC a la zona horaria local del servidor
    * Esto es necesario porque el cliente envía fechas en UTC pero la BD almacena en hora local
+   * getTimezoneOffset() retorna negativos para timezones al OESTE de UTC (ej: UTC-5 retorna -300)
+   * Para convertir de UTC a hora local, necesitamos SUMAR el offset
    */
   private adjustDatesForTimezone(dateFrom: Date, dateTo: Date): { adjustedFrom: Date; adjustedTo: Date } {
-    const offsetMinutes = new Date().getTimezoneOffset()
-    const adjustedFrom = new Date(dateFrom.getTime() - offsetMinutes * 60 * 1000)
-    const adjustedTo = new Date(dateTo.getTime() - offsetMinutes * 60 * 1000)
+    const offsetMillis = new Date().getTimezoneOffset() * 60 * 1000
+    const adjustedFrom = new Date(dateFrom.getTime() + offsetMillis)
+    const adjustedTo = new Date(dateTo.getTime() + offsetMillis)
     return { adjustedFrom, adjustedTo }
   }
 
