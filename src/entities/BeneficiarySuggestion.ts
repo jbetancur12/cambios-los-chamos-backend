@@ -1,6 +1,7 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Index } from '@mikro-orm/core'
+import { Entity, PrimaryKey, Property, ManyToOne, Index, Enum } from '@mikro-orm/core'
 import { v4 as uuidv4 } from 'uuid'
 import { User } from './User'
+import { ExecutionType } from './Giro'
 
 @Entity()
 @Index({ properties: ['user', 'createdAt'], type: 'BTREE' })
@@ -25,6 +26,9 @@ export class BeneficiarySuggestion {
 
   @Property({ type: 'string' })
   accountNumber!: string
+
+  @Enum(() => ExecutionType)
+  executionType!: ExecutionType
 
   @Property({ type: 'date', onCreate: () => new Date() })
   createdAt: Date = new Date()

@@ -1963,6 +1963,23 @@
           "length": 255,
           "mappedType": "string"
         },
+        "execution_type": {
+          "name": "execution_type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "enumItems": [
+            "TRANSFERENCIA",
+            "PAGO_MOVIL",
+            "EFECTIVO",
+            "ZELLE",
+            "OTROS",
+            "RECARGA"
+          ],
+          "mappedType": "enum"
+        },
         "created_at": {
           "name": "created_at",
           "type": "date",

@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express'
 import { requireAuth } from '@/middleware/authMiddleware'
 import { ApiResponse } from '@/lib/apiResponse'
 import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionService'
+import { ExecutionType } from '@/entities/Giro'
 
 export const beneficiarySuggestionRouter = express.Router({ mergeParams: true })
 
@@ -12,7 +13,7 @@ beneficiarySuggestionRouter.post('/save', requireAuth(), async (req: Request, re
     return res.status(401).json(ApiResponse.unauthorized())
   }
 
-  const { beneficiaryName, beneficiaryId, phone, bankId, accountNumber } = req.body
+  const { beneficiaryName, beneficiaryId, phone, bankId, accountNumber, executionType } = req.body
 
   if (!beneficiaryName || !beneficiaryId || !phone || !bankId || !accountNumber) {
     return res.status(400).json(
@@ -26,6 +27,8 @@ beneficiarySuggestionRouter.post('/save', requireAuth(), async (req: Request, re
     )
   }
 
+  const type = (executionType as ExecutionType) || ExecutionType.TRANSFERENCIA
+
   try {
     const suggestion = await beneficiarySuggestionService.saveBeneficiarySuggestion(user.id, {
       beneficiaryName,
@@ -33,6 +36,7 @@ beneficiarySuggestionRouter.post('/save', requireAuth(), async (req: Request, re
       phone,
       bankId,
       accountNumber,
+      executionType: type,
     })
 
     res.json(ApiResponse.success({ suggestion, message: 'Beneficiario guardado exitosamente' }))
@@ -54,11 +58,13 @@ beneficiarySuggestionRouter.get('/search', requireAuth(), async (req: Request, r
 
   const searchTerm = (req.query.q as string) || ''
   const limit = parseInt(req.query.limit as string) || 20
+  const executionType = (req.query.executionType as ExecutionType) || undefined
 
   try {
     const suggestions = await beneficiarySuggestionService.searchBeneficiarySuggestions(
       user.id,
       searchTerm,
+      executionType,
       limit
     )
 
@@ -77,9 +83,10 @@ beneficiarySuggestionRouter.get('/list', requireAuth(), async (req: Request, res
   }
 
   const limit = parseInt(req.query.limit as string) || 50
+  const executionType = (req.query.executionType as ExecutionType) || undefined
 
   try {
-    const suggestions = await beneficiarySuggestionService.getBeneficiarySuggestions(user.id, limit)
+    const suggestions = await beneficiarySuggestionService.getBeneficiarySuggestions(user.id, executionType, limit)
 
     res.json(ApiResponse.success({ suggestions }))
   } catch (error: any) {

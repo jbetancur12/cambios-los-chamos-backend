@@ -1,6 +1,7 @@
 import { DI } from '@/di'
 import { BeneficiarySuggestion } from '@/entities/BeneficiarySuggestion'
 import { User } from '@/entities/User'
+import { ExecutionType } from '@/entities/Giro'
 
 export class BeneficiarySuggestionService {
   async saveBeneficiarySuggestion(
@@ -11,6 +12,7 @@ export class BeneficiarySuggestionService {
       phone: string
       bankId: string
       accountNumber: string
+      executionType: ExecutionType
     }
   ): Promise<BeneficiarySuggestion> {
     const user = await DI.users.findOne({ id: userId })
@@ -18,12 +20,13 @@ export class BeneficiarySuggestionService {
       throw new Error('User not found')
     }
 
-    // Check if this beneficiary already exists for this user
+    // Check if this beneficiary already exists for this user and execution type
     const existing = await DI.em.getRepository(BeneficiarySuggestion).findOne({
       user: userId,
       beneficiaryName: data.beneficiaryName,
       beneficiaryId: data.beneficiaryId,
       phone: data.phone,
+      executionType: data.executionType,
     })
 
     if (existing) {
@@ -41,15 +44,21 @@ export class BeneficiarySuggestionService {
       phone: data.phone,
       bankId: data.bankId,
       accountNumber: data.accountNumber,
+      executionType: data.executionType,
     })
 
     await DI.em.persistAndFlush(suggestion)
     return suggestion
   }
 
-  async getBeneficiarySuggestions(userId: string, limit: number = 50): Promise<BeneficiarySuggestion[]> {
+  async getBeneficiarySuggestions(userId: string, executionType?: ExecutionType, limit: number = 50): Promise<BeneficiarySuggestion[]> {
+    const where: any = { user: userId }
+    if (executionType) {
+      where.executionType = executionType
+    }
+
     return await DI.em.getRepository(BeneficiarySuggestion).find(
-      { user: userId },
+      where,
       {
         orderBy: { updatedAt: 'DESC' },
         limit,
@@ -60,23 +69,29 @@ export class BeneficiarySuggestionService {
   async searchBeneficiarySuggestions(
     userId: string,
     searchTerm: string,
+    executionType?: ExecutionType,
     limit: number = 20
   ): Promise<BeneficiarySuggestion[]> {
     if (!searchTerm.trim()) {
-      return await this.getBeneficiarySuggestions(userId, limit)
+      return await this.getBeneficiarySuggestions(userId, executionType, limit)
     }
 
     const searchLower = `%${searchTerm.toLowerCase()}%`
+    const where: any = {
+      user: userId,
+      $or: [
+        { beneficiaryName: { $ilike: searchLower } },
+        { beneficiaryId: { $ilike: searchLower } },
+        { phone: { $ilike: searchLower } },
+      ],
+    }
+
+    if (executionType) {
+      where.executionType = executionType
+    }
 
     return await DI.em.getRepository(BeneficiarySuggestion).find(
-      {
-        user: userId,
-        $or: [
-          { beneficiaryName: { $ilike: searchLower } },
-          { beneficiaryId: { $ilike: searchLower } },
-          { phone: { $ilike: searchLower } },
-        ],
-      },
+      where,
       {
         orderBy: { updatedAt: 'DESC' },
         limit,

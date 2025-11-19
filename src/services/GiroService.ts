@@ -220,6 +220,7 @@ export class GiroService {
           phone: data.phone || '',
           bankId: data.bankId,
           accountNumber: data.accountNumber,
+          executionType: data.executionType || ExecutionType.TRANSFERENCIA,
         })
       } catch (error) {
         // No fallar si no se puede guardar la sugerencia
@@ -807,6 +808,21 @@ export class GiroService {
     })
 
     await DI.em.persistAndFlush(giro)
+
+    // Guardar sugerencia de beneficiario después de la transacción exitosa
+    try {
+      await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
+        beneficiaryName: data.phone, // Para pago móvil, usar teléfono como nombre
+        beneficiaryId: data.cedula,
+        phone: data.phone,
+        bankId: data.bankId,
+        accountNumber: data.phone, // Para pago móvil, usar teléfono como account number
+        executionType: ExecutionType.PAGO_MOVIL,
+      })
+    } catch (error) {
+      // No fallar si no se puede guardar la sugerencia
+      console.warn('Error al guardar sugerencia de beneficiario:', error)
+    }
 
     return giro
   }
