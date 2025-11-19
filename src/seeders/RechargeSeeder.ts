@@ -31,11 +31,10 @@ export class RechargeSeeder extends Seeder {
       })
 
       if (!existingOperator) {
-        const operator = em.create(RechargeOperator, {
-          name: operatorData.name,
-          type: operatorData.type,
-          isActive: true,
-        })
+        const operator = new RechargeOperator()
+        operator.name = operatorData.name
+        operator.type = operatorData.type
+        operator.isActive = true
         em.persist(operator)
         operators[operatorData.name] = operator
       } else {
@@ -45,9 +44,10 @@ export class RechargeSeeder extends Seeder {
 
     await em.flush()
 
-    // Step 2: Create Recharge Amounts
+    // Step 2: Create Recharge Amounts (in Bolivares - VES)
+    // Based on current Venezuelan mobile operator rates (2024-2025)
     const amountsData = [
-      5000, 10000, 20000, 50000, 100000, 200000, 500000,
+      45, 90, 160, 300, 380, 500, 600, 800, 1000, 1800, 2000, 2700,
     ]
 
     const amounts: RechargeAmount[] = []
@@ -58,11 +58,10 @@ export class RechargeSeeder extends Seeder {
       })
 
       if (!existingAmount) {
-        const amount = em.create(RechargeAmount, {
-          amountBs,
-          isActive: true,
-          createdBy: superadmin,
-        })
+        const amount = new RechargeAmount()
+        amount.amountBs = amountBs
+        amount.isActive = true
+        amount.createdBy = superadmin
         em.persist(amount)
         amounts.push(amount)
       } else {
@@ -85,11 +84,10 @@ export class RechargeSeeder extends Seeder {
         })
 
         if (!existingRelation) {
-          const relation = em.create(OperatorAmount, {
-            operator,
-            amount,
-            isActive: true,
-          })
+          const relation = new OperatorAmount()
+          relation.operator = operator
+          relation.amount = amount
+          relation.isActive = true
           em.persist(relation)
         }
       }
