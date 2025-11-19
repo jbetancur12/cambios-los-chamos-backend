@@ -20,7 +20,7 @@ export class PrinterConfig {
   @Property()
   name!: string
 
-  @Property()
+  @Property({ type: 'string' })
   type!: PrinterType
 
   @Property({ onCreate: () => new Date() })
