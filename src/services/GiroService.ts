@@ -203,17 +203,28 @@ export class GiroService {
         await em.flush()
       }
 
-      // Guardar sugerencia de beneficiario para el usuario que crea el giro
-      await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
-        beneficiaryName: data.beneficiaryName,
-        beneficiaryId: data.beneficiaryId,
-        phone: data.phone || '',
-        bankId: data.bankId,
-        accountNumber: data.accountNumber,
-      })
-
       // Enviar notificación después de que la transacción se complete exitosamente
       await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs)
+
+      return giro
+    }).then(async (giro) => {
+      // Guardar sugerencia de beneficiario DESPUÉS de la transacción exitosa
+      if ('error' in giro) {
+        return giro
+      }
+
+      try {
+        await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
+          beneficiaryName: data.beneficiaryName,
+          beneficiaryId: data.beneficiaryId,
+          phone: data.phone || '',
+          bankId: data.bankId,
+          accountNumber: data.accountNumber,
+        })
+      } catch (error) {
+        // No fallar si no se puede guardar la sugerencia
+        console.warn('Error al guardar sugerencia de beneficiario:', error)
+      }
 
       return giro
     }).catch((error) => {
