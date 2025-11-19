@@ -953,12 +953,25 @@ export class GiroService {
     // Si hay minorista, revertir sus transacciones
     if (giro.minorista) {
       // Obtener todas las transacciones del minorista relacionadas con este giro
-      const transactions = await DI.minoristaTransactions.find({
-        giro: giroId
-      })
+      const transactions = await DI.minoristaTransactions.find(
+        { giro: giroId },
+        { populate: ['minorista'] }
+      )
 
-      // Eliminar las transacciones asociadas al giro
-      for (const transaction of transactions) {
+      // Recalcular el balance del minorista revirtiendo las transacciones en orden inverso
+      for (const transaction of transactions.reverse()) {
+        const minorista = transaction.minorista as any
+        const previousAvailable = transaction.previousAvailableCredit || 0
+        const previousBalance = transaction.previousBalanceInFavor || 0
+
+        // Revertir el balance al estado anterior
+        minorista.availableCredit = previousAvailable
+        minorista.creditBalance = previousBalance
+
+        // Persistir cambios del minorista
+        await DI.em.persistAndFlush(minorista)
+
+        // Eliminar la transacción
         await DI.em.removeAndFlush(transaction)
       }
     }
