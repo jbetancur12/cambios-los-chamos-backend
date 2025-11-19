@@ -5,7 +5,7 @@ import { CreateGiroInput } from '@/types/giro'
 import { User, UserRole } from '@/entities/User'
 import { Transferencista } from '@/entities/Transferencista'
 import { minoristaTransactionService } from '@/services/MinoristaTransactionService'
-import { MinoristaTransactionType } from '@/entities/MinoristaTransaction'
+import { MinoristaTransaction, MinoristaTransactionType } from '@/entities/MinoristaTransaction'
 import { bankAccountTransactionService } from '@/services/BankAccountTransactionService'
 import { BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 import { sendGiroAssignedNotification } from '@/lib/notification_sender'
@@ -181,6 +181,26 @@ export class GiroService {
       // Persistir el giro dentro de la transacción
       em.persist(giro)
       await em.flush()
+
+      // Actualizar las transacciones del minorista para vincularlas al giro
+      if (createdBy.role === UserRole.MINORISTA && minorista) {
+        const transactionRepo = em.getRepository(MinoristaTransaction)
+        const minoristaTransactions = await transactionRepo.find(
+          {
+            minorista: minorista.id,
+            giro: { $eq: null }, // Transacciones sin giro vinculado
+            type: { $in: [MinoristaTransactionType.DISCOUNT, MinoristaTransactionType.PROFIT] }
+          },
+          { orderBy: { createdAt: 'DESC' as const }, limit: 2 } // Las últimas 2 (descuento y ganancia)
+        )
+
+        // Vincular las transacciones a este giro
+        for (const transaction of minoristaTransactions) {
+          (transaction as MinoristaTransaction).giro = giro
+          em.persist(transaction)
+        }
+        await em.flush()
+      }
 
       // Enviar notificación después de que la transacción se complete exitosamente
       await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs)
@@ -928,6 +948,19 @@ export class GiroService {
       giro.status !== GiroStatus.DEVUELTO
     ) {
       return { error: 'INVALID_STATUS' }
+    }
+
+    // Si hay minorista, revertir sus transacciones
+    if (giro.minorista) {
+      // Obtener todas las transacciones del minorista relacionadas con este giro
+      const transactions = await DI.minoristaTransactions.find({
+        giro: giroId
+      })
+
+      // Eliminar las transacciones asociadas al giro
+      for (const transaction of transactions) {
+        await DI.em.removeAndFlush(transaction)
+      }
     }
 
     // Eliminar el giro
