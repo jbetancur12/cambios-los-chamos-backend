@@ -919,12 +919,13 @@
         },
         "type": {
           "name": "type",
-          "type": "PrinterType",
+          "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "mappedType": "unknown"
+          "length": 255,
+          "mappedType": "string"
         },
         "created_at": {
           "name": "created_at",
@@ -1828,16 +1829,6 @@
       "indexes": [
         {
           "columnNames": [
-            "giro_id"
-          ],
-          "composite": false,
-          "keyName": "minorista_transactions_giro_id_unique",
-          "constraint": true,
-          "primary": false,
-          "unique": true
-        },
-        {
-          "columnNames": [
             "created_at"
           ],
           "composite": false,
@@ -1882,7 +1873,7 @@
             "id"
           ],
           "referencedTableName": "public.giros",
-          "deleteRule": "restrict",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         },
         "minorista_transactions_created_by_id_foreign": {

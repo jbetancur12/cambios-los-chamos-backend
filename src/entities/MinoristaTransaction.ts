@@ -37,7 +37,7 @@ export class MinoristaTransaction {
   @Property({ type: 'decimal', nullable: true })
   currentBalanceInFavor?: number // Saldo a favor después de esta transacción
 
-  @OneToOne(() => Giro, { nullable: true, deleteRule: 'restrict', updateRule: 'cascade' })
+  @ManyToOne(() => Giro, { nullable: true, deleteRule: 'cascade', updateRule: 'cascade' })
   giro?: Giro
 
   @Property({ type: 'decimal', nullable: true })
