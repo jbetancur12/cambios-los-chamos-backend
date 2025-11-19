@@ -152,11 +152,9 @@ export class ReportService {
    * Obtiene la tendencia de ganancias del sistema por fecha
    */
   async getSystemProfitTrendReport(dateFrom: Date, dateTo: Date): Promise<SystemProfitTrendReport> {
-    const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
     const giros = await DI.giros.find({
-      createdAt: { $gte: adjustedFrom, $lte: adjustedTo },
+      createdAt: { $gte: dateFrom, $lte: dateTo },
     })
-
     // Group by date
     const dateMap = new Map<string, number>()
     giros.forEach((g) => {
