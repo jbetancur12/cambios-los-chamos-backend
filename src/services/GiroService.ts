@@ -69,27 +69,21 @@ export class GiroService {
   > {
     const giroRepo = DI.em.getRepository(Giro)
 
-    // Verificar que el banco destino exista
+    // VALIDACIÓN 1: Verificar que el banco destino exista
     const bank = await DI.banks.findOne({ id: data.bankId })
     if (!bank) {
       return { error: 'BANK_NOT_FOUND' }
     }
 
-    let minorista: Minorista | undefined = undefined
-    let transferencista: Transferencista | undefined = undefined
-    const status = GiroStatus.ASIGNADO // Por defecto ASIGNADO cuando hay transferencista
-    const entitiesToFlush: (Giro | Minorista)[] = []
-
-    // Asignar transferencista usando round-robin (distribución equitativa)
+    // VALIDACIÓN 2: Verificar transferencista disponible
     const assigned = await this.findNextAvailableTransferencista()
     if (!assigned) {
       return { error: 'NO_TRANSFERENCISTA_ASSIGNED' }
     }
-    transferencista = assigned
 
-    // Determinar origen del saldo según rol del creador
+    // VALIDACIÓN 3: Si es minorista, verificar que exista y tenga balance suficiente
+    let minorista: Minorista | undefined = undefined
     if (createdBy.role === UserRole.MINORISTA) {
-      // Minorista: requiere minoristaId, verificar y descontar su balance
       if (!data.minoristaId) {
         return { error: 'MINORISTA_NOT_FOUND' }
       }
@@ -101,9 +95,24 @@ export class GiroService {
         return { error: 'MINORISTA_NOT_FOUND' }
       }
 
+      // Verificar balance ANTES de descontar
+      if (foundMinorista.availableCredit < data.amountInput) {
+        return { error: 'INSUFFICIENT_BALANCE' }
+      }
+
+      minorista = foundMinorista
+    }
+
+    // TODAS LAS VALIDACIONES PASARON - Ahora proceder con transacciones
+    let transferencista = assigned
+    const status = GiroStatus.ASIGNADO // Por defecto ASIGNADO cuando hay transferencista
+    const entitiesToFlush: (Giro | Minorista)[] = []
+
+    // Descontar balance del minorista si aplica
+    if (createdBy.role === UserRole.MINORISTA && minorista) {
       // Crear transacción de descuento del balance del minorista
       const transactionResult = await minoristaTransactionService.createTransaction({
-        minoristaId: foundMinorista.id,
+        minoristaId: minorista.id,
         amount: data.amountInput,
         type: MinoristaTransactionType.DISCOUNT,
         createdBy,
@@ -114,8 +123,7 @@ export class GiroService {
       }
 
       // Recargar minorista para obtener balance actualizado
-      await DI.em.refresh(foundMinorista)
-      minorista = foundMinorista
+      await DI.em.refresh(minorista)
     }
     // Admin/SuperAdmin: NO requiere minorista
     // El dinero se descontará de la cuenta del transferencista cuando ejecute el giro
