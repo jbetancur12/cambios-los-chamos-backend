@@ -462,11 +462,20 @@ export class GiroService {
 
     if (options.dateFrom || options.dateTo) {
       where.createdAt = {}
+
+      // Obtener el offset de zona horaria del servidor (en minutos)
+      const now = new Date()
+      const offsetMinutes = now.getTimezoneOffset()
+
       if (options.dateFrom) {
-        where.createdAt.$gte = options.dateFrom
+        // Ajustar la fecha inicial: restar el offset para convertir de UTC a hora local
+        const adjustedFrom = new Date(options.dateFrom.getTime() - offsetMinutes * 60 * 1000)
+        where.createdAt.$gte = adjustedFrom
       }
       if (options.dateTo) {
-        where.createdAt.$lte = options.dateTo
+        // Ajustar la fecha final: restar el offset para convertir de UTC a hora local
+        const adjustedTo = new Date(options.dateTo.getTime() - offsetMinutes * 60 * 1000)
+        where.createdAt.$lte = adjustedTo
       }
     }
 

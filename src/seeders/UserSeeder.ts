@@ -5,7 +5,9 @@ import { Transferencista } from '@/entities/Transferencista'
 import { Minorista } from '@/entities/Minorista'
 import { BankAccount, AccountType } from '@/entities/BankAccount'
 import { Bank } from '@/entities/Bank'
+import { BankAccountTransaction, BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 import { makePassword } from '@/lib/passwordUtils'
+import { SUPERADMIN_EMAIL } from '@/settings'
 
 export class UserSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -37,13 +39,13 @@ export class UserSeeder extends Seeder {
         transferencista: 1,
         banks: [
           {
-            bankName: 'Banco de Venezuela',
+            bankName: 'BANCO DE VENEZUELA',
             accountNumber: '0102-0123-4567-8901-2345',
             accountHolder: 'María Fernanda Rodríguez',
             accountType: AccountType.AHORROS,
           },
           {
-            bankName: 'Banco Mercantil',
+            bankName: 'BANCO MERCANTIL',
             accountNumber: '0105-0034-5678-9012-3456',
             accountHolder: 'Carolina del Valle Gómez',
             accountType: AccountType.AHORROS,
@@ -54,13 +56,13 @@ export class UserSeeder extends Seeder {
         transferencista: 2,
         banks: [
           {
-            bankName: 'Banesco Banco Universal',
+            bankName: 'BANESCO',
             accountNumber: '0134-5678-9012-3456-7890',
             accountHolder: 'José Antonio Pérez',
             accountType: AccountType.CORRIENTE,
           },
           {
-            bankName: 'Banco Provincial',
+            bankName: 'BBVA PROVINCIAL',
             accountNumber: '0108-0098-7654-3210-9876',
             accountHolder: 'Luis Eduardo Salazar',
             accountType: AccountType.CORRIENTE,
@@ -93,7 +95,6 @@ export class UserSeeder extends Seeder {
           giros: [],
         })
         em.persist(transferencista)
-        await em.flush() // Flush después de crear el transferencista
 
         // Crear cuentas bancarias después de crear el transferencista
         const transferencistaData = bankAccountsData.find((d) => d.transferencista === i)
@@ -107,9 +108,25 @@ export class UserSeeder extends Seeder {
                 accountNumber: bankData.accountNumber,
                 accountHolder: bankData.accountHolder,
                 accountType: bankData.accountType,
-                balance: 0,
+                balance: 60000,
               })
               em.persist(bankAccount)
+
+              // Crear transacción de recarga inicial de 60,000 por el superadmin
+              const superadmin = await em.findOne(User, { email: SUPERADMIN_EMAIL })
+              if (superadmin) {
+                const transaction = em.create(BankAccountTransaction, {
+                  bankAccount,
+                  amount: 60000,
+                  fee: 0,
+                  type: BankAccountTransactionType.DEPOSIT,
+                  previousBalance: 0,
+                  currentBalance: 60000,
+                  createdBy: superadmin,
+                  createdAt: new Date(),
+                })
+                em.persist(transaction)
+              }
             }
           }
         }

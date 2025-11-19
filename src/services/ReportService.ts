@@ -96,12 +96,24 @@ export interface MinoristaGiroTrendReport {
 
 export class ReportService {
   /**
+   * Ajusta las fechas de UTC a la zona horaria local del servidor
+   * Esto es necesario porque el cliente envía fechas en UTC pero la BD almacena en hora local
+   */
+  private adjustDatesForTimezone(dateFrom: Date, dateTo: Date): { adjustedFrom: Date; adjustedTo: Date } {
+    const offsetMinutes = new Date().getTimezoneOffset()
+    const adjustedFrom = new Date(dateFrom.getTime() - offsetMinutes * 60 * 1000)
+    const adjustedTo = new Date(dateTo.getTime() - offsetMinutes * 60 * 1000)
+    return { adjustedFrom, adjustedTo }
+  }
+
+  /**
    * Calcula ganancias del sistema dentro de un rango de fechas
    */
   async getSystemProfitReport(dateFrom: Date, dateTo: Date): Promise<SystemProfitReport> {
-    console.log('Generating system profit report from', dateFrom, 'to', dateTo)
+    const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
+    console.log('Generating system profit report from', adjustedFrom, 'to', adjustedTo)
     const giros = await DI.giros.find({
-      createdAt: { $gte: dateFrom, $lte: dateTo },
+      createdAt: { $gte: adjustedFrom, $lte: adjustedTo },
     })
 
     const totalProfit = giros.reduce((sum, g) => sum + (g.systemProfit || 0), 0)
@@ -138,8 +150,9 @@ export class ReportService {
    * Obtiene la tendencia de ganancias del sistema por fecha
    */
   async getSystemProfitTrendReport(dateFrom: Date, dateTo: Date): Promise<SystemProfitTrendReport> {
+    const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
     const giros = await DI.giros.find({
-      createdAt: { $gte: dateFrom, $lte: dateTo },
+      createdAt: { $gte: adjustedFrom, $lte: adjustedTo },
     })
 
     // Group by date
@@ -176,13 +189,14 @@ export class ReportService {
    * Calcula ganancias de minoristas dentro de un rango de fechas
    */
   async getMinoristaProfitReport(dateFrom: Date, dateTo: Date, limit: number = 100): Promise<TopMinoristaReport> {
+    const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
     const minoristas = await DI.minoristas.find({}, { populate: ['user', 'giros'] })
     const minoristasProfits: MinoriastaProfit[] = []
 
     for (const minorista of minoristas) {
       const giros = await DI.giros.find({
         minorista: minorista.id,
-        createdAt: { $gte: dateFrom, $lte: dateTo },
+        createdAt: { $gte: adjustedFrom, $lte: adjustedTo },
       })
 
       const totalProfit = giros.reduce((sum, g) => sum + (g.minoristaProfit || 0), 0)
@@ -210,8 +224,9 @@ export class ReportService {
    * Obtiene transacciones bancarias dentro de un rango de fechas
    */
   async getBankTransactionReport(dateFrom: Date, dateTo: Date): Promise<BankTransactionReport> {
+    const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
     const transactions = await DI.bankAccountTransactions.find({
-      createdAt: { $gte: dateFrom, $lte: dateTo },
+      createdAt: { $gte: adjustedFrom, $lte: adjustedTo },
     })
 
     const deposits = transactions.filter((t: any) => t.type === BankAccountTransactionType.DEPOSIT)
@@ -243,8 +258,9 @@ export class ReportService {
    * Obtiene transacciones de minoristas dentro de un rango de fechas
    */
   async getMinoristaTransactionReport(dateFrom: Date, dateTo: Date): Promise<MinoristaTransactionReport> {
+    const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
     const transactions = await DI.minoristaTransactions.find({
-      createdAt: { $gte: dateFrom, $lte: dateTo },
+      createdAt: { $gte: adjustedFrom, $lte: adjustedTo },
     })
 
     const recharges = transactions.filter((t) => t.type === MinoristaTransactionType.RECHARGE)
@@ -274,9 +290,10 @@ export class ReportService {
    * Obtiene reporte de giros para un minorista específico en un rango de fechas
    */
   async getMinoristaGiroReport(minoristaId: string, dateFrom: Date, dateTo: Date): Promise<MinoristaGiroReport> {
+    const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
     const giros = await DI.giros.find({
       minorista: minoristaId,
-      createdAt: { $gte: dateFrom, $lte: dateTo },
+      createdAt: { $gte: adjustedFrom, $lte: adjustedTo },
     })
 
     const totalMoneyTransferred = giros.reduce((sum, g) => sum + (g.amountBs || 0), 0)
@@ -317,9 +334,10 @@ export class ReportService {
    * Obtiene la tendencia de giros para un minorista específico en un rango de fechas
    */
   async getMinoristaGiroTrendReport(minoristaId: string, dateFrom: Date, dateTo: Date): Promise<MinoristaGiroTrendReport> {
+    const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
     const giros = await DI.giros.find({
       minorista: minoristaId,
-      createdAt: { $gte: dateFrom, $lte: dateTo },
+      createdAt: { $gte: adjustedFrom, $lte: adjustedTo },
     })
 
     // Group by date
