@@ -690,13 +690,13 @@ giroRouter.post(
       giro.paymentProofKey = paymentProofKey
       await em.persistAndFlush(giro)
 
-      // Generate presigned URL for response
-      const presignedUrl = await minioService.getPresignedUrl(bucketName, paymentProofKey)
+      // Return download endpoint URL instead of presigned URL
+      const downloadUrl = `/api/giro/${giro.id}/payment-proof/download`
 
       res.json(
         ApiResponse.success({
           giro,
-          paymentProofUrl: presignedUrl,
+          paymentProofUrl: downloadUrl,
           message: 'Payment proof uploaded successfully',
         })
       )
@@ -736,16 +736,16 @@ giroRouter.get('/:giroId/payment-proof/download', requireAuth(), async (req: Req
       return res.status(404).json(ApiResponse.notFound('Payment proof for this giro'))
     }
 
-    // Generate presigned URL
+    // Serve file directly from MinIO
     const bucketName = process.env.MINIO_BUCKET_NAME || 'ultrathink'
-    const presignedUrl = await minioService.getPresignedUrl(bucketName, giro.paymentProofKey, 3600)
+    const fileBuffer = await minioService.getFileAsBuffer(bucketName, giro.paymentProofKey)
 
-    res.json(
-      ApiResponse.success({
-        paymentProofUrl: presignedUrl,
-        filename: giro.paymentProofKey,
-      })
-    )
+    // Set response headers for file download
+    res.set('Content-Type', 'application/octet-stream')
+    res.set('Content-Disposition', `attachment; filename="${giro.paymentProofKey}"`)
+    res.set('Content-Length', fileBuffer.length.toString())
+
+    res.send(fileBuffer)
   } catch (error: any) {
     console.error('Error getting payment proof URL:', error)
     res.status(500).json(ApiResponse.serverError())
