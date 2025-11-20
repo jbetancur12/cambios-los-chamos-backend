@@ -14,7 +14,8 @@ interface ProcessedImages {
 }
 
 class MinIOService {
-  private minioClient: Client
+  private internalMinioClient: Client
+  private publicMinioClient: Client
   private readonly ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
   private readonly MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
   private readonly THUMBNAIL_SIZE = 200
@@ -26,10 +27,24 @@ class MinIOService {
     const port = parseInt(process.env.MINIO_PORT || '9000', 10)
     const useSSL = process.env.MINIO_USE_SSL === 'true'
 
-    this.minioClient = new Client({
-      endPoint: process.env.MINIO_PUBLIC_HOST || host,
-      port: parseInt(process.env.MINIO_PUBLIC_PORT || String(port), 10),
-      useSSL: process.env.MINIO_PUBLIC_USE_SSL === 'true' || useSSL,
+    // Cliente interno para API (uploads, deletes, etc.)
+    this.internalMinioClient = new Client({
+      endPoint: host,
+      port: port,
+      useSSL: useSSL,
+      accessKey: accessKey,
+      secretKey: secretKey,
+    })
+
+    // Cliente público para generar URLs presignadas
+    const publicHost = process.env.MINIO_PUBLIC_HOST || host
+    const publicPort = parseInt(process.env.MINIO_PUBLIC_PORT || String(port), 10)
+    const publicUseSSL = process.env.MINIO_PUBLIC_USE_SSL === 'true' || useSSL
+
+    this.publicMinioClient = new Client({
+      endPoint: publicHost,
+      port: publicPort,
+      useSSL: publicUseSSL,
       accessKey: accessKey,
       secretKey: secretKey,
     })
@@ -141,9 +156,9 @@ class MinIOService {
 
   async ensureBucket(bucketName: string): Promise<void> {
     try {
-      const exists = await this.minioClient.bucketExists(bucketName)
+      const exists = await this.internalMinioClient.bucketExists(bucketName)
       if (!exists) {
-        await this.minioClient.makeBucket(bucketName, 'us-east-1')
+        await this.internalMinioClient.makeBucket(bucketName, 'us-east-1')
         console.log(`Bucket ${bucketName} created successfully`)
       }
     } catch (error) {
@@ -165,7 +180,7 @@ class MinIOService {
 
       // Subir comprimido con watermark
       const mainKey = `${nameWithoutExt}-main.${ext}`
-      await this.minioClient.putObject(bucketName, mainKey, images.withWatermark, images.withWatermark.length, {
+      await this.internalMinioClient.putObject(bucketName, mainKey, images.withWatermark, images.withWatermark.length, {
         'Content-Type': mimetype,
       })
 
@@ -180,7 +195,7 @@ class MinIOService {
 
   async deleteFile(bucketName: string, filename: string): Promise<void> {
     try {
-      await this.minioClient.removeObject(bucketName, filename)
+      await this.internalMinioClient.removeObject(bucketName, filename)
     } catch (error) {
       console.error(`Error deleting file from MinIO:`, error)
       throw error
@@ -189,7 +204,7 @@ class MinIOService {
 
   async getPresignedUrl(bucketName: string, filename: string, expiresIn: number = 3600): Promise<string> {
     try {
-      const url = await this.minioClient.presignedGetObject(bucketName, filename, expiresIn)
+      const url = await this.publicMinioClient.presignedGetObject(bucketName, filename, expiresIn)
       return url
     } catch (error) {
       console.error(`Error generating presigned URL:`, error)
@@ -200,7 +215,7 @@ class MinIOService {
   async getFileAsBuffer(bucketName: string, filename: string): Promise<Buffer> {
     try {
       const chunks: Buffer[] = []
-      const stream: any = await this.minioClient.getObject(bucketName, filename)
+      const stream: any = await this.internalMinioClient.getObject(bucketName, filename)
 
       return new Promise((resolve, reject) => {
         stream.on('data', (chunk: Buffer) => {
