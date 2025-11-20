@@ -27,9 +27,9 @@ class MinIOService {
     const useSSL = process.env.MINIO_USE_SSL === 'true'
 
     this.minioClient = new Client({
-      endPoint: host,
-      port: port,
-      useSSL: useSSL,
+      endPoint: process.env.MINIO_PUBLIC_HOST || host,
+      port: parseInt(process.env.MINIO_PUBLIC_PORT || String(port), 10),
+      useSSL: process.env.MINIO_PUBLIC_USE_SSL === 'true' || useSSL,
       accessKey: accessKey,
       secretKey: secretKey,
     })
