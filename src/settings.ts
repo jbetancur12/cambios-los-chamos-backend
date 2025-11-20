@@ -151,6 +151,7 @@ const corsOptions: CorsOptions = {
       callback(new Error(`CORS: Origen no permitido → ${origin}`))
     }
   },
+   exposedHeaders: ["Content-Disposition"],
   credentials: CORS_ALLOW_CREDENTIALS,
 }
 

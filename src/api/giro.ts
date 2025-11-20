@@ -723,17 +723,27 @@ giroRouter.get('/:giroId/payment-proof/download', requireAuth(), async (req: Req
       return res.status(404).json(ApiResponse.notFound('Giro', giroId))
     }
 
-    // Verify authorization
-    if (user.role === UserRole.MINORISTA && (!giro.minorista || giro.minorista.user.id !== user.id)) {
-      return res.status(403).json(ApiResponse.forbidden('No tienes permisos para descargar este soporte'))
+    // Authorization: Allow download only for completed giros (any authenticated user)
+    // For incomplete giros, restrict to owners
+    if (giro.status !== 'COMPLETADO') {
+      if (user.role === UserRole.MINORISTA && (!giro.minorista || giro.minorista.user.id !== user.id)) {
+        return res.status(403).json(ApiResponse.forbidden('No tienes permisos para descargar este soporte'))
+      }
+
+      if (user.role === UserRole.TRANSFERENCISTA && (!giro.transferencista || giro.transferencista.user.id !== user.id)) {
+        return res.status(403).json(ApiResponse.forbidden('No tienes permisos para descargar este soporte'))
+      }
     }
 
-    if (user.role === UserRole.TRANSFERENCISTA && (!giro.transferencista || giro.transferencista.user.id !== user.id)) {
-      return res.status(403).json(ApiResponse.forbidden('No tienes permisos para descargar este soporte'))
-    }
-
+    // For completed giros, allow download even if proof doesn't exist yet
+    console.log("🚀 ~ giro.paymentProofKey:", giro)
     if (!giro.paymentProofKey) {
-      return res.status(404).json(ApiResponse.notFound('Payment proof for this giro'))
+      return res.json(
+        ApiResponse.success({
+          paymentProofUrl: null,
+          filename: null,
+        })
+      )
     }
 
     // Serve file directly from MinIO
@@ -743,9 +753,10 @@ giroRouter.get('/:giroId/payment-proof/download', requireAuth(), async (req: Req
     // Set response headers for file download
     res.set('Content-Type', 'application/octet-stream')
     res.set('Content-Disposition', `attachment; filename="${giro.paymentProofKey}"`)
+    console.log("🚀 ~ giro.paymentProofKey:", giro.paymentProofKey)
     res.set('Content-Length', fileBuffer.length.toString())
 
-    res.send(fileBuffer)
+    res.end(fileBuffer)
   } catch (error: any) {
     console.error('Error getting payment proof URL:', error)
     res.status(500).json(ApiResponse.serverError())
