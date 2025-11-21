@@ -59,7 +59,16 @@ exchangeRateRouter.get('/list', requireAuth(), async (req: Request, res: Respons
   res.json(ApiResponse.success(result))
 })
 
-// ------------------ OBTENER TASA POR ID ------------------
+// ------------------ OBTENER HISTORIAL DE TASAS ------------------
+exchangeRateRouter.get('/history', requireAuth(), async (req: Request, res: Response) => {
+  const limit = parseInt(req.query.limit as string) || 20
+
+  const result = await exchangeRateService.listExchangeRates({ page: 1, limit })
+
+  res.json(ApiResponse.success({ rates: result.rates || [] }))
+})
+
+// ------------------ OBTENER TASA POR ID (Must be after /history and /list) ------------------
 exchangeRateRouter.get('/:rateId', requireAuth(), async (req: Request, res: Response) => {
   const { rateId } = req.params
 
