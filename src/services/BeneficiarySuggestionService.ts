@@ -2,7 +2,6 @@ import { DI } from '@/di'
 import { BeneficiarySuggestion } from '@/entities/BeneficiarySuggestion'
 import { User } from '@/entities/User'
 import { ExecutionType } from '@/entities/Giro'
-import { wrap } from '@mikro-orm/core'
 
 export class BeneficiarySuggestionService {
   async saveBeneficiarySuggestion(
@@ -41,18 +40,15 @@ export class BeneficiarySuggestionService {
       return existing
     }
 
-    // Create new beneficiary suggestion using EntityManager's create method
-    // This ensures proper initialization and context management
+    // Create new beneficiary suggestion
     const suggestion = new BeneficiarySuggestion()
-    wrap(suggestion).assign({
-      user,
-      beneficiaryName: data.beneficiaryName,
-      beneficiaryId: data.beneficiaryId,
-      phone: data.phone,
-      bankId: data.bankId,
-      accountNumber: data.accountNumber,
-      executionType: data.executionType,
-    })
+    suggestion.user = user
+    suggestion.beneficiaryName = data.beneficiaryName
+    suggestion.beneficiaryId = data.beneficiaryId
+    suggestion.phone = data.phone
+    suggestion.bankId = data.bankId
+    suggestion.accountNumber = data.accountNumber
+    suggestion.executionType = data.executionType
 
     DI.em.persist(suggestion)
     await DI.em.flush()
