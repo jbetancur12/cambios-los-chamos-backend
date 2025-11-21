@@ -41,15 +41,14 @@ export class BeneficiarySuggestionService {
     }
 
     // Create new beneficiary suggestion
-    const suggestion = DI.em.getRepository(BeneficiarySuggestion).create({
-      user,
-      beneficiaryName: data.beneficiaryName,
-      beneficiaryId: data.beneficiaryId,
-      phone: data.phone,
-      bankId: data.bankId,
-      accountNumber: data.accountNumber,
-      executionType: data.executionType,
-    })
+    const suggestion = new BeneficiarySuggestion()
+    suggestion.user = user
+    suggestion.beneficiaryName = data.beneficiaryName
+    suggestion.beneficiaryId = data.beneficiaryId
+    suggestion.phone = data.phone
+    suggestion.bankId = data.bankId
+    suggestion.accountNumber = data.accountNumber
+    suggestion.executionType = data.executionType
 
     await DI.em.persistAndFlush(suggestion)
     return suggestion
