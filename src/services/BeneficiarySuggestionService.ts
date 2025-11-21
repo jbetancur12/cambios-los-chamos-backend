@@ -40,7 +40,7 @@ export class BeneficiarySuggestionService {
     }
 
     // Create new beneficiary suggestion
-    const suggestion = new BeneficiarySuggestion({
+    const suggestion = DI.em.create(BeneficiarySuggestion, {
       user,
       beneficiaryName: data.beneficiaryName,
       beneficiaryId: data.beneficiaryId,
