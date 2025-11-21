@@ -9,6 +9,7 @@ export enum MinoristaTransactionType {
   DISCOUNT = 'DISCOUNT', // Descuento por giro
   ADJUSTMENT = 'ADJUSTMENT', // Ajuste manual
   PROFIT = 'PROFIT', // Ganancia de giro (50%)
+  REFUND = 'REFUND', // Reembolso por devolución o eliminación de giro
 }
 
 @Entity({ tableName: 'minorista_transactions' })

@@ -186,13 +186,20 @@ export class GiroService {
       // Actualizar las transacciones del minorista para vincularlas al giro
       if (createdBy.role === UserRole.MINORISTA && minorista) {
         const transactionRepo = em.getRepository(MinoristaTransaction)
+        // Find transactions created within 1 second of giro creation (more reliable than limit 2)
+        const giroCreatedTime = giro.createdAt.getTime()
         const minoristaTransactions = await transactionRepo.find(
           {
             minorista: minorista.id,
             giro: { $eq: null }, // Transacciones sin giro vinculado
-            type: { $in: [MinoristaTransactionType.DISCOUNT, MinoristaTransactionType.PROFIT] }
+            type: { $in: [MinoristaTransactionType.DISCOUNT, MinoristaTransactionType.PROFIT] },
+            // Buscar transacciones creadas en el mismo moment que el giro (±1 segundo)
+            createdAt: {
+              $gte: new Date(giroCreatedTime - 1000),
+              $lte: new Date(giroCreatedTime + 1000)
+            }
           },
-          { orderBy: { createdAt: 'DESC' as const }, limit: 2 } // Las últimas 2 (descuento y ganancia)
+          { orderBy: { createdAt: 'ASC' as const } } // Ascending to maintain DISCOUNT -> PROFIT order
         )
 
         // Vincular las transacciones a este giro
@@ -323,51 +330,145 @@ export class GiroService {
     return giro
   }
 
-  async returnGiro(giroId: string, reason: string): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' }> {
-    const giroRepo = DI.em.getRepository(Giro)
+  async returnGiro(giroId: string, reason: string, createdBy: User): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' }> {
+    try {
+      const giroRepo = DI.em.getRepository(Giro)
 
-    const giro = await giroRepo.findOne(
-      { id: giroId },
-      {
-        populate: [
-          'minorista',
-          'minorista.user',
-          'transferencista',
-          'transferencista.user',
-          'rateApplied',
-          'createdBy',
-          'bankAccountUsed',
-          'bankAccountUsed.bank',
-        ],
+      const giro = await giroRepo.findOne(
+        { id: giroId },
+        {
+          populate: [
+            'minorista',
+            'minorista.user',
+            'transferencista',
+            'transferencista.user',
+            'rateApplied',
+            'createdBy',
+            'bankAccountUsed',
+            'bankAccountUsed.bank',
+          ],
+        }
+      )
+
+      if (!giro) {
+        console.warn(`[GIRO] Return failed: GIRO_NOT_FOUND (giroId: ${giroId}, user: ${createdBy.id})`)
+        return { error: 'GIRO_NOT_FOUND' }
       }
-    )
 
-    if (!giro) {
-      return { error: 'GIRO_NOT_FOUND' }
+      // Solo giros ASIGNADOS o PROCESANDO pueden ser devueltos
+      if (giro.status !== GiroStatus.ASIGNADO && giro.status !== GiroStatus.PROCESANDO) {
+        console.warn(
+          `[GIRO] Return failed: INVALID_STATUS (giroId: ${giroId}, status: ${giro.status}, user: ${createdBy.id})`
+        )
+        return { error: 'INVALID_STATUS' }
+      }
+
+      // Procesar dentro de una transacción para asegurar consistencia
+      return await DI.em.transactional(async (em) => {
+        console.info(`[GIRO] Starting return process (giroId: ${giroId}, reason: ${reason})`)
+
+        giro.status = GiroStatus.DEVUELTO
+        giro.returnReason = reason
+        giro.updatedAt = new Date()
+
+        // Si el giro tiene minorista, reembolsar el monto
+        if (giro.minorista) {
+          console.info(`[GIRO] Processing refund for minorista (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`)
+
+          const refundResult = await minoristaTransactionService.createTransaction({
+            minoristaId: giro.minorista.id,
+            amount: giro.amountInput,
+            type: MinoristaTransactionType.REFUND,
+            createdBy: createdBy,
+          })
+
+          if ('error' in refundResult) {
+            console.error(
+              `[GIRO] Refund failed (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, error: ${refundResult.error})`
+            )
+            throw new Error('Error al reembolsar minorista')
+          }
+          console.info(`[GIRO] Refund successful (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`)
+        }
+
+        em.persist(giro)
+        await em.flush()
+
+        console.info(`[GIRO] Return completed successfully (giroId: ${giroId})`)
+        return giro
+      })
+    } catch (error) {
+      console.error(`[GIRO] Unexpected error during return (giroId: ${giroId}):`, error)
+      throw error
     }
+  }
 
-    // Solo giros ASIGNADOS o PROCESANDO pueden ser devueltos
-    if (giro.status !== GiroStatus.ASIGNADO && giro.status !== GiroStatus.PROCESANDO) {
-      return { error: 'INVALID_STATUS' }
+  /**
+   * Elimina un giro creado por un minorista.
+   * Solo minorista puede eliminar sus propios giros.
+   * Solo en estados PENDIENTE, ASIGNADO o DEVUELTO.
+   * Reembolsa el monto al minorista antes de eliminar.
+   */
+  async deleteGiro(giroId: string, user: User): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'FORBIDDEN' | 'INVALID_STATUS' }> {
+    try {
+      const giro = await DI.em.getRepository(Giro).findOne(
+        { id: giroId },
+        { populate: ['minorista'] }
+      )
+
+      if (!giro) {
+        console.warn(`[GIRO] Delete failed: GIRO_NOT_FOUND (giroId: ${giroId}, user: ${user.id})`)
+        return { error: 'GIRO_NOT_FOUND' }
+      }
+
+      // Solo minorista puede eliminar sus giros
+      if (user.role !== UserRole.MINORISTA || giro.minorista?.id !== user.id) {
+        console.warn(`[GIRO] Delete failed: FORBIDDEN (giroId: ${giroId}, user: ${user.id}, giro minoristaId: ${giro.minorista?.id})`)
+        return { error: 'FORBIDDEN' }
+      }
+
+      // Solo ciertos estados permitidos
+      if (![GiroStatus.PENDIENTE, GiroStatus.ASIGNADO, GiroStatus.DEVUELTO].includes(giro.status)) {
+        console.warn(`[GIRO] Delete failed: INVALID_STATUS (giroId: ${giroId}, status: ${giro.status})`)
+        return { error: 'INVALID_STATUS' }
+      }
+
+      // Procesar dentro de una transacción
+      return await DI.em.transactional(async (em) => {
+        console.info(`[GIRO] Starting delete process (giroId: ${giroId}, minoristaId: ${giro.minorista?.id})`)
+
+        // Reembolsar balance si hay minorista
+        if (giro.minorista) {
+          console.info(`[GIRO] Processing refund before deletion (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`)
+
+          const refundResult = await minoristaTransactionService.createTransaction({
+            minoristaId: giro.minorista.id,
+            amount: giro.amountInput,
+            type: MinoristaTransactionType.REFUND,
+            createdBy: user,
+          })
+
+          if ('error' in refundResult) {
+            console.error(
+              `[GIRO] Delete refund failed (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, error: ${refundResult.error})`
+            )
+            throw new Error('Error al reembolsar minorista')
+          }
+          console.info(`[GIRO] Delete refund successful (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`)
+        }
+
+        // Eliminar giro
+        console.info(`[GIRO] Removing giro from database (giroId: ${giroId})`)
+        em.remove(giro)
+        await em.flush()
+
+        console.info(`[GIRO] Delete completed successfully (giroId: ${giroId})`)
+        return giro
+      })
+    } catch (error) {
+      console.error(`[GIRO] Unexpected error during delete (giroId: ${giroId}):`, error)
+      throw error
     }
-
-    giro.status = GiroStatus.DEVUELTO
-    giro.returnReason = reason
-    giro.updatedAt = new Date()
-
-    await DI.em.persistAndFlush(giro)
-
-    // Si el giro tiene minorista, reembolsar el monto
-    // if (giro.minorista) {
-    //   await minoristaTransactionService.createTransaction({
-    //     minoristaId: giro.minorista.id,
-    //     amount: giro.amountInput,
-    //     type: MinoristaTransactionType.REFUND,
-    //     createdBy: giro.createdBy,
-    //   })
-    // }
-
-    return giro
   }
 
   /**
@@ -964,59 +1065,6 @@ export class GiroService {
     return giro
   }
 
-  /**
-   * Elimina un giro (solo minoristas pueden eliminar sus propios giros)
-   * Solo se pueden eliminar giros en estado PENDIENTE o ASIGNADO
-   */
-  async deleteGiro(
-    giroId: string
-  ): Promise<{ success: boolean } | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'UNAUTHORIZED' }> {
-    const giro = await DI.giros.findOne({ id: giroId }, { populate: ['minorista'] })
-
-    if (!giro) {
-      return { error: 'GIRO_NOT_FOUND' }
-    }
-
-    // Solo se pueden eliminar giros en estado PENDIENTE, ASIGNADO o DEVUELTO
-    if (
-      giro.status !== GiroStatus.PENDIENTE &&
-      giro.status !== GiroStatus.ASIGNADO &&
-      giro.status !== GiroStatus.DEVUELTO
-    ) {
-      return { error: 'INVALID_STATUS' }
-    }
-
-    // Si hay minorista, revertir sus transacciones
-    if (giro.minorista) {
-      // Obtener todas las transacciones del minorista relacionadas con este giro
-      const transactions = await DI.minoristaTransactions.find(
-        { giro: giroId },
-        { populate: ['minorista'] }
-      )
-
-      // Recalcular el balance del minorista revirtiendo las transacciones en orden inverso
-      for (const transaction of transactions.reverse()) {
-        const minorista = transaction.minorista as any
-        const previousAvailable = transaction.previousAvailableCredit || 0
-        const previousBalance = transaction.previousBalanceInFavor || 0
-
-        // Revertir el balance al estado anterior
-        minorista.availableCredit = previousAvailable
-        minorista.creditBalance = previousBalance
-
-        // Persistir cambios del minorista
-        await DI.em.persistAndFlush(minorista)
-
-        // Eliminar la transacción
-        await DI.em.removeAndFlush(transaction)
-      }
-    }
-
-    // Eliminar el giro
-    await DI.em.removeAndFlush(giro)
-
-    return { success: true }
-  }
 }
 
 export const giroService = new GiroService()

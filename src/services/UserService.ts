@@ -15,7 +15,7 @@ export class UserService {
    */
   async login(email: string, password: string): Promise<{ user: User; token: string } | null> {
     const userRepo = DI.em.getRepository(User)
-    const user = await userRepo.findOne({ email })
+    const user = await userRepo.findOne({ email }, { populate: ['minorista', 'transferencista'] })
 
     if (!user || !checkPassword(password, user.password)) {
       return null

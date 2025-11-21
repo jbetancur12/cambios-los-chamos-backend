@@ -56,7 +56,14 @@ minoristaRouter.get('/me', requireRole(UserRole.MINORISTA), async (req: Request,
     return res.status(404).json(ApiResponse.notFound('Minorista'))
   }
 
-  res.json(ApiResponse.success({ minorista: result }))
+  // Transform response to match frontend expectations: balance = availableCredit, credit = creditBalance
+  res.json(
+    ApiResponse.success({
+      minorista: result,
+      balance: result.availableCredit,
+      credit: result.creditBalance,
+    })
+  )
 })
 
 // ------------------ LISTAR MINORISTAS ------------------
