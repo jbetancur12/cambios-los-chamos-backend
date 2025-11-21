@@ -50,6 +50,8 @@ export class BeneficiarySuggestionService {
       bankId: data.bankId,
       accountNumber: data.accountNumber,
       executionType: data.executionType,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
 
     await DI.em.persistAndFlush(suggestion)
