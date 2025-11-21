@@ -1647,7 +1647,8 @@
             "RECHARGE",
             "DISCOUNT",
             "ADJUSTMENT",
-            "PROFIT"
+            "PROFIT",
+            "REFUND"
           ],
           "mappedType": "enum"
         },
