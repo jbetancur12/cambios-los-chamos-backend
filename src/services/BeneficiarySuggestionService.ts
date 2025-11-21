@@ -9,7 +9,7 @@ export class BeneficiarySuggestionService {
     data: {
       beneficiaryName: string
       beneficiaryId: string
-      phone: string
+      phone?: string
       bankId: string
       accountNumber: string
       executionType: ExecutionType
@@ -21,13 +21,16 @@ export class BeneficiarySuggestionService {
     }
 
     // Check if this beneficiary already exists for this user and execution type
-    const existing = await DI.em.getRepository(BeneficiarySuggestion).findOne({
+    const whereClause: any = {
       user: userId,
       beneficiaryName: data.beneficiaryName,
       beneficiaryId: data.beneficiaryId,
-      phone: data.phone,
       executionType: data.executionType,
-    })
+    }
+    if (data.phone) {
+      whereClause.phone = data.phone
+    }
+    const existing = await DI.em.getRepository(BeneficiarySuggestion).findOne(whereClause)
 
     if (existing) {
       // Update the existing record (move it to recent)
@@ -77,13 +80,17 @@ export class BeneficiarySuggestionService {
     }
 
     const searchLower = `%${searchTerm.toLowerCase()}%`
+    const orConditions: any[] = [
+      { beneficiaryName: { $ilike: searchLower } },
+      { beneficiaryId: { $ilike: searchLower } },
+    ]
+    // Only search by phone if it's not empty
+    if (searchTerm.trim()) {
+      orConditions.push({ phone: { $ilike: searchLower } })
+    }
     const where: any = {
       user: userId,
-      $or: [
-        { beneficiaryName: { $ilike: searchLower } },
-        { beneficiaryId: { $ilike: searchLower } },
-        { phone: { $ilike: searchLower } },
-      ],
+      $or: orConditions,
     }
 
     if (executionType) {
