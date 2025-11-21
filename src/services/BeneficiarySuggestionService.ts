@@ -40,18 +40,19 @@ export class BeneficiarySuggestionService {
       return existing
     }
 
-    // Create new beneficiary suggestion
-    const suggestion = new BeneficiarySuggestion()
-    suggestion.user = user
-    suggestion.beneficiaryName = data.beneficiaryName
-    suggestion.beneficiaryId = data.beneficiaryId
-    suggestion.phone = data.phone
-    suggestion.bankId = data.bankId
-    suggestion.accountNumber = data.accountNumber
-    suggestion.executionType = data.executionType
+    // Create new beneficiary suggestion using repo.create() for proper ORM registration
+    const repo = DI.em.getRepository(BeneficiarySuggestion)
+    const suggestion = repo.create({
+      user,
+      beneficiaryName: data.beneficiaryName,
+      beneficiaryId: data.beneficiaryId,
+      phone: data.phone,
+      bankId: data.bankId,
+      accountNumber: data.accountNumber,
+      executionType: data.executionType,
+    })
 
-    DI.em.persist(suggestion)
-    await DI.em.flush()
+    await DI.em.persistAndFlush(suggestion)
     return suggestion
   }
 
