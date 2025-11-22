@@ -13,7 +13,7 @@ import { ApiResponse } from '@/lib/apiResponse'
 
 export async function sendVerificationEmail(user: User): Promise<void> {
   const record = await createUserToken(user, TokenType.EMAIL_VERIFICATION, 10)
-  const link = `${process.env.FRONTEND_URL || 'https://tuservidor.com'}/verify-email?token=${record.token}`
+  const link = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${record.token}`
 
   const { data, error } = await sendEmail(
     user.email,
