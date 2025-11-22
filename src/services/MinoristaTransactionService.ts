@@ -65,6 +65,9 @@ export class MinoristaTransactionService {
         break
 
       case MinoristaTransactionType.DISCOUNT: {
+        // Calcular ganancia inmediatamente (5% del monto)
+        const immediateProfit = data.amount * 0.05
+
         // Paso 1: Descontar primero del saldo a favor
         const userBalance = minorista.creditBalance || 0
         let remainingAmount = data.amount
@@ -95,10 +98,13 @@ export class MinoristaTransactionService {
           newAvailableCredit = previousAvailableCredit
         }
 
-        // Validación: Si hay deuda externa, debe poder ser cubierta por la ganancia (5% del monto)
+        // Paso 3: Añadir ganancia al crédito disponible (después de aplicar el descuento)
+        // La ganancia se suma siempre al crédito disponible
+        newAvailableCredit += immediateProfit
+
+        // Validación: Si hay deuda externa, debe poder ser cubierta por la ganancia
         if (externalDebt > 0) {
-          const profitEarned = data.amount * 0.05
-          if (externalDebt > profitEarned) {
+          if (externalDebt > immediateProfit) {
             return { error: 'INSUFFICIENT_BALANCE' }
           }
         }
@@ -154,7 +160,14 @@ export class MinoristaTransactionService {
         break
     }
 
-    const profitEarned = data.type === MinoristaTransactionType.PROFIT ? data.amount : 0
+    // Calcular ganancia: 5% para DISCOUNT, amount completo para PROFIT
+    let profitEarned = 0
+    if (data.type === MinoristaTransactionType.PROFIT) {
+      profitEarned = data.amount
+    } else if (data.type === MinoristaTransactionType.DISCOUNT) {
+      profitEarned = data.amount * 0.05
+    }
+
     const creditConsumed = data.type === MinoristaTransactionType.DISCOUNT ? data.amount : 0
 
     //Obtener la última transacción para mantener o reiniciar el profit acumulado
