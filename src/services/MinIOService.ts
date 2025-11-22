@@ -1,6 +1,7 @@
 import { Client } from 'minio'
 import path from 'path'
 import sharp from 'sharp'
+import fs from 'fs'
 
 interface UploadOptions {
   userId: string
@@ -95,7 +96,7 @@ class MinIOService {
   }
 
   /**
-   * Agregar watermark/firma digital con timestamp y usuario
+   * Agregar watermark/firma digital con timestamp, usuario y logo
    */
   private async addWatermark(buffer: Buffer, mimetype: string, options: UploadOptions): Promise<Buffer> {
     if (mimetype === 'application/pdf') {
@@ -124,14 +125,33 @@ class MinIOService {
 
       const svgBuffer = Buffer.from(svgText)
 
+      // Cargar el logo
+      const logoPath = path.join(__dirname, '../../assets/LogoLosChamos.avif')
+      let compositeArray: Array<{ input: Buffer | string; gravity: any; bottom?: number; right?: number }> = [
+        {
+          input: svgBuffer,
+          gravity: 'northwest' as const,
+        },
+      ]
+
+      // Agregar logo si existe
+      if (fs.existsSync(logoPath)) {
+        const logoBuffer = fs.readFileSync(logoPath)
+        const logoResized = await sharp(logoBuffer)
+          .resize(120, 120, { fit: 'inside', withoutEnlargement: true })
+          .toBuffer()
+
+        compositeArray.push({
+          input: logoResized,
+          gravity: 'southeast' as const,
+          bottom: 20,
+          right: 20,
+        })
+      }
+
       return await sharp(buffer)
         .rotate()
-        .composite([
-          {
-            input: svgBuffer,
-            gravity: 'northwest' as const,
-          },
-        ])
+        .composite(compositeArray)
         .jpeg({ quality: 80, progressive: true })
         .toBuffer()
     } catch (error) {
