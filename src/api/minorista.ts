@@ -51,6 +51,7 @@ minoristaRouter.get('/me', requireRole(UserRole.MINORISTA), async (req: Request,
   }
 
   const result = await minoristaService.getMinoristaByUserId(user.id)
+  console.log('🚀 ~ result:', result)
 
   if ('error' in result) {
     return res.status(404).json(ApiResponse.notFound('Minorista'))
@@ -252,6 +253,8 @@ minoristaRouter.get(
             availableCredit: t.availableCredit,
             currentBalance: t.availableCredit,
             creditConsumed: t.creditConsumed,
+            balanceInFavorUsed: t.balanceInFavorUsed,
+            creditUsed: t.creditUsed,
             profitEarned: t.profitEarned,
             accumulatedDebt: t.accumulatedDebt,
             accumulatedProfit: t.accumulatedProfit,

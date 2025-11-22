@@ -136,21 +136,6 @@ export class GiroService {
           // Minorista: 5% para él, 95% para el sistema
           minoristaProfit = data.amountInput * 0.05
           systemProfit = totalProfit - minoristaProfit
-
-          // Crear transacción de ganancia para el minorista
-          const profitTransaction = await minoristaTransactionService.createTransaction({
-            minoristaId: minorista.id,
-            amount: minoristaProfit,
-            type: MinoristaTransactionType.PROFIT,
-            createdBy,
-          })
-
-          if ('error' in profitTransaction) {
-            throw new Error('Error al crear transacción de ganancia')
-          }
-
-          // Recargar minorista para obtener balance actualizado
-          await em.refresh(minorista)
         } else {
           // Admin/SuperAdmin: 100% para el sistema
           systemProfit = totalProfit
@@ -193,14 +178,14 @@ export class GiroService {
             {
               minorista: minorista.id,
               giro: { $eq: null }, // Transacciones sin giro vinculado
-              type: { $in: [MinoristaTransactionType.DISCOUNT, MinoristaTransactionType.PROFIT] },
+              type: MinoristaTransactionType.DISCOUNT,
               // Buscar transacciones creadas en el mismo moment que el giro (±1 segundo)
               createdAt: {
                 $gte: new Date(giroCreatedTime - 1000),
                 $lte: new Date(giroCreatedTime + 1000),
               },
             },
-            { orderBy: { createdAt: 'ASC' as const } } // Ascending to maintain DISCOUNT -> PROFIT order
+            { orderBy: { createdAt: 'ASC' as const } }
           )
 
           // Vincular las transacciones a este giro
@@ -780,17 +765,6 @@ export class GiroService {
     const minoristaProfit = amountCop * 0.05
     const systemProfit = amountCop * 0.05 // 5% para el sistema
 
-    // Crear transacción de ganancia para el minorista
-    await minoristaTransactionService.createTransaction({
-      minoristaId: minorista.id,
-      amount: minoristaProfit,
-      type: MinoristaTransactionType.PROFIT,
-      createdBy,
-    })
-
-    // Recargar minorista para obtener balance actualizado
-    await DI.em.refresh(minorista)
-
     // Crear giro
     const giro = giroRepo.create({
       minorista,
@@ -885,17 +859,6 @@ export class GiroService {
     // Calcular ganancias: 5% para minorista
     const minoristaProfit = data.amountCop * 0.05
     const systemProfit = data.amountCop * 0.05 // 5% para el sistema
-
-    // Crear transacción de ganancia para el minorista
-    await minoristaTransactionService.createTransaction({
-      minoristaId: minorista.id,
-      amount: minoristaProfit,
-      type: MinoristaTransactionType.PROFIT,
-      createdBy,
-    })
-
-    // Recargar minorista para obtener balance actualizado
-    await DI.em.refresh(minorista)
 
     // Crear giro
     const giro = giroRepo.create({
