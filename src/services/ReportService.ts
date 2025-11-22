@@ -333,7 +333,11 @@ export class ReportService {
   /**
    * Obtiene la tendencia de giros para un minorista específico en un rango de fechas
    */
-  async getMinoristaGiroTrendReport(minoristaId: string, dateFrom: Date, dateTo: Date): Promise<MinoristaGiroTrendReport> {
+  async getMinoristaGiroTrendReport(
+    minoristaId: string,
+    dateFrom: Date,
+    dateTo: Date
+  ): Promise<MinoristaGiroTrendReport> {
     const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
     const giros = await DI.giros.find({
       minorista: minoristaId,

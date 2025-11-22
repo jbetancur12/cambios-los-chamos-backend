@@ -58,19 +58,20 @@ export class BeneficiarySuggestionService {
     return suggestion
   }
 
-  async getBeneficiarySuggestions(userId: string, executionType?: ExecutionType, limit: number = 50): Promise<BeneficiarySuggestion[]> {
+  async getBeneficiarySuggestions(
+    userId: string,
+    executionType?: ExecutionType,
+    limit: number = 50
+  ): Promise<BeneficiarySuggestion[]> {
     const where: any = { user: userId }
     if (executionType) {
       where.executionType = executionType
     }
 
-    return await DI.em.getRepository(BeneficiarySuggestion).find(
-      where,
-      {
-        orderBy: { updatedAt: 'DESC' },
-        limit,
-      }
-    )
+    return await DI.em.getRepository(BeneficiarySuggestion).find(where, {
+      orderBy: { updatedAt: 'DESC' },
+      limit,
+    })
   }
 
   async searchBeneficiarySuggestions(
@@ -101,13 +102,10 @@ export class BeneficiarySuggestionService {
       where.executionType = executionType
     }
 
-    return await DI.em.getRepository(BeneficiarySuggestion).find(
-      where,
-      {
-        orderBy: { updatedAt: 'DESC' },
-        limit,
-      }
-    )
+    return await DI.em.getRepository(BeneficiarySuggestion).find(where, {
+      orderBy: { updatedAt: 'DESC' },
+      limit,
+    })
   }
 
   async deleteBeneficiarySuggestion(userId: string, suggestionId: string): Promise<boolean> {

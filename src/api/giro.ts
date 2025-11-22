@@ -446,38 +446,36 @@ giroRouter.post(
 )
 
 // ------------------ ELIMINAR GIRO (Solo Minorista) ------------------
-giroRouter.delete(
-  '/:giroId',
-  requireRole(UserRole.MINORISTA),
-  async (req: Request, res: Response) => {
-    const { giroId } = req.params
-    const user = req.context?.requestUser?.user
+giroRouter.delete('/:giroId', requireRole(UserRole.MINORISTA), async (req: Request, res: Response) => {
+  const { giroId } = req.params
+  const user = req.context?.requestUser?.user
 
-    if (!user) {
-      return res.status(401).json(ApiResponse.unauthorized())
-    }
-
-    const result = await giroService.deleteGiro(giroId, user)
-
-    if ('error' in result) {
-      switch (result.error) {
-        case 'GIRO_NOT_FOUND':
-          return res.status(404).json(ApiResponse.notFound('Giro', giroId))
-        case 'FORBIDDEN':
-          return res.status(403).json(ApiResponse.forbidden('No puedes eliminar este giro'))
-        case 'INVALID_STATUS':
-          return res.status(400).json(ApiResponse.badRequest('Solo puedes eliminar giros en estado PENDIENTE, ASIGNADO o DEVUELTO'))
-      }
-    }
-
-    // Emitir evento de WebSocket
-    if (giroSocketManager) {
-      giroSocketManager.broadcastGiroDeleted(giroId)
-    }
-
-    res.json(ApiResponse.success({ message: 'Giro eliminado exitosamente' }))
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
   }
-)
+
+  const result = await giroService.deleteGiro(giroId, user)
+
+  if ('error' in result) {
+    switch (result.error) {
+      case 'GIRO_NOT_FOUND':
+        return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+      case 'FORBIDDEN':
+        return res.status(403).json(ApiResponse.forbidden('No puedes eliminar este giro'))
+      case 'INVALID_STATUS':
+        return res
+          .status(400)
+          .json(ApiResponse.badRequest('Solo puedes eliminar giros en estado PENDIENTE, ASIGNADO o DEVUELTO'))
+    }
+  }
+
+  // Emitir evento de WebSocket
+  if (giroSocketManager) {
+    giroSocketManager.broadcastGiroDeleted(giroId)
+  }
+
+  res.json(ApiResponse.success({ message: 'Giro eliminado exitosamente' }))
+})
 
 // ------------------ CREAR RECARGA ------------------
 giroRouter.post('/recharge/create', requireRole(UserRole.MINORISTA), async (req: Request, res: Response) => {
@@ -507,11 +505,13 @@ giroRouter.post('/recharge/create', requireRole(UserRole.MINORISTA), async (req:
   })
 
   if (!operatorAmountExists) {
-    return res.status(400).json(
-      ApiResponse.badRequest(
-        'El monto seleccionado no está disponible para este operador. Por favor, selecciona otro monto.'
+    return res
+      .status(400)
+      .json(
+        ApiResponse.badRequest(
+          'El monto seleccionado no está disponible para este operador. Por favor, selecciona otro monto.'
+        )
       )
-    )
   }
 
   // Obtener tasa de cambio actual
@@ -758,13 +758,16 @@ giroRouter.get('/:giroId/payment-proof/download', requireAuth(), async (req: Req
         return res.status(403).json(ApiResponse.forbidden('No tienes permisos para descargar este soporte'))
       }
 
-      if (user.role === UserRole.TRANSFERENCISTA && (!giro.transferencista || giro.transferencista.user.id !== user.id)) {
+      if (
+        user.role === UserRole.TRANSFERENCISTA &&
+        (!giro.transferencista || giro.transferencista.user.id !== user.id)
+      ) {
         return res.status(403).json(ApiResponse.forbidden('No tienes permisos para descargar este soporte'))
       }
     }
 
     // For completed giros, allow download even if proof doesn't exist yet
-    console.log("🚀 ~ giro.paymentProofKey:", giro)
+    console.log('🚀 ~ giro.paymentProofKey:', giro)
     if (!giro.paymentProofKey) {
       return res.json(
         ApiResponse.success({
@@ -781,7 +784,7 @@ giroRouter.get('/:giroId/payment-proof/download', requireAuth(), async (req: Req
     // Set response headers for file download
     res.set('Content-Type', 'application/octet-stream')
     res.set('Content-Disposition', `attachment; filename="${giro.paymentProofKey}"`)
-    console.log("🚀 ~ giro.paymentProofKey:", giro.paymentProofKey)
+    console.log('🚀 ~ giro.paymentProofKey:', giro.paymentProofKey)
     res.set('Content-Length', fileBuffer.length.toString())
 
     res.end(fileBuffer)
@@ -826,7 +829,7 @@ giroRouter.get('/:giroId/thermal-ticket', requireAuth(), async (req: Request, re
     const isAdmin = userRole === UserRole.SUPER_ADMIN || userRole === UserRole.ADMIN
     const isTransferencista = giro.transferencista?.user?.id === userId
 
-    console.log("🚀 ~ giro.transferencista?.user?.id:", giro.transferencista?.user?.id)
+    console.log('🚀 ~ giro.transferencista?.user?.id:', giro.transferencista?.user?.id)
     const isCreator = giro.createdBy?.id === userId
 
     if (!isAdmin && !isTransferencista && !isCreator) {

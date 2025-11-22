@@ -31,10 +31,14 @@ export class RechargeSeeder extends Seeder {
       })
 
       if (!existingOperator) {
-        const operator = new RechargeOperator()
-        operator.name = operatorData.name
-        operator.type = operatorData.type
-        operator.isActive = true
+        const operator = em.create(RechargeOperator, {
+          // <-- ¡Usa em.create() aquí!
+          name: operatorData.name,
+          type: operatorData.type,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
         em.persist(operator)
         operators[operatorData.name] = operator
       } else {
@@ -46,9 +50,7 @@ export class RechargeSeeder extends Seeder {
 
     // Step 2: Create Recharge Amounts (in Bolivares - VES)
     // Based on current Venezuelan mobile operator rates (2024-2025)
-    const amountsData = [
-      45, 90, 160, 300, 380, 500, 600, 800, 1000, 1800, 2000, 2700,
-    ]
+    const amountsData = [45, 90, 160, 300, 380, 500, 600, 800, 1000, 1800, 2000, 2700]
 
     const amounts: RechargeAmount[] = []
 
@@ -58,10 +60,15 @@ export class RechargeSeeder extends Seeder {
       })
 
       if (!existingAmount) {
-        const amount = new RechargeAmount()
-        amount.amountBs = amountBs
-        amount.isActive = true
-        amount.createdBy = superadmin
+        const amount = em.create(RechargeAmount, {
+          // <-- ¡Usa em.create() aquí!
+          amountBs,
+          isActive: true,
+          createdBy: superadmin,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+
         em.persist(amount)
         amounts.push(amount)
       } else {
@@ -84,10 +91,14 @@ export class RechargeSeeder extends Seeder {
         })
 
         if (!existingRelation) {
-          const relation = new OperatorAmount()
-          relation.operator = operator
-          relation.amount = amount
-          relation.isActive = true
+          const relation = em.create(OperatorAmount, {
+            operator,
+            amount,
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+
           em.persist(relation)
         }
       }
@@ -98,8 +109,6 @@ export class RechargeSeeder extends Seeder {
     console.log('✅ Recharge operators and amounts seeded successfully')
     console.log(`   - Created ${Object.keys(operators).length} operators`)
     console.log(`   - Created ${amounts.length} recharge amounts`)
-    console.log(
-      `   - Created ${Object.keys(operators).length * amounts.length} operator-amount relationships`
-    )
+    console.log(`   - Created ${Object.keys(operators).length * amounts.length} operator-amount relationships`)
   }
 }

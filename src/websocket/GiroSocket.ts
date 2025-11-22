@@ -255,9 +255,7 @@ export class GiroSocketManager {
    * Enviar mensaje a un minorista específico
    */
   private broadcastToMinorista(minoristaId: string, event: string, payload: any) {
-    const minoristaUsers = Array.from(this.connectedUsers.values()).filter(
-      (user) => user.minoristaId === minoristaId
-    )
+    const minoristaUsers = Array.from(this.connectedUsers.values()).filter((user) => user.minoristaId === minoristaId)
 
     for (const minoristaUser of minoristaUsers) {
       this.io.to(minoristaUser.socketId).emit(event, payload)

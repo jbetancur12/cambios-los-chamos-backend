@@ -149,11 +149,7 @@ class MinIOService {
         })
       }
 
-      return await sharp(buffer)
-        .rotate()
-        .composite(compositeArray)
-        .jpeg({ quality: 80, progressive: true })
-        .toBuffer()
+      return await sharp(buffer).rotate().composite(compositeArray).jpeg({ quality: 80, progressive: true }).toBuffer()
     } catch (error) {
       console.error('Error adding watermark:', error)
       return buffer

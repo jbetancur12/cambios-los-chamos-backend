@@ -104,144 +104,147 @@ export class GiroService {
 
     // TODAS LAS VALIDACIONES PASARON - Ahora proceder con una transacción de base de datos
     // Si algo falla dentro de esta transacción, todo se revierte (rollback)
-    return await DI.em.transactional(async (em) => {
-      const giroRepo = em.getRepository(Giro)
+    return await DI.em
+      .transactional(async (em) => {
+        const giroRepo = em.getRepository(Giro)
 
-      // Descontar balance del minorista si aplica
-      if (createdBy.role === UserRole.MINORISTA && minorista) {
-        // Crear transacción de descuento del balance del minorista
-        const transactionResult = await minoristaTransactionService.createTransaction({
-          minoristaId: minorista.id,
-          amount: data.amountInput,
-          type: MinoristaTransactionType.DISCOUNT,
-          createdBy,
-        })
+        // Descontar balance del minorista si aplica
+        if (createdBy.role === UserRole.MINORISTA && minorista) {
+          // Crear transacción de descuento del balance del minorista
+          const transactionResult = await minoristaTransactionService.createTransaction({
+            minoristaId: minorista.id,
+            amount: data.amountInput,
+            type: MinoristaTransactionType.DISCOUNT,
+            createdBy,
+          })
 
-        if ('error' in transactionResult) {
-          throw new Error('INSUFFICIENT_BALANCE')
+          if ('error' in transactionResult) {
+            throw new Error('INSUFFICIENT_BALANCE')
+          }
+
+          // Recargar minorista para obtener balance actualizado
+          await em.refresh(minorista)
         }
 
-        // Recargar minorista para obtener balance actualizado
-        await em.refresh(minorista)
-      }
+        // Calcular ganancias: ((monto / sellRate) * buyRate) - monto
+        const totalProfit = data.amountInput - (data.amountInput / data.rateApplied.sellRate) * data.rateApplied.buyRate
 
-      // Calcular ganancias: ((monto / sellRate) * buyRate) - monto
-      const totalProfit = data.amountInput - (data.amountInput / data.rateApplied.sellRate) * data.rateApplied.buyRate
+        let systemProfit = 0
+        let minoristaProfit = 0
 
-      let systemProfit = 0
-      let minoristaProfit = 0
+        if (createdBy.role === UserRole.MINORISTA && minorista) {
+          // Minorista: 5% para él, 95% para el sistema
+          minoristaProfit = data.amountInput * 0.05
+          systemProfit = totalProfit - minoristaProfit
 
-      if (createdBy.role === UserRole.MINORISTA && minorista) {
-        // Minorista: 5% para él, 95% para el sistema
-        minoristaProfit = data.amountInput * 0.05
-        systemProfit = totalProfit - minoristaProfit
+          // Crear transacción de ganancia para el minorista
+          const profitTransaction = await minoristaTransactionService.createTransaction({
+            minoristaId: minorista.id,
+            amount: minoristaProfit,
+            type: MinoristaTransactionType.PROFIT,
+            createdBy,
+          })
 
-        // Crear transacción de ganancia para el minorista
-        const profitTransaction = await minoristaTransactionService.createTransaction({
-          minoristaId: minorista.id,
-          amount: minoristaProfit,
-          type: MinoristaTransactionType.PROFIT,
-          createdBy,
-        })
+          if ('error' in profitTransaction) {
+            throw new Error('Error al crear transacción de ganancia')
+          }
 
-        if ('error' in profitTransaction) {
-          throw new Error('Error al crear transacción de ganancia')
+          // Recargar minorista para obtener balance actualizado
+          await em.refresh(minorista)
+        } else {
+          // Admin/SuperAdmin: 100% para el sistema
+          systemProfit = totalProfit
+          minoristaProfit = 0
         }
 
-        // Recargar minorista para obtener balance actualizado
-        await em.refresh(minorista)
-      } else {
-        // Admin/SuperAdmin: 100% para el sistema
-        systemProfit = totalProfit
-        minoristaProfit = 0
-      }
-
-      // Crear giro
-      const giro = giroRepo.create({
-        minorista, // Puede ser undefined para admin/superadmin
-        transferencista: assigned,
-        beneficiaryName: data.beneficiaryName,
-        beneficiaryId: data.beneficiaryId,
-        bankName: bank.name, // Nombre del banco destino para registro histórico
-        accountNumber: data.accountNumber,
-        phone: data.phone,
-        rateApplied: data.rateApplied,
-        amountInput: data.amountInput,
-        currencyInput: data.currencyInput,
-        amountBs: data.amountBs,
-        bcvValueApplied: data.rateApplied.bcv,
-        executionType: data.executionType,
-        systemProfit,
-        minoristaProfit,
-        status: GiroStatus.ASIGNADO,
-        createdBy,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-
-      // Persistir el giro dentro de la transacción
-      em.persist(giro)
-      await em.flush()
-
-      // Actualizar las transacciones del minorista para vincularlas al giro
-      if (createdBy.role === UserRole.MINORISTA && minorista) {
-        const transactionRepo = em.getRepository(MinoristaTransaction)
-        // Find transactions created within 1 second of giro creation (more reliable than limit 2)
-        const giroCreatedTime = giro.createdAt.getTime()
-        const minoristaTransactions = await transactionRepo.find(
-          {
-            minorista: minorista.id,
-            giro: { $eq: null }, // Transacciones sin giro vinculado
-            type: { $in: [MinoristaTransactionType.DISCOUNT, MinoristaTransactionType.PROFIT] },
-            // Buscar transacciones creadas en el mismo moment que el giro (±1 segundo)
-            createdAt: {
-              $gte: new Date(giroCreatedTime - 1000),
-              $lte: new Date(giroCreatedTime + 1000)
-            }
-          },
-          { orderBy: { createdAt: 'ASC' as const } } // Ascending to maintain DISCOUNT -> PROFIT order
-        )
-
-        // Vincular las transacciones a este giro
-        for (const transaction of minoristaTransactions) {
-          (transaction as MinoristaTransaction).giro = giro
-          em.persist(transaction)
-        }
-        await em.flush()
-      }
-
-      // Enviar notificación después de que la transacción se complete exitosamente
-      await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs)
-
-      return giro
-    }).then(async (giro) => {
-      // Guardar sugerencia de beneficiario DESPUÉS de la transacción exitosa
-      if ('error' in giro) {
-        return giro
-      }
-
-      try {
-        await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
+        // Crear giro
+        const giro = giroRepo.create({
+          minorista, // Puede ser undefined para admin/superadmin
+          transferencista: assigned,
           beneficiaryName: data.beneficiaryName,
           beneficiaryId: data.beneficiaryId,
-          phone: data.phone || '',
-          bankId: data.bankId,
+          bankName: bank.name, // Nombre del banco destino para registro histórico
           accountNumber: data.accountNumber,
-          executionType: data.executionType || ExecutionType.TRANSFERENCIA,
+          phone: data.phone,
+          rateApplied: data.rateApplied,
+          amountInput: data.amountInput,
+          currencyInput: data.currencyInput,
+          amountBs: data.amountBs,
+          bcvValueApplied: data.rateApplied.bcv,
+          executionType: data.executionType,
+          systemProfit,
+          minoristaProfit,
+          status: GiroStatus.ASIGNADO,
+          createdBy,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         })
-      } catch (error) {
-        // No fallar si no se puede guardar la sugerencia
-        console.warn('Error al guardar sugerencia de beneficiario:', error)
-      }
 
-      return giro
-    }).catch((error) => {
-      if (error.message === 'INSUFFICIENT_BALANCE') {
-        return { error: 'INSUFFICIENT_BALANCE' as const }
-      }
-      console.error('Error al crear giro:', error)
-      throw error
-    })
+        // Persistir el giro dentro de la transacción
+        em.persist(giro)
+        await em.flush()
+
+        // Actualizar las transacciones del minorista para vincularlas al giro
+        if (createdBy.role === UserRole.MINORISTA && minorista) {
+          const transactionRepo = em.getRepository(MinoristaTransaction)
+          // Find transactions created within 1 second of giro creation (more reliable than limit 2)
+          const giroCreatedTime = giro.createdAt.getTime()
+          const minoristaTransactions = await transactionRepo.find(
+            {
+              minorista: minorista.id,
+              giro: { $eq: null }, // Transacciones sin giro vinculado
+              type: { $in: [MinoristaTransactionType.DISCOUNT, MinoristaTransactionType.PROFIT] },
+              // Buscar transacciones creadas en el mismo moment que el giro (±1 segundo)
+              createdAt: {
+                $gte: new Date(giroCreatedTime - 1000),
+                $lte: new Date(giroCreatedTime + 1000),
+              },
+            },
+            { orderBy: { createdAt: 'ASC' as const } } // Ascending to maintain DISCOUNT -> PROFIT order
+          )
+
+          // Vincular las transacciones a este giro
+          for (const transaction of minoristaTransactions) {
+            ;(transaction as MinoristaTransaction).giro = giro
+            em.persist(transaction)
+          }
+          await em.flush()
+        }
+
+        // Enviar notificación después de que la transacción se complete exitosamente
+        await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs)
+
+        return giro
+      })
+      .then(async (giro) => {
+        // Guardar sugerencia de beneficiario DESPUÉS de la transacción exitosa
+        if ('error' in giro) {
+          return giro
+        }
+
+        try {
+          await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
+            beneficiaryName: data.beneficiaryName,
+            beneficiaryId: data.beneficiaryId,
+            phone: data.phone || '',
+            bankId: data.bankId,
+            accountNumber: data.accountNumber,
+            executionType: data.executionType || ExecutionType.TRANSFERENCIA,
+          })
+        } catch (error) {
+          // No fallar si no se puede guardar la sugerencia
+          console.warn('Error al guardar sugerencia de beneficiario:', error)
+        }
+
+        return giro
+      })
+      .catch((error) => {
+        if (error.message === 'INSUFFICIENT_BALANCE') {
+          return { error: 'INSUFFICIENT_BALANCE' as const }
+        }
+        console.error('Error al crear giro:', error)
+        throw error
+      })
   }
 
   /**
@@ -330,7 +333,11 @@ export class GiroService {
     return giro
   }
 
-  async returnGiro(giroId: string, reason: string, createdBy: User): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' }> {
+  async returnGiro(
+    giroId: string,
+    reason: string,
+    createdBy: User
+  ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' }> {
     try {
       const giroRepo = DI.em.getRepository(Giro)
 
@@ -373,7 +380,9 @@ export class GiroService {
 
         // Si el giro tiene minorista, reembolsar el monto
         if (giro.minorista) {
-          console.info(`[GIRO] Processing refund for minorista (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`)
+          console.info(
+            `[GIRO] Processing refund for minorista (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`
+          )
 
           const refundResult = await minoristaTransactionService.createTransaction({
             minoristaId: giro.minorista.id,
@@ -409,12 +418,12 @@ export class GiroService {
    * Solo en estados PENDIENTE, ASIGNADO o DEVUELTO.
    * Reembolsa el monto al minorista antes de eliminar.
    */
-  async deleteGiro(giroId: string, user: User): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'FORBIDDEN' | 'INVALID_STATUS' }> {
+  async deleteGiro(
+    giroId: string,
+    user: User
+  ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'FORBIDDEN' | 'INVALID_STATUS' }> {
     try {
-      const giro = await DI.em.getRepository(Giro).findOne(
-        { id: giroId },
-        { populate: ['minorista'] }
-      )
+      const giro = await DI.em.getRepository(Giro).findOne({ id: giroId }, { populate: ['minorista'] })
 
       if (!giro) {
         console.warn(`[GIRO] Delete failed: GIRO_NOT_FOUND (giroId: ${giroId}, user: ${user.id})`)
@@ -423,7 +432,9 @@ export class GiroService {
 
       // Solo minorista puede eliminar sus giros
       if (user.role !== UserRole.MINORISTA || giro.minorista?.id !== user.id) {
-        console.warn(`[GIRO] Delete failed: FORBIDDEN (giroId: ${giroId}, user: ${user.id}, giro minoristaId: ${giro.minorista?.id})`)
+        console.warn(
+          `[GIRO] Delete failed: FORBIDDEN (giroId: ${giroId}, user: ${user.id}, giro minoristaId: ${giro.minorista?.id})`
+        )
         return { error: 'FORBIDDEN' }
       }
 
@@ -439,7 +450,9 @@ export class GiroService {
 
         // Reembolsar balance si hay minorista
         if (giro.minorista) {
-          console.info(`[GIRO] Processing refund before deletion (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`)
+          console.info(
+            `[GIRO] Processing refund before deletion (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`
+          )
 
           const refundResult = await minoristaTransactionService.createTransaction({
             minoristaId: giro.minorista.id,
@@ -1064,7 +1077,6 @@ export class GiroService {
 
     return giro
   }
-
 }
 
 export const giroService = new GiroService()
