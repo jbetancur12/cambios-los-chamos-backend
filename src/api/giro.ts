@@ -155,24 +155,24 @@ giroRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
   const page = parseInt(req.query.page as string) || 1
   const limit = parseInt(req.query.limit as string) || 50
 
-  // Parse dates as local timezone (YYYY-MM-DD format from frontend)
-  // When we do new Date('2025-11-18'), JS interprets it as UTC, but we want local
-  // So we parse it manually to get local interpretation
+  // Parse dates from ISO strings
   let dateFrom: Date | undefined = undefined
   let dateTo: Date | undefined = undefined
 
   if (req.query.dateFrom) {
     const fromStr = req.query.dateFrom as string
-    const [year, month, day] = fromStr.split('-').map(Number)
-    // Create a date in local timezone by setting year, month, day
-    dateFrom = new Date(year, month - 1, day, 0, 0, 0, 0)
+    dateFrom = new Date(fromStr)
+    if (isNaN(dateFrom.getTime())) {
+      return res.status(400).json(ApiResponse.badRequest('Invalid dateFrom format'))
+    }
   }
 
   if (req.query.dateTo) {
     const toStr = req.query.dateTo as string
-    const [year, month, day] = toStr.split('-').map(Number)
-    // Create a date in local timezone by setting year, month, day
-    dateTo = new Date(year, month - 1, day, 23, 59, 59, 999)
+    dateTo = new Date(toStr)
+    if (isNaN(dateTo.getTime())) {
+      return res.status(400).json(ApiResponse.badRequest('Invalid dateTo format'))
+    }
   }
 
   const result = await giroService.listGiros({

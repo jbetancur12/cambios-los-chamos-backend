@@ -284,8 +284,28 @@ bankAccountRouter.get('/:bankAccountId/transactions', requireAuth(), async (req:
 
   const page = parseInt(req.query.page as string) || 1
   const limit = parseInt(req.query.limit as string) || 50
-  const startDate = req.query.startDate as string | undefined
-  const endDate = req.query.endDate as string | undefined
+
+  // Parse dates from ISO strings
+  let startDate: string | undefined = undefined
+  let endDate: string | undefined = undefined
+
+  if (req.query.startDate) {
+    const startDateStr = req.query.startDate as string
+    const parsedStartDate = new Date(startDateStr)
+    if (isNaN(parsedStartDate.getTime())) {
+      return res.status(400).json(ApiResponse.badRequest('Invalid startDate format'))
+    }
+    startDate = startDateStr
+  }
+
+  if (req.query.endDate) {
+    const endDateStr = req.query.endDate as string
+    const parsedEndDate = new Date(endDateStr)
+    if (isNaN(parsedEndDate.getTime())) {
+      return res.status(400).json(ApiResponse.badRequest('Invalid endDate format'))
+    }
+    endDate = endDateStr
+  }
 
   const result = await bankAccountTransactionService.listTransactionsByBankAccount(bankAccountId, {
     page,
