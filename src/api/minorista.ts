@@ -216,8 +216,27 @@ minoristaRouter.get(
 
       const page = parseInt(req.query.page as string) || 1
       const limit = parseInt(req.query.limit as string) || 50
-      const startDate = req.query.startDate as string | undefined
-      const endDate = req.query.endDate as string | undefined
+      let startDate: string | undefined = undefined
+      let endDate: string | undefined = undefined
+
+      // Parse and validate ISO strings
+      if (req.query.startDate) {
+        const startStr = req.query.startDate as string
+        const parsedStart = new Date(startStr)
+        if (isNaN(parsedStart.getTime())) {
+          return res.status(400).json(ApiResponse.badRequest('Invalid startDate format. Use ISO 8601 format.'))
+        }
+        startDate = startStr
+      }
+
+      if (req.query.endDate) {
+        const endStr = req.query.endDate as string
+        const parsedEnd = new Date(endStr)
+        if (isNaN(parsedEnd.getTime())) {
+          return res.status(400).json(ApiResponse.badRequest('Invalid endDate format. Use ISO 8601 format.'))
+        }
+        endDate = endStr
+      }
 
       const result = await minoristaTransactionService.listTransactionsByMinorista(minoristaId, {
         page,

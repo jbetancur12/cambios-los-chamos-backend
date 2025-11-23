@@ -216,7 +216,8 @@ export class MinoristaTransactionService {
     if (options?.startDate && options?.endDate) {
       const startDate = new Date(options.startDate)
       const endDate = new Date(options.endDate)
-      endDate.setHours(23, 59, 59, 999)
+      // Don't modify hours - they come from frontend as ISO strings with proper times
+      // (e.g., "2025-11-22T00:00:00.000Z" to "2025-11-23T23:59:59.999Z")
 
       where.createdAt = { $gte: startDate, $lte: endDate }
     }
