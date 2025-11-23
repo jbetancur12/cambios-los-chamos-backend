@@ -51,7 +51,6 @@ minoristaRouter.get('/me', requireRole(UserRole.MINORISTA), async (req: Request,
   }
 
   const result = await minoristaService.getMinoristaByUserId(user.id)
-  console.log('🚀 ~ result:', result)
 
   if ('error' in result) {
     return res.status(404).json(ApiResponse.notFound('Minorista'))
