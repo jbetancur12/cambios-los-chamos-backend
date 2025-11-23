@@ -138,14 +138,14 @@ class MinIOService {
       if (fs.existsSync(logoPath)) {
         const logoBuffer = fs.readFileSync(logoPath)
         const logoResized = await sharp(logoBuffer)
-          .resize(120, 120, { fit: 'inside', withoutEnlargement: true })
+          .resize(200, 200, { fit: 'inside', withoutEnlargement: true })
           .toBuffer()
 
         compositeArray.push({
           input: logoResized,
           gravity: 'southeast' as const,
-          bottom: 20,
-          right: 20,
+          bottom: 30,
+          right: 30,
         })
       }
 
