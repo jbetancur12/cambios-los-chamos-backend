@@ -1,51 +1,74 @@
 import { DI } from '@/di'
-import { BankAccount, AccountType } from '@/entities/BankAccount'
+import { BankAccount, AccountType, BankAccountOwnerType } from '@/entities/BankAccount'
 import { Transferencista } from '@/entities/Transferencista'
 import { Bank } from '@/entities/Bank'
+import { User } from '@/entities/User'
+import { canAccessBankAccount } from '@/lib/bankAccountPermissions'
 
 export interface CreateBankAccountInput {
-  transferencistaId?: string // Opcional: solo si admin/superadmin crea cuenta para otro transferencista
   bankId: string
   accountNumber: string
   accountHolder: string
   accountType?: AccountType
+  // Nuevo: tipo de propietario
+  ownerType: BankAccountOwnerType
+  // Nuevo: ID del propietario (requerido si ownerType='TRANSFERENCISTA')
+  ownerId?: string
 }
 
 export class BankAccountService {
   /**
-   * Crea una cuenta bancaria para un transferencista
-   * - Si transferencista crea su propia cuenta: usa su ID
-   * - Si admin/superadmin crea cuenta: requiere transferenciaId
+   * Crea una cuenta bancaria
+   * - Para TRANSFERENCISTA: requiere ownerId = transferencista.id
+   * - Para ADMIN: ownerId es null (cuenta compartida)
    */
   async createBankAccount(
     data: CreateBankAccountInput
-  ): Promise<BankAccount | { error: 'TRANSFERENCISTA_NOT_FOUND' | 'BANK_NOT_FOUND' | 'ACCOUNT_NUMBER_EXISTS' }> {
+  ): Promise<
+    | BankAccount
+    | { error: 'TRANSFERENCISTA_NOT_FOUND' | 'BANK_NOT_FOUND' | 'ACCOUNT_NUMBER_EXISTS' | 'OWNER_ID_REQUIRED_FOR_TRANSFERENCISTA' }
+  > {
     const bankAccountRepo = DI.em.getRepository(BankAccount)
     const transferencistaRepo = DI.em.getRepository(Transferencista)
     const bankRepo = DI.em.getRepository(Bank)
 
-    let transferencista: Transferencista | null = null
-
-    // Validar Transferencista
-    transferencista = await transferencistaRepo.findOne({ id: data.transferencistaId })
-    if (!transferencista) throw new Error('Transferencista no encontrado')
-
     // Validar Banco
     const bank = await bankRepo.findOne({ id: data.bankId })
-    if (!bank) throw new Error('Banco no encontrado')
+    if (!bank) {
+      return { error: 'BANK_NOT_FOUND' }
+    }
 
     // Validar número de cuenta único
     const existing = await bankAccountRepo.findOne({ accountNumber: data.accountNumber })
-    if (existing) throw new Error('Número de cuenta ya registrado')
+    if (existing) {
+      return { error: 'ACCOUNT_NUMBER_EXISTS' }
+    }
+
+    // Validación según ownerType
+    let transferencista: Transferencista | null = null
+
+    if (data.ownerType === BankAccountOwnerType.TRANSFERENCISTA) {
+      if (!data.ownerId) {
+        return { error: 'OWNER_ID_REQUIRED_FOR_TRANSFERENCISTA' }
+      }
+
+      // Validar que exista el transferencista
+      transferencista = await transferencistaRepo.findOne({ id: data.ownerId })
+      if (!transferencista) {
+        return { error: 'TRANSFERENCISTA_NOT_FOUND' }
+      }
+    }
 
     // Crear cuenta
     const bankAccount = bankAccountRepo.create({
-      transferencista,
       bank,
       accountNumber: data.accountNumber,
       accountHolder: data.accountHolder,
       accountType: data.accountType ?? AccountType.AHORROS,
       balance: 0,
+      ownerType: data.ownerType,
+      ownerId: data.ownerId,
+      transferencista: transferencista ?? undefined,
     })
 
     await DI.em.persistAndFlush(bankAccount)
@@ -54,7 +77,46 @@ export class BankAccountService {
   }
 
   /**
-   * Obtiene todas las cuentas bancarias de un transferencista
+   * Obtiene todas las cuentas bancarias accesibles para un usuario
+   */
+  async getBankAccountsForUser(user: User): Promise<BankAccount[]> {
+    const bankAccountRepo = DI.em.getRepository(BankAccount)
+
+    // Admin/SuperAdmin ven todas las cuentas
+    if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+      return await bankAccountRepo.find({}, { populate: ['bank', 'transferencista'] })
+    }
+
+    // Transferencista solo ve sus cuentas
+    if (user.role === 'TRANSFERENCISTA') {
+      const transferencista = await DI.em.getRepository(Transferencista).findOne({ user: user.id })
+      if (!transferencista) {
+        return []
+      }
+
+      return await bankAccountRepo.find(
+        {
+          ownerType: BankAccountOwnerType.TRANSFERENCISTA,
+          ownerId: transferencista.id,
+        },
+        { populate: ['bank'] }
+      )
+    }
+
+    return []
+  }
+
+  /**
+   * Obtiene cuentas bancarias de acuerdo al rol del usuario con validación de permisos
+   */
+  async getBankAccountsByUser(user: User): Promise<BankAccount[]> {
+    const accounts = await this.getBankAccountsForUser(user)
+    // Filtrar solo cuentas accesibles
+    return accounts.filter((account) => canAccessBankAccount(account, user))
+  }
+
+  /**
+   * Obtiene todas las cuentas bancarias de un transferencista (para compatibilidad)
    */
   async getBankAccountsByTransferencista(
     transferenciaId: string
@@ -67,7 +129,13 @@ export class BankAccountService {
       return { error: 'TRANSFERENCISTA_NOT_FOUND' }
     }
 
-    const accounts = await bankAccountRepo.find({ transferencista: transferenciaId }, { populate: ['bank'] })
+    const accounts = await bankAccountRepo.find(
+      {
+        ownerType: BankAccountOwnerType.TRANSFERENCISTA,
+        ownerId: transferenciaId,
+      },
+      { populate: ['bank'] }
+    )
 
     return accounts
   }
@@ -98,8 +166,11 @@ export class BankAccountService {
     if (!transferencista) throw new Error('Transferencista no encontrado')
 
     const accounts = await bankAccountRepo.find(
-      { transferencista },
-      { populate: ['bank'] } // traer info del banco
+      {
+        ownerType: BankAccountOwnerType.TRANSFERENCISTA,
+        ownerId: transferencistaId,
+      },
+      { populate: ['bank'] }
     )
 
     // Retornar solo info relevante

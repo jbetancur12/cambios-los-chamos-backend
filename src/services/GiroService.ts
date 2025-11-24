@@ -240,7 +240,8 @@ export class GiroService {
     giroId: string,
     bankAccountId: string,
     executionType: ExecutionType,
-    fee: number
+    fee: number,
+    executingUser?: User
   ): Promise<
     | Giro
     | {
@@ -250,6 +251,7 @@ export class GiroService {
           | 'BANK_ACCOUNT_NOT_FOUND'
           | 'INSUFFICIENT_BALANCE'
           | 'UNAUTHORIZED_ACCOUNT'
+          | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
       }
   > {
     console.log('🚀 ~ GiroService ~ executeGiro ~ fee:', fee)
@@ -278,25 +280,60 @@ export class GiroService {
       return { error: 'INVALID_STATUS' }
     }
 
-    const bankAccount = await DI.bankAccounts.findOne({ id: bankAccountId }, { populate: ['transferencista', 'bank'] })
+    const bankAccount = await DI.bankAccounts.findOne(
+      { id: bankAccountId },
+      { populate: ['transferencista', 'bank', 'bank'] }
+    )
 
     if (!bankAccount) {
       return { error: 'BANK_ACCOUNT_NOT_FOUND' }
     }
 
-    // Verificar que la cuenta pertenezca al transferencista del giro
-    if (giro.transferencista?.id !== bankAccount.transferencista.id) {
-      return { error: 'UNAUTHORIZED_ACCOUNT' }
+    // ✨ NUEVA VALIDACIÓN: Si se proporciona el usuario ejecutor, validar permisos
+    if (executingUser) {
+      const { canExecuteGiroWithAccount } = await import('@/lib/bankAccountPermissions')
+
+      if (!canExecuteGiroWithAccount(bankAccount, executingUser)) {
+        return { error: 'UNAUTHORIZED_ACCOUNT' }
+      }
+
+      // Si es transferencista, validar asignación de banco
+      if (executingUser.role === UserRole.TRANSFERENCISTA) {
+        const transferencista = await DI.transferencistas.findOne({
+          user: executingUser.id,
+        })
+
+        const hasAssignment = await DI.bankAssignments.findOne({
+          bank: bankAccount.bank.id,
+          transferencista: transferencista!.id,
+          isActive: true,
+        })
+
+        if (!hasAssignment) {
+          return { error: 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA' }
+        }
+      }
+    } else {
+      // Validación antigua para compatibilidad (si no se pasa usuario)
+      // Verificar que la cuenta pertenezca al transferencista del giro
+      if (giro.transferencista?.id !== bankAccount.transferencista?.id) {
+        return { error: 'UNAUTHORIZED_ACCOUNT' }
+      }
     }
 
     // Crear transacción de retiro de la cuenta bancaria
+    const createdByUser = executingUser || giro.transferencista?.user
+    if (!createdByUser) {
+      return { error: 'UNAUTHORIZED_ACCOUNT' }
+    }
+
     const transactionResult = await bankAccountTransactionService.createTransaction({
       bankAccountId: bankAccount.id,
       amount: giro.amountBs,
       fee,
       type: BankAccountTransactionType.WITHDRAWAL,
       reference: `Giro ${giro.id}`,
-      createdBy: giro.transferencista.user,
+      createdBy: createdByUser,
     })
 
     if ('error' in transactionResult) {

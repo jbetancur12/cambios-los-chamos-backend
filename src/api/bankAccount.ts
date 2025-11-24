@@ -12,43 +12,62 @@ import { bankAccountService } from '@/services/BankAccountService'
 import { DI } from '@/di'
 import { validateParams } from '@/lib/validateParams'
 import { bankAccountTransactionService } from '@/services/BankAccountTransactionService'
-import { BankAccount } from '@/entities/BankAccount'
+import { BankAccount, BankAccountOwnerType } from '@/entities/BankAccount'
+import { canManageBankAccounts } from '@/lib/bankAccountPermissions'
 
 export const bankAccountRouter = express.Router({ mergeParams: true })
 
 // ------------------ CREAR CUENTA BANCARIA ------------------
+// ✨ ACTUALIZADO: Soporta crear cuentas de TRANSFERENCISTA y cuentas ADMIN compartidas
 bankAccountRouter.post(
   '/create',
   requireAuth(),
-  requireRole(UserRole.SUPER_ADMIN),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   validateBody(createBankAccountSchema),
   async (req: Request, res: Response) => {
-    const { transferencistaId, bankId, accountNumber, accountHolder, accountType } = req.body
+    const user = req.context?.requestUser?.user
+    const { bankId, accountNumber, accountHolder, accountType, ownerType, ownerId } = req.body
+
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
+    // Validar que ownerType sea válido
+    if (![BankAccountOwnerType.TRANSFERENCISTA, BankAccountOwnerType.ADMIN].includes(ownerType)) {
+      return res.status(400).json(ApiResponse.validationErrorSingle('ownerType', 'ownerType inválido'))
+    }
+
     try {
-      const bankAccount = await bankAccountService.createBankAccount({
-        transferencistaId,
+      const result = await bankAccountService.createBankAccount({
         bankId,
         accountNumber,
         accountHolder,
         accountType,
+        ownerType,
+        ownerId,
       })
+
+      if ('error' in result) {
+        switch (result.error) {
+          case 'TRANSFERENCISTA_NOT_FOUND':
+            return res.status(404).json(ApiResponse.notFound('Transferencista'))
+          case 'BANK_NOT_FOUND':
+            return res.status(404).json(ApiResponse.notFound('Banco'))
+          case 'ACCOUNT_NUMBER_EXISTS':
+            return res.status(400).json(ApiResponse.validationErrorSingle('accountNumber', 'Número de cuenta ya registrado'))
+          case 'OWNER_ID_REQUIRED_FOR_TRANSFERENCISTA':
+            return res.status(400).json(ApiResponse.validationErrorSingle('ownerId', 'ownerId es requerido para cuentas de TRANSFERENCISTA'))
+        }
+      }
 
       res.status(201).json(
         ApiResponse.success({
-          data: bankAccount,
+          data: result,
           message: 'Cuenta bancaria creada exitosamente',
         })
       )
     } catch (err: any) {
-      if (err.message.includes('Transferencista no encontrado')) {
-        return res.status(404).json(ApiResponse.notFound('Transferencista'))
-      }
-      if (err.message.includes('Banco no encontrado')) {
-        return res.status(404).json(ApiResponse.notFound('Banco'))
-      }
-      if (err.message.includes('Número de cuenta ya registrado')) {
-        return res.status(400).json(ApiResponse.validationErrorSingle('accountNumber', err.message))
-      }
+      console.error('Error al crear cuenta bancaria:', err)
       res.status(500).json(ApiResponse.error('Error al crear cuenta bancaria'))
     }
   }
@@ -110,6 +129,7 @@ bankAccountRouter.get('/my-accounts', requireRole(UserRole.TRANSFERENCISTA), asy
 })
 
 // ------------------ OBTENER TODAS LAS CUENTAS (ADMIN/SUPER_ADMIN) ------------------
+// ✨ ACTUALIZADO: Incluye ownerType y ownerId
 bankAccountRouter.get(
   '/all',
   requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
@@ -118,26 +138,36 @@ bankAccountRouter.get(
 
     const accounts = await bankAccountRepo.find({}, { populate: ['bank', 'transferencista', 'transferencista.user'] })
 
-    const formattedAccounts = accounts.map((account) => ({
-      id: account.id,
-      accountNumber: account.accountNumber,
-      accountHolder: account.accountHolder,
-      accountType: account.accountType,
-      balance: account.balance,
-      bank: {
-        id: account.bank.id,
-        name: account.bank.name,
-        code: account.bank.code,
-      },
-      transferencista: {
-        id: account.transferencista.id,
-        user: {
-          id: account.transferencista.user.id,
-          fullName: account.transferencista.user.fullName,
-          email: account.transferencista.user.email,
+    const formattedAccounts = accounts.map((account) => {
+      const formatted: any = {
+        id: account.id,
+        accountNumber: account.accountNumber,
+        accountHolder: account.accountHolder,
+        accountType: account.accountType,
+        balance: account.balance,
+        ownerType: account.ownerType,
+        ownerId: account.ownerId,
+        bank: {
+          id: account.bank.id,
+          name: account.bank.name,
+          code: account.bank.code,
         },
-      },
-    }))
+      }
+
+      // Solo incluir transferencista si existe
+      if (account.transferencista) {
+        formatted.transferencista = {
+          id: account.transferencista.id,
+          user: {
+            id: account.transferencista.user.id,
+            fullName: account.transferencista.user.fullName,
+            email: account.transferencista.user.email,
+          },
+        }
+      }
+
+      return formatted
+    })
 
     res.json(ApiResponse.success({ bankAccounts: formattedAccounts }))
   }
@@ -164,6 +194,7 @@ bankAccountRouter.get(
 )
 
 // ------------------ OBTENER CUENTA BANCARIA INDIVIDUAL ------------------
+// ✨ ACTUALIZADO: Usa canAccessBankAccount para validar permisos
 bankAccountRouter.get('/:bankAccountId', requireAuth(), async (req: Request, res: Response) => {
   const { bankAccountId } = req.params
   const user = req.context?.requestUser?.user
@@ -179,34 +210,39 @@ bankAccountRouter.get('/:bankAccountId', requireAuth(), async (req: Request, res
     return res.status(404).json(ApiResponse.notFound('Cuenta bancaria'))
   }
 
-  // Verificar permisos
-  if (user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.ADMIN) {
-    if (user.role === UserRole.TRANSFERENCISTA) {
-      const transferencista = await DI.transferencistas.findOne({ user: user.id })
-      if (!transferencista || bankAccount.transferencista.id !== transferencista.id) {
-        return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver esta cuenta'))
-      }
-    } else {
-      return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver esta cuenta'))
+  // ✨ Verificar permisos usando la función de validación
+  if (!canAccessBankAccount(bankAccount, user)) {
+    return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver esta cuenta'))
+  }
+
+  const formatted: any = {
+    id: bankAccount.id,
+    accountNumber: bankAccount.accountNumber,
+    accountHolder: bankAccount.accountHolder,
+    accountType: bankAccount.accountType,
+    balance: bankAccount.balance,
+    ownerType: bankAccount.ownerType,
+    ownerId: bankAccount.ownerId,
+    bank: {
+      id: bankAccount.bank.id,
+      name: bankAccount.bank.name,
+      code: bankAccount.bank.code,
+    },
+  }
+
+  // Solo incluir transferencista si existe
+  if (bankAccount.transferencista) {
+    formatted.transferencista = {
+      id: bankAccount.transferencista.id,
+      user: {
+        id: bankAccount.transferencista.user.id,
+        fullName: bankAccount.transferencista.user.fullName,
+        email: bankAccount.transferencista.user.email,
+      },
     }
   }
 
-  res.json(
-    ApiResponse.success({
-      bankAccount: {
-        id: bankAccount.id,
-        accountNumber: bankAccount.accountNumber,
-        accountHolder: bankAccount.accountHolder,
-        accountType: bankAccount.accountType,
-        balance: bankAccount.balance,
-        bank: {
-          id: bankAccount.bank.id,
-          name: bankAccount.bank.name,
-          code: bankAccount.bank.code,
-        },
-      },
-    })
-  )
+  res.json(ApiResponse.success({ bankAccount: formatted }))
 })
 
 // ------------------ ACTUALIZAR BALANCE ------------------

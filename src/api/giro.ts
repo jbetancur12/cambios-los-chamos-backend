@@ -365,45 +365,56 @@ giroRouter.patch(
 )
 
 // ------------------ EJECUTAR GIRO ------------------
-giroRouter.post('/:giroId/execute', requireRole(UserRole.TRANSFERENCISTA), async (req: Request, res: Response) => {
-  const { giroId } = req.params
-  const { bankAccountId, executionType, proofUrl, fee } = req.body
+// ✨ ACTUALIZADO: Permite TRANSFERENCISTA, ADMIN, SUPERADMIN
+giroRouter.post(
+  '/:giroId/execute',
+  requireRole(UserRole.TRANSFERENCISTA, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  async (req: Request, res: Response) => {
+    const user = req.context?.requestUser?.user
+    const { giroId } = req.params
+    const { bankAccountId, executionType, proofUrl, fee } = req.body
 
-  if (!bankAccountId || !executionType) {
-    return res.status(400).json(
-      ApiResponse.validationError([
-        { field: 'bankAccountId', message: 'La cuenta bancaria es requerida' },
-        { field: 'executionType', message: 'El tipo de ejecución es requerido' },
-      ])
-    )
-  }
-
-  const result = await giroService.executeGiro(giroId, bankAccountId, executionType, fee)
-
-  if ('error' in result) {
-    switch (result.error) {
-      case 'GIRO_NOT_FOUND':
-        return res.status(404).json(ApiResponse.notFound('Giro', giroId))
-      case 'INVALID_STATUS':
-        return res.status(400).json(ApiResponse.badRequest('El giro no está en estado válido para ser ejecutado'))
-      case 'BANK_ACCOUNT_NOT_FOUND':
-        return res.status(404).json(ApiResponse.notFound('Cuenta bancaria', bankAccountId))
-      case 'INSUFFICIENT_BALANCE':
-        return res.status(400).json(ApiResponse.badRequest('Balance insuficiente en la cuenta bancaria'))
-      case 'UNAUTHORIZED_ACCOUNT':
-        return res
-          .status(403)
-          .json(ApiResponse.forbidden('La cuenta bancaria no pertenece al transferencista asignado'))
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
     }
-  }
 
-  // Emitir evento de WebSocket
-  if (giroSocketManager) {
-    giroSocketManager.broadcastGiroExecuted(result)
-  }
+    if (!bankAccountId || !executionType) {
+      return res.status(400).json(
+        ApiResponse.validationError([
+          { field: 'bankAccountId', message: 'La cuenta bancaria es requerida' },
+          { field: 'executionType', message: 'El tipo de ejecución es requerido' },
+        ])
+      )
+    }
 
-  res.json(ApiResponse.success({ giro: result, message: 'Giro ejecutado exitosamente' }))
-})
+    // ✨ Pasar el usuario ejecutor para validar permisos
+    const result = await giroService.executeGiro(giroId, bankAccountId, executionType, fee, user)
+
+    if ('error' in result) {
+      switch (result.error) {
+        case 'GIRO_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+        case 'INVALID_STATUS':
+          return res.status(400).json(ApiResponse.badRequest('El giro no está en estado válido para ser ejecutado'))
+        case 'BANK_ACCOUNT_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Cuenta bancaria', bankAccountId))
+        case 'INSUFFICIENT_BALANCE':
+          return res.status(400).json(ApiResponse.badRequest('Balance insuficiente en la cuenta bancaria'))
+        case 'UNAUTHORIZED_ACCOUNT':
+          return res.status(403).json(ApiResponse.forbidden('No tienes permiso para usar esta cuenta bancaria'))
+        case 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA':
+          return res.status(403).json(ApiResponse.forbidden('Este banco no está asignado a tu cuenta'))
+      }
+    }
+
+    // Emitir evento de WebSocket
+    if (giroSocketManager) {
+      giroSocketManager.broadcastGiroExecuted(result)
+    }
+
+    res.json(ApiResponse.success({ giro: result, message: 'Giro ejecutado exitosamente' }))
+  }
+)
 
 giroRouter.post(
   '/:giroId/return',
