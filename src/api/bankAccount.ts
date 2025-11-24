@@ -18,11 +18,11 @@ import { canManageBankAccounts } from '@/lib/bankAccountPermissions'
 export const bankAccountRouter = express.Router({ mergeParams: true })
 
 // ------------------ CREAR CUENTA BANCARIA ------------------
-// ✨ ACTUALIZADO: Soporta crear cuentas de TRANSFERENCISTA y cuentas ADMIN compartidas
+// ✨ SOLO SUPERADMIN puede crear cuentas ADMIN compartidas
 bankAccountRouter.post(
   '/create',
   requireAuth(),
-  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  requireRole(UserRole.SUPER_ADMIN),
   validateBody(createBankAccountSchema),
   async (req: Request, res: Response) => {
     const user = req.context?.requestUser?.user
@@ -35,6 +35,11 @@ bankAccountRouter.post(
     // Validar que ownerType sea válido
     if (![BankAccountOwnerType.TRANSFERENCISTA, BankAccountOwnerType.ADMIN].includes(ownerType)) {
       return res.status(400).json(ApiResponse.validationErrorSingle('ownerType', 'ownerType inválido'))
+    }
+
+    // ✨ NUEVA VALIDACIÓN: Solo SUPERADMIN puede crear cuentas ADMIN
+    if (ownerType === BankAccountOwnerType.ADMIN && user.role !== UserRole.SUPER_ADMIN) {
+      return res.status(403).json(ApiResponse.forbidden('Solo SUPERADMIN puede crear cuentas ADMIN compartidas'))
     }
 
     try {
