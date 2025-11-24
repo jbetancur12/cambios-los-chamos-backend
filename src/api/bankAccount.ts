@@ -134,14 +134,15 @@ bankAccountRouter.get('/my-accounts', requireRole(UserRole.TRANSFERENCISTA), asy
 })
 
 // ------------------ OBTENER TODAS LAS CUENTAS (ADMIN/SUPER_ADMIN) ------------------
-// ✨ ACTUALIZADO: Incluye ownerType y ownerId
+// ✨ ACTUALIZADO: Solo retorna cuentas ADMIN compartidas para admin/superadmin
 bankAccountRouter.get(
   '/all',
   requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   async (req: Request, res: Response) => {
     const bankAccountRepo = DI.em.getRepository(BankAccount)
 
-    const accounts = await bankAccountRepo.find({}, { populate: ['bank', 'transferencista', 'transferencista.user'] })
+    // Filtrar solo cuentas ADMIN (compartidas)
+    const accounts = await bankAccountRepo.find({ ownerType: BankAccountOwnerType.ADMIN }, { populate: ['bank', 'transferencista', 'transferencista.user'] })
 
     const formattedAccounts = accounts.map((account) => {
       const formatted: any = {
