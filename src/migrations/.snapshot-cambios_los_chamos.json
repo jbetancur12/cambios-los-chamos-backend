@@ -1647,7 +1647,8 @@
             "RECHARGE",
             "DISCOUNT",
             "ADJUSTMENT",
-            "PROFIT"
+            "PROFIT",
+            "REFUND"
           ],
           "mappedType": "enum"
         },
@@ -1939,7 +1940,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "length": 255,
           "mappedType": "string"
         },

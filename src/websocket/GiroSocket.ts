@@ -21,8 +21,6 @@ export class GiroSocketManager {
 
   private setupConnectionHandlers() {
     this.io.on('connection', (socket: Socket) => {
-      console.log(`[WS] Usuario conectado: ${socket.id}`)
-
       // Evento: Usuario se conecta y proporciona su información
       socket.on(
         'user:connected',
@@ -34,7 +32,6 @@ export class GiroSocketManager {
             minoristaId: data.minoristaId,
             transferencistaId: data.transferencistaId,
           })
-          console.log(`[WS] Usuario autenticado: ${data.userId} (${data.role})`)
         }
       )
 
@@ -42,7 +39,6 @@ export class GiroSocketManager {
       socket.on('disconnect', () => {
         const user = this.connectedUsers.get(socket.id)
         if (user) {
-          console.log(`[WS] Usuario desconectado: ${user.userId}`)
           this.connectedUsers.delete(socket.id)
         }
       })
@@ -51,29 +47,53 @@ export class GiroSocketManager {
 
   /**
    * Emitir evento cuando se crea un nuevo giro
+   * Filtrado por rol: MINORISTA solo ve sus propios giros, TRANSFERENCISTA solo los asignados
    */
   broadcastGiroCreated(giro: Giro) {
-    console.log(`[WS] Broadcast: Giro creado - ${giro.id}`)
-
-    // Enviar a todos los clientes
-    this.io.emit('giro:created', {
+    const payload = {
       giro: this.serializeGiro(giro),
       timestamp: new Date().toISOString(),
-    })
+    }
+
+    // Enviar a admins
+    this.broadcastToAdmins('giro:created', payload)
+
+    // Enviar al minorista si es su giro
+    if (giro.minorista?.id) {
+      this.broadcastToMinorista(giro.minorista.id, 'giro:created', payload)
+    }
+
+    // Enviar al transferencista asignado
+    if (giro.transferencista?.id) {
+      this.broadcastToTransferencista(giro.transferencista.id, 'giro:created', payload)
+    }
   }
 
   /**
    * Emitir evento cuando se actualiza un giro
+   * Filtrado por rol: MINORISTA solo su giro, TRANSFERENCISTA solo asignado
    */
   broadcastGiroUpdated(giro: Giro, changeType: 'rate' | 'status' | 'beneficiary' | 'other' = 'other') {
     console.log(`[WS] Broadcast: Giro actualizado - ${giro.id} (${changeType})`)
 
-    // Enviar a todos los clientes
-    this.io.emit('giro:updated', {
+    const payload = {
       giro: this.serializeGiro(giro),
       changeType,
       timestamp: new Date().toISOString(),
-    })
+    }
+
+    // Enviar a admins
+    this.broadcastToAdmins('giro:updated', payload)
+
+    // Enviar al minorista si es su giro
+    if (giro.minorista?.id) {
+      this.broadcastToMinorista(giro.minorista.id, 'giro:updated', payload)
+    }
+
+    // Enviar al transferencista asignado
+    if (giro.transferencista?.id) {
+      this.broadcastToTransferencista(giro.transferencista.id, 'giro:updated', payload)
+    }
   }
 
   /**
@@ -82,12 +102,24 @@ export class GiroSocketManager {
   broadcastGiroReturned(giro: Giro, reason: string) {
     console.log(`[WS] Broadcast: Giro devuelto - ${giro.id}`)
 
-    // Enviar a todos los clientes
-    this.io.emit('giro:returned', {
+    const payload = {
       giro: this.serializeGiro(giro),
       reason,
       timestamp: new Date().toISOString(),
-    })
+    }
+
+    // Enviar a admins
+    this.broadcastToAdmins('giro:returned', payload)
+
+    // Enviar al minorista si es su giro
+    if (giro.minorista?.id) {
+      this.broadcastToMinorista(giro.minorista.id, 'giro:returned', payload)
+    }
+
+    // Enviar al transferencista asignado
+    if (giro.transferencista?.id) {
+      this.broadcastToTransferencista(giro.transferencista.id, 'giro:returned', payload)
+    }
   }
 
   /**
@@ -96,23 +128,46 @@ export class GiroSocketManager {
   broadcastGiroExecuted(giro: Giro) {
     console.log(`[WS] Broadcast: Giro ejecutado - ${giro.id}`)
 
-    // Enviar a todos los clientes
-    this.io.emit('giro:executed', {
+    const payload = {
       giro: this.serializeGiro(giro),
       timestamp: new Date().toISOString(),
-    })
+    }
+
+    // Enviar a admins
+    this.broadcastToAdmins('giro:executed', payload)
+
+    // Enviar al minorista si es su giro
+    if (giro.minorista?.id) {
+      this.broadcastToMinorista(giro.minorista.id, 'giro:executed', payload)
+    }
+
+    // Enviar al transferencista que ejecutó
+    if (giro.transferencista?.id) {
+      this.broadcastToTransferencista(giro.transferencista.id, 'giro:executed', payload)
+    }
   }
 
   /**
    * Emitir evento cuando se marca giro como procesando
    */
   broadcastGiroProcessing(giro: Giro) {
-    console.log(`[WS] Broadcast: Giro procesando - ${giro.id}`)
-
-    this.io.emit('giro:processing', {
+    const payload = {
       giro: this.serializeGiro(giro),
       timestamp: new Date().toISOString(),
-    })
+    }
+
+    // Enviar a admins
+    this.broadcastToAdmins('giro:processing', payload)
+
+    // Enviar al minorista si es su giro
+    if (giro.minorista?.id) {
+      this.broadcastToMinorista(giro.minorista.id, 'giro:processing', payload)
+    }
+
+    // Enviar al transferencista asignado
+    if (giro.transferencista?.id) {
+      this.broadcastToTransferencista(giro.transferencista.id, 'giro:processing', payload)
+    }
   }
 
   /**
@@ -168,15 +223,56 @@ export class GiroSocketManager {
 
   /**
    * Emitir evento cuando se elimina un giro
+   * Nota: Esta función solo recibe giroId, así que envía a admins
+   * Para incluir minorista/transferencista, actualizar con giro completo
    */
   broadcastGiroDeleted(giroId: string) {
     console.log(`[WS] Broadcast: Giro eliminado - ${giroId}`)
 
-    // Enviar a todos los clientes
-    this.io.emit('giro:deleted', {
+    const payload = {
       giroId,
       timestamp: new Date().toISOString(),
-    })
+    }
+
+    // Enviar a admins (minorista/transferencista se enterarán vía query invalidation)
+    this.broadcastToAdmins('giro:deleted', payload)
+  }
+
+  /**
+   * Enviar mensaje a todos los admins
+   */
+  private broadcastToAdmins(event: string, payload: any) {
+    const adminUsers = Array.from(this.connectedUsers.values()).filter(
+      (user) => user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN
+    )
+
+    for (const adminUser of adminUsers) {
+      this.io.to(adminUser.socketId).emit(event, payload)
+    }
+  }
+
+  /**
+   * Enviar mensaje a un minorista específico
+   */
+  private broadcastToMinorista(minoristaId: string, event: string, payload: any) {
+    const minoristaUsers = Array.from(this.connectedUsers.values()).filter((user) => user.minoristaId === minoristaId)
+
+    for (const minoristaUser of minoristaUsers) {
+      this.io.to(minoristaUser.socketId).emit(event, payload)
+    }
+  }
+
+  /**
+   * Enviar mensaje a un transferencista específico
+   */
+  private broadcastToTransferencista(transferencistaId: string, event: string, payload: any) {
+    const transferencistaUsers = Array.from(this.connectedUsers.values()).filter(
+      (user) => user.transferencistaId === transferencistaId
+    )
+
+    for (const transferencistaUser of transferencistaUsers) {
+      this.io.to(transferencistaUser.socketId).emit(event, payload)
+    }
   }
 
   /**

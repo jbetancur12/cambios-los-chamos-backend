@@ -15,12 +15,11 @@ beneficiarySuggestionRouter.post('/save', requireAuth(), async (req: Request, re
 
   const { beneficiaryName, beneficiaryId, phone, bankId, accountNumber, executionType } = req.body
 
-  if (!beneficiaryName || !beneficiaryId || !phone || !bankId || !accountNumber) {
+  if (!beneficiaryName || !beneficiaryId || !bankId || !accountNumber) {
     return res.status(400).json(
       ApiResponse.validationError([
         { field: 'beneficiaryName', message: 'Nombre es requerido' },
         { field: 'beneficiaryId', message: 'Cédula es requerida' },
-        { field: 'phone', message: 'Teléfono es requerido' },
         { field: 'bankId', message: 'Banco es requerido' },
         { field: 'accountNumber', message: 'Cuenta es requerida' },
       ])

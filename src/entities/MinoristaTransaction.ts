@@ -6,9 +6,9 @@ import { Giro } from './Giro'
 
 export enum MinoristaTransactionType {
   RECHARGE = 'RECHARGE', // Recarga de saldo
-  DISCOUNT = 'DISCOUNT', // Descuento por giro
+  DISCOUNT = 'DISCOUNT', // Descuento por giro (incluye profit del 5%)
   ADJUSTMENT = 'ADJUSTMENT', // Ajuste manual
-  PROFIT = 'PROFIT', // Ganancia de giro (50%)
+  REFUND = 'REFUND', // Reembolso por devolución o eliminación de giro
 }
 
 @Entity({ tableName: 'minorista_transactions' })

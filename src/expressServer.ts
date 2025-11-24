@@ -125,6 +125,11 @@ export const startExpressServer = async () => {
     transports: ['websocket', 'polling'],
   })
 
+  // Log para verificar que Socket.IO está funcionando
+  io.on('connection', (socket) => {
+    console.log(`[SOCKET.IO] ✅ Nueva conexión de cliente - Socket ID: ${socket.id}`)
+  })
+
   // Inicializar GiroSocketManager
   const giroSocketManager = new GiroSocketManager(io)
   setGiroSocketManager(giroSocketManager)

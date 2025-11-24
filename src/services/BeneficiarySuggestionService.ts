@@ -9,25 +9,29 @@ export class BeneficiarySuggestionService {
     data: {
       beneficiaryName: string
       beneficiaryId: string
-      phone: string
+      phone?: string
       bankId: string
       accountNumber: string
       executionType: ExecutionType
     }
   ): Promise<BeneficiarySuggestion> {
-    const user = await DI.users.findOne({ id: userId })
+    // Get user from the same EntityManager context
+    const user = await DI.em.getRepository(User).findOne({ id: userId })
     if (!user) {
       throw new Error('User not found')
     }
 
     // Check if this beneficiary already exists for this user and execution type
-    const existing = await DI.em.getRepository(BeneficiarySuggestion).findOne({
+    const whereClause: any = {
       user: userId,
       beneficiaryName: data.beneficiaryName,
       beneficiaryId: data.beneficiaryId,
-      phone: data.phone,
       executionType: data.executionType,
-    })
+    }
+    if (data.phone) {
+      whereClause.phone = data.phone
+    }
+    const existing = await DI.em.getRepository(BeneficiarySuggestion).findOne(whereClause)
 
     if (existing) {
       // Update the existing record (move it to recent)
@@ -36,8 +40,9 @@ export class BeneficiarySuggestionService {
       return existing
     }
 
-    // Create new beneficiary suggestion
-    const suggestion = new BeneficiarySuggestion({
+    // Create new beneficiary suggestion using repo.create() for proper ORM registration
+    const repo = DI.em.getRepository(BeneficiarySuggestion)
+    const suggestion = repo.create({
       user,
       beneficiaryName: data.beneficiaryName,
       beneficiaryId: data.beneficiaryId,
@@ -45,25 +50,28 @@ export class BeneficiarySuggestionService {
       bankId: data.bankId,
       accountNumber: data.accountNumber,
       executionType: data.executionType,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
 
     await DI.em.persistAndFlush(suggestion)
     return suggestion
   }
 
-  async getBeneficiarySuggestions(userId: string, executionType?: ExecutionType, limit: number = 50): Promise<BeneficiarySuggestion[]> {
+  async getBeneficiarySuggestions(
+    userId: string,
+    executionType?: ExecutionType,
+    limit: number = 50
+  ): Promise<BeneficiarySuggestion[]> {
     const where: any = { user: userId }
     if (executionType) {
       where.executionType = executionType
     }
 
-    return await DI.em.getRepository(BeneficiarySuggestion).find(
-      where,
-      {
-        orderBy: { updatedAt: 'DESC' },
-        limit,
-      }
-    )
+    return await DI.em.getRepository(BeneficiarySuggestion).find(where, {
+      orderBy: { updatedAt: 'DESC' },
+      limit,
+    })
   }
 
   async searchBeneficiarySuggestions(
@@ -77,26 +85,27 @@ export class BeneficiarySuggestionService {
     }
 
     const searchLower = `%${searchTerm.toLowerCase()}%`
+    const orConditions: any[] = [
+      { beneficiaryName: { $ilike: searchLower } },
+      { beneficiaryId: { $ilike: searchLower } },
+    ]
+    // Only search by phone if it's not empty
+    if (searchTerm.trim()) {
+      orConditions.push({ phone: { $ilike: searchLower } })
+    }
     const where: any = {
       user: userId,
-      $or: [
-        { beneficiaryName: { $ilike: searchLower } },
-        { beneficiaryId: { $ilike: searchLower } },
-        { phone: { $ilike: searchLower } },
-      ],
+      $or: orConditions,
     }
 
     if (executionType) {
       where.executionType = executionType
     }
 
-    return await DI.em.getRepository(BeneficiarySuggestion).find(
-      where,
-      {
-        orderBy: { updatedAt: 'DESC' },
-        limit,
-      }
-    )
+    return await DI.em.getRepository(BeneficiarySuggestion).find(where, {
+      orderBy: { updatedAt: 'DESC' },
+      limit,
+    })
   }
 
   async deleteBeneficiarySuggestion(userId: string, suggestionId: string): Promise<boolean> {

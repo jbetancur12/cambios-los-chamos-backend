@@ -28,19 +28,23 @@ printerConfigRouter.get('/config', requireAuth, async (req: Request, res: Respon
     const config = await printerConfigService.getPrinterConfig(userId)
 
     if (!config) {
-      return res.json(ApiResponse.success({
-        config: null,
-        message: 'No hay configuración de impresora',
-      }))
+      return res.json(
+        ApiResponse.success({
+          config: null,
+          message: 'No hay configuración de impresora',
+        })
+      )
     }
 
-    res.json(ApiResponse.success({
-      config: {
-        name: config.name,
-        type: config.type,
-      },
-      message: 'Configuración obtenida exitosamente',
-    }))
+    res.json(
+      ApiResponse.success({
+        config: {
+          name: config.name,
+          type: config.type,
+        },
+        message: 'Configuración obtenida exitosamente',
+      })
+    )
   } catch (error: any) {
     console.error('[PRINTER_CONFIG] Error getting config:', error)
     res.status(500).json(ApiResponse.error('Error al obtener configuración de impresora'))
@@ -48,30 +52,37 @@ printerConfigRouter.get('/config', requireAuth, async (req: Request, res: Respon
 })
 
 // POST - Guardar o actualizar configuración de impresora
-printerConfigRouter.post('/config', requireAuth, validateBody(savePrinterConfigSchema), async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.id
-    if (!userId) {
-      return res.status(401).json(ApiResponse.unauthorized('Usuario no autenticado'))
+printerConfigRouter.post(
+  '/config',
+  requireAuth,
+  validateBody(savePrinterConfigSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?.id
+      if (!userId) {
+        return res.status(401).json(ApiResponse.unauthorized('Usuario no autenticado'))
+      }
+
+      const { name, type } = req.body
+
+      const printerConfigService = new PrinterConfigService(DI.em)
+      const config = await printerConfigService.savePrinterConfig(userId, name, type as PrinterType)
+
+      res.json(
+        ApiResponse.success({
+          config: {
+            name: config.name,
+            type: config.type,
+          },
+          message: 'Configuración de impresora guardada exitosamente',
+        })
+      )
+    } catch (error: any) {
+      console.error('[PRINTER_CONFIG] Error saving config:', error)
+      res.status(500).json(ApiResponse.error('Error al guardar configuración de impresora'))
     }
-
-    const { name, type } = req.body
-
-    const printerConfigService = new PrinterConfigService(DI.em)
-    const config = await printerConfigService.savePrinterConfig(userId, name, type as PrinterType)
-
-    res.json(ApiResponse.success({
-      config: {
-        name: config.name,
-        type: config.type,
-      },
-      message: 'Configuración de impresora guardada exitosamente',
-    }))
-  } catch (error: any) {
-    console.error('[PRINTER_CONFIG] Error saving config:', error)
-    res.status(500).json(ApiResponse.error('Error al guardar configuración de impresora'))
   }
-})
+)
 
 // DELETE - Eliminar configuración de impresora
 printerConfigRouter.delete('/config', requireAuth, async (req: Request, res: Response) => {
@@ -84,9 +95,11 @@ printerConfigRouter.delete('/config', requireAuth, async (req: Request, res: Res
     const printerConfigService = new PrinterConfigService(DI.em)
     await printerConfigService.deletePrinterConfig(userId)
 
-    res.json(ApiResponse.success({
-      message: 'Configuración de impresora eliminada exitosamente',
-    }))
+    res.json(
+      ApiResponse.success({
+        message: 'Configuración de impresora eliminada exitosamente',
+      })
+    )
   } catch (error: any) {
     console.error('[PRINTER_CONFIG] Error deleting config:', error)
     res.status(500).json(ApiResponse.error('Error al eliminar configuración de impresora'))

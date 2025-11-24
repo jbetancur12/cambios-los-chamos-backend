@@ -18,8 +18,8 @@ export class BeneficiarySuggestion {
   @Property({ type: 'string' })
   beneficiaryId!: string
 
-  @Property({ type: 'string' })
-  phone!: string
+  @Property({ type: 'string', nullable: true })
+  phone?: string
 
   @Property({ type: 'string' })
   bankId!: string

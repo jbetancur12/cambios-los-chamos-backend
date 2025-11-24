@@ -73,7 +73,6 @@ router.get('/system-profit-trend', requireRole(UserRole.SUPER_ADMIN), async (req
     }
 
     // Ensure dateTo includes the whole day
-   
 
     const report = await reportService.getSystemProfitTrendReport(dateFrom, dateTo)
     res.json(ApiResponse.success(report))

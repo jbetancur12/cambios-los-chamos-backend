@@ -42,15 +42,6 @@ export class MinoristaTransactionService {
     let newBalanceInFavor = previousBalanceInFavorValue
     let externalDebt = 0
 
-    // Para PROFIT: obtener la transacción de descuento anterior
-    let lastDiscountTransaction = null
-    if (data.type === MinoristaTransactionType.PROFIT) {
-      lastDiscountTransaction = await transactionRepo.findOne(
-        { minorista: data.minoristaId, type: MinoristaTransactionType.DISCOUNT },
-        { orderBy: { createdAt: 'DESC' } }
-      )
-    }
-
     // Calcular nuevo balance según tipo de transacción
     switch (data.type) {
       case MinoristaTransactionType.RECHARGE:
@@ -65,6 +56,9 @@ export class MinoristaTransactionService {
         break
 
       case MinoristaTransactionType.DISCOUNT: {
+        // Calcular ganancia inmediatamente (5% del monto)
+        const immediateProfit = data.amount * 0.05
+
         // Paso 1: Descontar primero del saldo a favor
         const userBalance = minorista.creditBalance || 0
         let remainingAmount = data.amount
@@ -95,50 +89,15 @@ export class MinoristaTransactionService {
           newAvailableCredit = previousAvailableCredit
         }
 
-        // Validación: Si hay deuda externa, debe poder ser cubierta por la ganancia (5% del monto)
+        // Paso 3: Añadir ganancia al crédito disponible (después de aplicar el descuento)
+        // La ganancia se suma siempre al crédito disponible
+        newAvailableCredit += immediateProfit
+
+        // Validación: Si hay deuda externa, debe poder ser cubierta por la ganancia
         if (externalDebt > 0) {
-          const profitEarned = data.amount * 0.05
-          if (externalDebt > profitEarned) {
+          if (externalDebt > immediateProfit) {
             return { error: 'INSUFFICIENT_BALANCE' }
           }
-        }
-
-        minorista.creditBalance = newBalanceInFavor
-        break
-      }
-
-      case MinoristaTransactionType.PROFIT: {
-        // Paso 3: Aplicar ganancia
-        const currentBalance = previousBalanceInFavorValue // Usar el valor actual del minorista
-
-        if (lastDiscountTransaction) {
-          const creditConsumed = lastDiscountTransaction.creditUsed || 0
-          const externalDebtFromDiscount = lastDiscountTransaction.externalDebt || 0
-          const profit = data.amount
-
-          if (creditConsumed === 0 && externalDebtFromDiscount === 0) {
-            // Solo se usó saldo a favor → ganancia va al saldo a favor
-            newBalanceInFavor = currentBalance + profit
-            newAvailableCredit = previousAvailableCredit
-          } else {
-            // Se consumió crédito o hay deuda externa
-            // Ganancia primero cubre deuda externa
-            const paidExternalDebt = Math.min(profit, externalDebtFromDiscount)
-            externalDebt = externalDebtFromDiscount - paidExternalDebt
-            let remainingProfit = profit - paidExternalDebt
-
-            // Luego restaura crédito consumido
-            const restoreCredit = Math.min(remainingProfit, creditConsumed)
-            newAvailableCredit = previousAvailableCredit + restoreCredit
-            remainingProfit -= restoreCredit
-
-            // Lo que sobre va al saldo a favor
-            newBalanceInFavor = currentBalance + remainingProfit
-          }
-        } else {
-          // Sin transacción de descuento anterior, ganancia va al crédito
-          newAvailableCredit = previousAvailableCredit + data.amount
-          newBalanceInFavor = currentBalance
         }
 
         minorista.creditBalance = newBalanceInFavor
@@ -154,7 +113,12 @@ export class MinoristaTransactionService {
         break
     }
 
-    const profitEarned = data.type === MinoristaTransactionType.PROFIT ? data.amount : 0
+    // Calcular ganancia: 5% para DISCOUNT
+    let profitEarned = 0
+    if (data.type === MinoristaTransactionType.DISCOUNT) {
+      profitEarned = data.amount * 0.05
+    }
+
     const creditConsumed = data.type === MinoristaTransactionType.DISCOUNT ? data.amount : 0
 
     //Obtener la última transacción para mantener o reiniciar el profit acumulado
@@ -164,8 +128,8 @@ export class MinoristaTransactionService {
 
     if (data.type === MinoristaTransactionType.RECHARGE) {
       accumulatedProfit = 0 // Reinicia en recarga
-    } else if (data.type === MinoristaTransactionType.PROFIT) {
-      accumulatedProfit = (lastTransaction?.accumulatedProfit ?? 0) + data.amount
+    } else if (data.type === MinoristaTransactionType.DISCOUNT) {
+      accumulatedProfit = (lastTransaction?.accumulatedProfit ?? 0) + profitEarned
     } else {
       accumulatedProfit = lastTransaction?.accumulatedProfit ?? 0
     }
@@ -252,7 +216,8 @@ export class MinoristaTransactionService {
     if (options?.startDate && options?.endDate) {
       const startDate = new Date(options.startDate)
       const endDate = new Date(options.endDate)
-      endDate.setHours(23, 59, 59, 999)
+      // Don't modify hours - they come from frontend as ISO strings with proper times
+      // (e.g., "2025-11-22T00:00:00.000Z" to "2025-11-23T23:59:59.999Z")
 
       where.createdAt = { $gte: startDate, $lte: endDate }
     }

@@ -58,7 +58,6 @@ export interface MinoristaTransactionReport {
   recharges: number
   discounts: number
   adjustments: number
-  profits: number
   totalRechargeAmount: number
   totalDiscountAmount: number
   totalAdjustmentAmount: number
@@ -266,19 +265,18 @@ export class ReportService {
     const recharges = transactions.filter((t) => t.type === MinoristaTransactionType.RECHARGE)
     const discounts = transactions.filter((t) => t.type === MinoristaTransactionType.DISCOUNT)
     const adjustments = transactions.filter((t) => t.type === MinoristaTransactionType.ADJUSTMENT)
-    const profits = transactions.filter((t) => t.type === MinoristaTransactionType.PROFIT)
 
     const totalRechargeAmount = recharges.reduce((sum, t) => sum + (t.amount || 0), 0)
     const totalDiscountAmount = discounts.reduce((sum, t) => sum + (t.amount || 0), 0)
     const totalAdjustmentAmount = adjustments.reduce((sum, t) => sum + Math.abs(t.amount || 0), 0)
-    const totalProfitAmount = profits.reduce((sum, t) => sum + (t.amount || 0), 0)
+    // Profit se calcula desde los profitEarned en transacciones DISCOUNT
+    const totalProfitAmount = discounts.reduce((sum, t) => sum + (t.profitEarned || 0), 0)
 
     return {
       totalTransactions: transactions.length,
       recharges: recharges.length,
       discounts: discounts.length,
       adjustments: adjustments.length,
-      profits: profits.length,
       totalRechargeAmount,
       totalDiscountAmount,
       totalAdjustmentAmount,
@@ -333,7 +331,11 @@ export class ReportService {
   /**
    * Obtiene la tendencia de giros para un minorista específico en un rango de fechas
    */
-  async getMinoristaGiroTrendReport(minoristaId: string, dateFrom: Date, dateTo: Date): Promise<MinoristaGiroTrendReport> {
+  async getMinoristaGiroTrendReport(
+    minoristaId: string,
+    dateFrom: Date,
+    dateTo: Date
+  ): Promise<MinoristaGiroTrendReport> {
     const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
     const giros = await DI.giros.find({
       minorista: minoristaId,
