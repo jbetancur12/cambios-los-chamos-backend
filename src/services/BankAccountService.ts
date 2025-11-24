@@ -23,9 +23,7 @@ export class BankAccountService {
    * - Para TRANSFERENCISTA: requiere ownerId = transferencista.id
    * - Para ADMIN: ownerId es null (cuenta compartida)
    */
-  async createBankAccount(
-    data: CreateBankAccountInput
-  ): Promise<
+  async createBankAccount(data: CreateBankAccountInput): Promise<
     | BankAccount
     | {
         error:
