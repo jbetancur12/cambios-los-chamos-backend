@@ -31,10 +31,7 @@ export const canAccessBankAccount = (bankAccount: BankAccount, user: User): bool
 /**
  * Verifica si un usuario puede ejecutar un giro usando una cuenta bancaria específica
  */
-export const canExecuteGiroWithAccount = (
-  bankAccount: BankAccount,
-  executingUser: User
-): boolean => {
+export const canExecuteGiroWithAccount = (bankAccount: BankAccount, executingUser: User): boolean => {
   // Si es cuenta de Transferencista
   if (bankAccount.ownerType === BankAccountOwnerType.TRANSFERENCISTA) {
     // Solo el transferencista propietario puede ejecutar con esta cuenta

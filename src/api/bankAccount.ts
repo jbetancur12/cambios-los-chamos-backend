@@ -59,9 +59,15 @@ bankAccountRouter.post(
           case 'BANK_NOT_FOUND':
             return res.status(404).json(ApiResponse.notFound('Banco'))
           case 'ACCOUNT_NUMBER_EXISTS':
-            return res.status(400).json(ApiResponse.validationErrorSingle('accountNumber', 'Número de cuenta ya registrado'))
+            return res
+              .status(400)
+              .json(ApiResponse.validationErrorSingle('accountNumber', 'Número de cuenta ya registrado'))
           case 'OWNER_ID_REQUIRED_FOR_TRANSFERENCISTA':
-            return res.status(400).json(ApiResponse.validationErrorSingle('ownerId', 'ownerId es requerido para cuentas de TRANSFERENCISTA'))
+            return res
+              .status(400)
+              .json(
+                ApiResponse.validationErrorSingle('ownerId', 'ownerId es requerido para cuentas de TRANSFERENCISTA')
+              )
         }
       }
 

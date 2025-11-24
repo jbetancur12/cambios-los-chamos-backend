@@ -23,18 +23,24 @@ export class BankAccountService {
    * - Para TRANSFERENCISTA: requiere ownerId = transferencista.id
    * - Para ADMIN: ownerId es null (cuenta compartida)
    */
-async createBankAccount(
+  async createBankAccount(
     data: CreateBankAccountInput
   ): Promise<
     | BankAccount
-    | { error: 'TRANSFERENCISTA_NOT_FOUND' | 'BANK_NOT_FOUND' | 'ACCOUNT_NUMBER_EXISTS' | 'OWNER_ID_REQUIRED_FOR_TRANSFERENCISTA' }
+    | {
+        error:
+          | 'TRANSFERENCISTA_NOT_FOUND'
+          | 'BANK_NOT_FOUND'
+          | 'ACCOUNT_NUMBER_EXISTS'
+          | 'OWNER_ID_REQUIRED_FOR_TRANSFERENCISTA'
+      }
   > {
     const bankAccountRepo = DI.em.getRepository(BankAccount)
     const transferencistaRepo = DI.em.getRepository(Transferencista)
     const bankRepo = DI.em.getRepository(Bank)
 
     const bank = await bankRepo.findOne({ id: data.bankId })
-    console.log("🚀 ~ BankAccountService ~ createBankAccount ~ bank:", bank)
+    console.log('🚀 ~ BankAccountService ~ createBankAccount ~ bank:', bank)
     if (!bank) {
       return { error: 'BANK_NOT_FOUND' }
     }
@@ -45,12 +51,12 @@ async createBankAccount(
     }
 
     let transferencista: Transferencista | null = null
-    
+
     if (data.ownerType === BankAccountOwnerType.TRANSFERENCISTA) {
       if (!data.ownerId) {
         return { error: 'OWNER_ID_REQUIRED_FOR_TRANSFERENCISTA' }
       }
-      
+
       transferencista = await transferencistaRepo.findOne({ id: data.ownerId })
       if (!transferencista) {
         return { error: 'TRANSFERENCISTA_NOT_FOUND' }
@@ -67,7 +73,7 @@ async createBankAccount(
       ownerType: data.ownerType,
       ownerId: data.ownerId,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
 
     // Asignar transferencista solo si existe
