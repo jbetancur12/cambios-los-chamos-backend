@@ -4,6 +4,7 @@ import { Transferencista } from '@/entities/Transferencista'
 import { Bank } from '@/entities/Bank'
 import { User } from '@/entities/User'
 import { canAccessBankAccount } from '@/lib/bankAccountPermissions'
+import { v4 as uuidv4 } from 'uuid'
 
 export interface CreateBankAccountInput {
   bankId: string
@@ -22,7 +23,7 @@ export class BankAccountService {
    * - Para TRANSFERENCISTA: requiere ownerId = transferencista.id
    * - Para ADMIN: ownerId es null (cuenta compartida)
    */
-  async createBankAccount(
+async createBankAccount(
     data: CreateBankAccountInput
   ): Promise<
     | BankAccount
@@ -32,50 +33,57 @@ export class BankAccountService {
     const transferencistaRepo = DI.em.getRepository(Transferencista)
     const bankRepo = DI.em.getRepository(Bank)
 
-    // Validar Banco
     const bank = await bankRepo.findOne({ id: data.bankId })
+    console.log("🚀 ~ BankAccountService ~ createBankAccount ~ bank:", bank)
     if (!bank) {
       return { error: 'BANK_NOT_FOUND' }
     }
 
-    // Validar número de cuenta único
-    const existing = await bankAccountRepo.findOne({ accountNumber: data.accountNumber })
-    if (existing) {
+    const existingCount = await bankAccountRepo.count({ accountNumber: data.accountNumber })
+    if (existingCount > 0) {
       return { error: 'ACCOUNT_NUMBER_EXISTS' }
     }
 
-    // Validación según ownerType
     let transferencista: Transferencista | null = null
-
+    
     if (data.ownerType === BankAccountOwnerType.TRANSFERENCISTA) {
       if (!data.ownerId) {
         return { error: 'OWNER_ID_REQUIRED_FOR_TRANSFERENCISTA' }
       }
-
-      // Validar que exista el transferencista
+      
       transferencista = await transferencistaRepo.findOne({ id: data.ownerId })
       if (!transferencista) {
         return { error: 'TRANSFERENCISTA_NOT_FOUND' }
       }
     }
 
-    // Crear cuenta
-    const bankAccount = bankAccountRepo.create({
-      bank,
+    // Crear la entidad usando em.create()
+    const newBankAccount = DI.em.create(BankAccount, {
+      bank: bank,
       accountNumber: data.accountNumber,
       accountHolder: data.accountHolder,
       accountType: data.accountType ?? AccountType.AHORROS,
       balance: 0,
       ownerType: data.ownerType,
       ownerId: data.ownerId,
-      transferencista: transferencista ?? undefined,
       createdAt: new Date(),
-      updatedAt: new Date(),
+      updatedAt: new Date()
     })
 
-    await DI.em.persistAndFlush(bankAccount)
+    // Asignar transferencista solo si existe
+    if (transferencista) {
+      newBankAccount.transferencista = transferencista
+    }
 
-    return bankAccount
+    try {
+      await DI.em.persistAndFlush(newBankAccount)
+      await DI.em.populate(newBankAccount, ['bank', 'transferencista'])
+
+      return newBankAccount
+    } catch (e) {
+      console.error('Error detallado al crear cuenta:', e)
+      throw e
+    }
   }
 
   /**

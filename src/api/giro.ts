@@ -300,7 +300,7 @@ giroRouter.patch(
 // ------------------ MARCAR GIRO COMO PROCESANDO ------------------
 giroRouter.post(
   '/:giroId/mark-processing',
-  requireRole(UserRole.TRANSFERENCISTA),
+  requireRole(UserRole.TRANSFERENCISTA, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   async (req: Request, res: Response) => {
     const { giroId } = req.params
 
@@ -667,7 +667,7 @@ giroRouter.delete('/:giroId', requireRole(UserRole.MINORISTA), async (req: Reque
 giroRouter.post(
   '/:giroId/payment-proof/upload',
   upload.single('file'),
-  requireRole(UserRole.TRANSFERENCISTA),
+  requireRole(UserRole.TRANSFERENCISTA, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   async (req: Request & { file?: any }, res: Response) => {
     try {
       const { giroId } = req.params

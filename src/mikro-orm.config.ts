@@ -5,8 +5,8 @@ import { TsMorphMetadataProvider } from '@mikro-orm/reflection'
 import { DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT } from './settings'
 
 export default defineConfig({
-  entities: ['./dist/entities'], // Compiled entities
-  entitiesTs: ['./dist/entities'], // Compiled entities (node no puede leer .ts directamente)
+  entities: ['./dist/entities'], // Para producción
+  entitiesTs: ['./src/entities'], // Para desarrollo con ts-node
 
   dbName: DB_NAME,
   user: DB_USER,
@@ -16,6 +16,7 @@ export default defineConfig({
 
   metadataProvider: TsMorphMetadataProvider, // 👈 NECESARIO para leer decoradores TypeScript
   extensions: [Migrator, SeedManager],
+  validate: false, // Deshabilitar validación estricta de entidades
 
   pool: {
     min: 0,

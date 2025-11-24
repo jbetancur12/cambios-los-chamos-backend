@@ -19,7 +19,7 @@ export class BankAccount {
   id: string = uuidv4()
 
   @ManyToOne(() => Transferencista, { deleteRule: 'cascade', updateRule: 'cascade', nullable: true })
-  transferencista?: Transferencista
+  transferencista: Transferencista | null = null
 
   @Enum(() => BankAccountOwnerType)
   @Index()
