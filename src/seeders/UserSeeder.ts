@@ -109,6 +109,9 @@ export class UserSeeder extends Seeder {
                 accountHolder: bankData.accountHolder,
                 accountType: bankData.accountType,
                 balance: 60000,
+                ownerType: 'TRANSFERENCISTA' as any,
+                createdAt: new Date(),
+                updatedAt: new Date(),
               })
               em.persist(bankAccount)
 

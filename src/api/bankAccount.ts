@@ -13,7 +13,7 @@ import { DI } from '@/di'
 import { validateParams } from '@/lib/validateParams'
 import { bankAccountTransactionService } from '@/services/BankAccountTransactionService'
 import { BankAccount, BankAccountOwnerType } from '@/entities/BankAccount'
-import { canManageBankAccounts } from '@/lib/bankAccountPermissions'
+import { canAccessBankAccount, canManageBankAccounts } from '@/lib/bankAccountPermissions'
 
 export const bankAccountRouter = express.Router({ mergeParams: true })
 
@@ -312,7 +312,7 @@ bankAccountRouter.get('/:bankAccountId/transactions', requireAuth(), async (req:
     // Si es transferencista, debe ser el dueño de la cuenta
     if (user.role === UserRole.TRANSFERENCISTA) {
       const transferencista = await DI.transferencistas.findOne({ user: user.id })
-      if (!transferencista || bankAccount.transferencista.id !== transferencista.id) {
+      if (!transferencista || !bankAccount.transferencista || bankAccount.transferencista.id !== transferencista.id) {
         return res
           .status(403)
           .json(ApiResponse.forbidden('No tienes permisos para ver las transacciones de esta cuenta'))

@@ -69,6 +69,8 @@ export class BankAccountService {
       ownerType: data.ownerType,
       ownerId: data.ownerId,
       transferencista: transferencista ?? undefined,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
 
     await DI.em.persistAndFlush(bankAccount)
