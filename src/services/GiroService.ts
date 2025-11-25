@@ -726,7 +726,7 @@ export class GiroService {
 
   /**
    * Crea un giro de tipo RECARGA
-   * Solo MINORISTA puede crear recargas
+   * SUPER_ADMIN, ADMIN, y MINORISTA pueden crear recargas
    */
   async createRecharge(
     data: {
@@ -750,15 +750,13 @@ export class GiroService {
   > {
     const giroRepo = DI.em.getRepository(Giro)
 
-    // Validar que sea minorista
-    if (createdBy.role !== UserRole.MINORISTA) {
-      return { error: 'MINORISTA_NOT_FOUND' }
-    }
-
-    // Obtener minorista
-    const minorista = await DI.minoristas.findOne({ user: createdBy.id }, { populate: ['user'] })
-    if (!minorista) {
-      return { error: 'MINORISTA_NOT_FOUND' }
+    // Obtener minorista solo si el usuario es MINORISTA
+    let minorista: any = null
+    if (createdBy.role === UserRole.MINORISTA) {
+      minorista = await DI.minoristas.findOne({ user: createdBy.id }, { populate: ['user'] })
+      if (!minorista) {
+        return { error: 'MINORISTA_NOT_FOUND' }
+      }
     }
 
     // Obtener operador
@@ -783,23 +781,25 @@ export class GiroService {
     const amountBs = amount.amountBs
     const amountCop = amountBs * Number(exchangeRate.sellRate)
 
-    // Crear transacción de descuento del balance del minorista
-    const transactionResult = await minoristaTransactionService.createTransaction({
-      minoristaId: minorista.id,
-      amount: amountCop,
-      type: MinoristaTransactionType.DISCOUNT,
-      createdBy,
-    })
+    // Crear transacción de descuento del balance del minorista solo si hay minorista
+    if (minorista) {
+      const transactionResult = await minoristaTransactionService.createTransaction({
+        minoristaId: minorista.id,
+        amount: amountCop,
+        type: MinoristaTransactionType.DISCOUNT,
+        createdBy,
+      })
 
-    if ('error' in transactionResult) {
-      return { error: 'INSUFFICIENT_BALANCE' }
+      if ('error' in transactionResult) {
+        return { error: 'INSUFFICIENT_BALANCE' }
+      }
+
+      // Recargar minorista para obtener balance actualizado
+      await DI.em.refresh(minorista)
     }
 
-    // Recargar minorista para obtener balance actualizado
-    await DI.em.refresh(minorista)
-
-    // Calcular ganancias: 5% para minorista
-    const minoristaProfit = amountCop * 0.05
+    // Calcular ganancias: 5% para minorista (si existe)
+    const minoristaProfit = minorista ? amountCop * 0.05 : 0
     const systemProfit = amountCop * 0.05 // 5% para el sistema
 
     // Crear giro
@@ -832,7 +832,7 @@ export class GiroService {
 
   /**
    * Crea un giro de tipo PAGO_MOVIL
-   * Solo MINORISTA puede crear pagos móviles
+   * SUPER_ADMIN, ADMIN, y MINORISTA pueden crear pagos móviles
    */
   async createMobilePayment(
     data: {
@@ -852,15 +852,13 @@ export class GiroService {
   > {
     const giroRepo = DI.em.getRepository(Giro)
 
-    // Validar que sea minorista
-    if (createdBy.role !== UserRole.MINORISTA) {
-      return { error: 'MINORISTA_NOT_FOUND' }
-    }
-
-    // Obtener minorista
-    const minorista = await DI.minoristas.findOne({ user: createdBy.id }, { populate: ['user'] })
-    if (!minorista) {
-      return { error: 'MINORISTA_NOT_FOUND' }
+    // Obtener minorista solo si el usuario es MINORISTA
+    let minorista: any = null
+    if (createdBy.role === UserRole.MINORISTA) {
+      minorista = await DI.minoristas.findOne({ user: createdBy.id }, { populate: ['user'] })
+      if (!minorista) {
+        return { error: 'MINORISTA_NOT_FOUND' }
+      }
     }
 
     // Obtener banco
@@ -878,23 +876,25 @@ export class GiroService {
     // Calcular conversión COP a Bs
     const amountBs = data.amountCop / Number(exchangeRate.sellRate)
 
-    // Crear transacción de descuento del balance del minorista
-    const transactionResult = await minoristaTransactionService.createTransaction({
-      minoristaId: minorista.id,
-      amount: data.amountCop,
-      type: MinoristaTransactionType.DISCOUNT,
-      createdBy,
-    })
+    // Crear transacción de descuento del balance del minorista solo si hay minorista
+    if (minorista) {
+      const transactionResult = await minoristaTransactionService.createTransaction({
+        minoristaId: minorista.id,
+        amount: data.amountCop,
+        type: MinoristaTransactionType.DISCOUNT,
+        createdBy,
+      })
 
-    if ('error' in transactionResult) {
-      return { error: 'INSUFFICIENT_BALANCE' }
+      if ('error' in transactionResult) {
+        return { error: 'INSUFFICIENT_BALANCE' }
+      }
+
+      // Recargar minorista para obtener balance actualizado
+      await DI.em.refresh(minorista)
     }
 
-    // Recargar minorista para obtener balance actualizado
-    await DI.em.refresh(minorista)
-
-    // Calcular ganancias: 5% para minorista
-    const minoristaProfit = data.amountCop * 0.05
+    // Calcular ganancias: 5% para minorista (si existe)
+    const minoristaProfit = minorista ? data.amountCop * 0.05 : 0
     const systemProfit = data.amountCop * 0.05 // 5% para el sistema
 
     // Crear giro
