@@ -143,10 +143,20 @@ export class BankAccountService {
       return { error: 'TRANSFERENCISTA_NOT_FOUND' }
     }
 
+    // Buscar cuentas usando AMBOS sistemas (viejo y nuevo)
     const accounts = await bankAccountRepo.find(
       {
-        ownerType: BankAccountOwnerType.TRANSFERENCISTA,
-        ownerId: transferenciaId,
+        $or: [
+          // Sistema nuevo: ownerType + ownerId
+          {
+            ownerType: BankAccountOwnerType.TRANSFERENCISTA,
+            ownerId: transferenciaId,
+          },
+          // Sistema viejo: relación transferencista
+          {
+            transferencista: transferencista,
+          },
+        ],
       },
       { populate: ['bank'] }
     )
