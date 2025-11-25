@@ -6,89 +6,94 @@ import { OperatorAmount } from '@/entities/OperatorAmount'
 import { User } from '@/entities/User'
 import { SUPERADMIN_EMAIL } from '@/settings'
 
+// Datos de operadores y sus montos basados en las imágenes (Telecel eliminado)
+const operatorsConfig = {
+  // Movilnet
+  Movilnet: [150, 300, 400, 600, 900, 1500, 3900, 6600],
+  // Movistar
+  Movistar: [100, 200, 500, 800, 1500, 1800, 3000, 5000],
+  // Digitel
+  Digitel: [160, 320, 960, 1280, 1440, 2400, 3800, 4800, 5440],
+};
+
 export class RechargeSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    // Get superadmin to use as createdBy
     const superadmin = await em.findOne(User, { email: SUPERADMIN_EMAIL })
     if (!superadmin) {
       console.warn('Superadmin not found, cannot seed recharge data')
       return
     }
 
-    // Step 1: Create Recharge Operators
-    const operatorsData = [
-      { name: 'Movistar', type: 'MOVIL' },
-      { name: 'Digitel', type: 'MOVIL' },
-      { name: 'Movilnet', type: 'MOVIL' },
-      { name: 'Telecel', type: 'MOVIL' },
-    ]
-
-    const operators: Record<string, RechargeOperator> = {}
+    // Paso 1: Crear Recharge Operators
+    const operatorsData = Object.keys(operatorsConfig).map(name => ({ name, type: 'MOVIL' }));
+    const operators: Record<string, RechargeOperator> = {};
 
     for (const operatorData of operatorsData) {
-      const existingOperator = await em.findOne(RechargeOperator, {
-        name: operatorData.name,
-      })
+      let operator = await em.findOne(RechargeOperator, { name: operatorData.name });
 
-      if (!existingOperator) {
-        const operator = em.create(RechargeOperator, {
-          // <-- ¡Usa em.create() aquí!
+      if (!operator) {
+        operator = em.create(RechargeOperator, {
           name: operatorData.name,
           type: operatorData.type,
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),
-        })
-        em.persist(operator)
-        operators[operatorData.name] = operator
-      } else {
-        operators[operatorData.name] = existingOperator
+        });
+        em.persist(operator);
       }
+      operators[operatorData.name] = operator;
     }
+    await em.flush();
 
-    await em.flush()
+    // --- Montos de las imágenes ---
+    // 1. Recolectar todos los montos únicos de todos los operadores
+    const allUniqueAmounts = new Set<number>();
+    Object.values(operatorsConfig).forEach(amounts => {
+      amounts.forEach(amount => allUniqueAmounts.add(amount));
+    });
+    const amountsData = Array.from(allUniqueAmounts).sort((a, b) => a - b);
+    // -----------------------------
 
-    // Step 2: Create Recharge Amounts (in Bolivares - VES)
-    // Based on current Venezuelan mobile operator rates (2024-2025)
-    const amountsData = [45, 90, 160, 300, 380, 500, 600, 800, 1000, 1800, 2000, 2700]
-
-    const amounts: RechargeAmount[] = []
+    // Paso 2: Crear Recharge Amounts (en Bolívares - VES)
+    const amountsMap = new Map<number, RechargeAmount>(); 
+    const amounts: RechargeAmount[] = [];
 
     for (const amountBs of amountsData) {
-      const existingAmount = await em.findOne(RechargeAmount, {
-        amountBs,
-      })
+      let amount = await em.findOne(RechargeAmount, { amountBs });
 
-      if (!existingAmount) {
-        const amount = em.create(RechargeAmount, {
-          // <-- ¡Usa em.create() aquí!
+      if (!amount) {
+        amount = em.create(RechargeAmount, {
           amountBs,
           isActive: true,
           createdBy: superadmin,
           createdAt: new Date(),
           updatedAt: new Date(),
-        })
-
-        em.persist(amount)
-        amounts.push(amount)
-      } else {
-        amounts.push(existingAmount)
+        });
+        em.persist(amount);
       }
+      amounts.push(amount);
+      amountsMap.set(amountBs, amount);
     }
+    await em.flush();
 
-    await em.flush()
+    // Paso 3: Crear relaciones específicas Operator-Amount
+    let createdRelationships = 0;
+    
+    for (const [operatorName, applicableAmounts] of Object.entries(operatorsConfig)) {
+      const operator = operators[operatorName];
 
-    // Step 3: Create Operator-Amount relationships
-    // Each operator should have all amounts available
-    for (const operatorName of Object.keys(operators)) {
-      const operator = operators[operatorName]
+      if (!operator) continue;
 
-      for (const amount of amounts) {
-        // Check if relationship already exists
+      for (const amountBs of applicableAmounts) {
+        const amount = amountsMap.get(amountBs);
+
+        if (!amount) continue;
+
+        // Verificar si la relación ya existe
         const existingRelation = await em.findOne(OperatorAmount, {
           operator,
           amount,
-        })
+        });
 
         if (!existingRelation) {
           const relation = em.create(OperatorAmount, {
@@ -97,18 +102,19 @@ export class RechargeSeeder extends Seeder {
             isActive: true,
             createdAt: new Date(),
             updatedAt: new Date(),
-          })
+          });
 
-          em.persist(relation)
+          em.persist(relation);
+          createdRelationships++;
         }
       }
     }
 
-    await em.flush()
+    await em.flush();
 
-    console.log('✅ Recharge operators and amounts seeded successfully')
-    console.log(`   - Created ${Object.keys(operators).length} operators`)
-    console.log(`   - Created ${amounts.length} recharge amounts`)
-    console.log(`   - Created ${Object.keys(operators).length * amounts.length} operator-amount relationships`)
+    console.log('✅ Recharge operators and amounts seeded successfully based on images');
+    console.log(`   - Creados ${Object.keys(operators).length} operadores`);
+    console.log(`   - Creados ${amounts.length} montos de recarga únicos`);
+    console.log(`   - Creadas ${createdRelationships} relaciones operador-monto`);
   }
 }
