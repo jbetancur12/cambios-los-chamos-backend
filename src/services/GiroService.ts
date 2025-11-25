@@ -298,21 +298,21 @@ export class GiroService {
       }
 
       // Si es transferencista, validar asignación de banco
-      if (executingUser.role === UserRole.TRANSFERENCISTA) {
-        const transferencista = await DI.transferencistas.findOne({
-          user: executingUser.id,
-        })
+      // if (executingUser.role === UserRole.TRANSFERENCISTA) {
+      //   const transferencista = await DI.transferencistas.findOne({
+      //     user: executingUser.id,
+      //   })
 
-        const hasAssignment = await DI.bankAssignments.findOne({
-          bank: bankAccount.bank.id,
-          transferencista: transferencista!.id,
-          isActive: true,
-        })
+      //   const hasAssignment = await DI.bankAssignments.findOne({
+      //     bank: bankAccount.bank.id,
+      //     transferencista: transferencista!.id,
+      //     isActive: true,
+      //   })
 
-        if (!hasAssignment) {
-          return { error: 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA' }
-        }
-      }
+      //   if (!hasAssignment) {
+      //     return { error: 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA' }
+      //   }
+      // }
     } else {
       // Validación antigua para compatibilidad (si no se pasa usuario)
       // Verificar que la cuenta pertenezca al transferencista del giro
