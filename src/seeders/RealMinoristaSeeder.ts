@@ -30,7 +30,7 @@ const realMinoristasData = [
   { fullName: 'Niurka Flores', email: 'sanchezadiuska30@gmail.com' },
   { fullName: 'Petra Martínez', email: 'petradevega20@gmail.com' },
   { fullName: 'Wiliam Fortinch', email: 'williamjavierola@gmail.com' },
-  { fullName: 'Jenny Lozano', email: 'internetjenny0728@gmail.co' },
+  { fullName: 'Jenny Lozano', email: 'internetjenny0728@gmail.com' },
   { fullName: 'Jesús Segura', email: 'jesusnsegurap@gmail.com' },
   { fullName: 'Barbara Pérez', email: 'nanip2304@gmail.com' },
   { fullName: 'Johalis Pérez', email: 'carmennperez.9000@gmail.com' },
