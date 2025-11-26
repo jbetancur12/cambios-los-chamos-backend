@@ -179,7 +179,6 @@ export class BankAccountTransactionService {
         currentBalance: number
         bankAccount: {
           id: string
-          accountNumber: string
           accountHolder: string
           balance: number
         }
@@ -209,7 +208,6 @@ export class BankAccountTransactionService {
       currentBalance: transaction.currentBalance,
       bankAccount: {
         id: transaction.bankAccount.id,
-        accountNumber: transaction.bankAccount.accountNumber,
         accountHolder: transaction.bankAccount.accountHolder,
         balance: transaction.bankAccount.balance,
       },

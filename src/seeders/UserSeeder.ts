@@ -3,7 +3,7 @@ import { Seeder } from '@mikro-orm/seeder'
 import { User, UserRole } from '@/entities/User'
 import { Transferencista } from '@/entities/Transferencista'
 import { Minorista } from '@/entities/Minorista'
-import { BankAccount, AccountType } from '@/entities/BankAccount'
+import { BankAccount } from '@/entities/BankAccount'
 import { Bank } from '@/entities/Bank'
 import { BankAccountTransaction, BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 import { makePassword } from '@/lib/passwordUtils'
@@ -40,15 +40,11 @@ export class UserSeeder extends Seeder {
         banks: [
           {
             bankName: 'BANCO DE VENEZUELA',
-            accountNumber: '0102-0123-4567-8901-2345',
             accountHolder: 'María Fernanda Rodríguez',
-            accountType: AccountType.AHORROS,
           },
           {
             bankName: 'BANCO MERCANTIL',
-            accountNumber: '0105-0034-5678-9012-3456',
             accountHolder: 'Carolina del Valle Gómez',
-            accountType: AccountType.AHORROS,
           },
         ],
       },
@@ -57,15 +53,11 @@ export class UserSeeder extends Seeder {
         banks: [
           {
             bankName: 'BANESCO',
-            accountNumber: '0134-5678-9012-3456-7890',
             accountHolder: 'José Antonio Pérez',
-            accountType: AccountType.CORRIENTE,
           },
           {
             bankName: 'BBVA PROVINCIAL',
-            accountNumber: '0108-0098-7654-3210-9876',
             accountHolder: 'Luis Eduardo Salazar',
-            accountType: AccountType.CORRIENTE,
           },
         ],
       },
@@ -105,9 +97,7 @@ export class UserSeeder extends Seeder {
               const bankAccount = em.create(BankAccount, {
                 transferencista,
                 bank,
-                accountNumber: bankData.accountNumber,
                 accountHolder: bankData.accountHolder,
-                accountType: bankData.accountType,
                 balance: 60000,
                 ownerType: 'TRANSFERENCISTA' as any,
                 createdAt: new Date(),

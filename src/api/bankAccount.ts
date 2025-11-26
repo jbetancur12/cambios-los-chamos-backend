@@ -26,7 +26,7 @@ bankAccountRouter.post(
   validateBody(createBankAccountSchema),
   async (req: Request, res: Response) => {
     const user = req.context?.requestUser?.user
-    const { bankId, accountNumber, accountHolder, accountType, ownerType, ownerId } = req.body
+    const { bankId, accountHolder, ownerType, ownerId } = req.body
 
     if (!user) {
       return res.status(401).json(ApiResponse.unauthorized())
@@ -45,9 +45,7 @@ bankAccountRouter.post(
     try {
       const result = await bankAccountService.createBankAccount({
         bankId,
-        accountNumber,
         accountHolder,
-        accountType,
         ownerType,
         ownerId,
       })
@@ -58,10 +56,6 @@ bankAccountRouter.post(
             return res.status(404).json(ApiResponse.notFound('Transferencista'))
           case 'BANK_NOT_FOUND':
             return res.status(404).json(ApiResponse.notFound('Banco'))
-          case 'ACCOUNT_NUMBER_EXISTS':
-            return res
-              .status(400)
-              .json(ApiResponse.validationErrorSingle('accountNumber', 'Número de cuenta ya registrado'))
           case 'OWNER_ID_REQUIRED_FOR_TRANSFERENCISTA':
             return res
               .status(400)
@@ -152,9 +146,7 @@ bankAccountRouter.get(
     const formattedAccounts = accounts.map((account) => {
       const formatted: any = {
         id: account.id,
-        accountNumber: account.accountNumber,
         accountHolder: account.accountHolder,
-        accountType: account.accountType,
         balance: account.balance,
         ownerType: account.ownerType,
         ownerId: account.ownerId,
@@ -228,9 +220,7 @@ bankAccountRouter.get('/:bankAccountId', requireAuth(), async (req: Request, res
 
   const formatted: any = {
     id: bankAccount.id,
-    accountNumber: bankAccount.accountNumber,
     accountHolder: bankAccount.accountHolder,
-    accountType: bankAccount.accountType,
     balance: bankAccount.balance,
     ownerType: bankAccount.ownerType,
     ownerId: bankAccount.ownerId,

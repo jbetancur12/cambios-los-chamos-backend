@@ -71,8 +71,7 @@ export class ThermalTicketService {
     let commission = undefined
     if (giro.bankAccountUsed) {
       const bank = giro.bankAccountUsed.bank
-      const lastFourDigits = giro.bankAccountUsed.accountNumber.slice(-4)
-      bankAccountUsedFormatted = `${bank.name} ...${lastFourDigits}`
+      bankAccountUsedFormatted = `${bank.name}`
       // La comisión se envía en el request, aquí es un estimado
       commission = '0.00'
     }

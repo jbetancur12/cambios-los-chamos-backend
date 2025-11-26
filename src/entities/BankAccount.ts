@@ -32,13 +32,14 @@ export class BankAccount {
   @ManyToOne(() => Bank, { deleteRule: 'restrict', updateRule: 'cascade' })
   bank!: Bank
 
-  @Property()
-  accountNumber!: string
+  @Property({ nullable: true })
+  accountNumber?: string
 
   @Property()
   accountHolder!: string
 
   @Enum(() => AccountType)
+  @Property({ nullable: true })
   accountType?: AccountType
 
   @Property({ type: 'decimal', default: 0 })

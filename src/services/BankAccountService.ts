@@ -8,9 +8,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 export interface CreateBankAccountInput {
   bankId: string
-  accountNumber: string
   accountHolder: string
-  accountType?: AccountType
   // Nuevo: tipo de propietario
   ownerType: BankAccountOwnerType
   // Nuevo: ID del propietario (requerido si ownerType='TRANSFERENCISTA')
@@ -26,11 +24,7 @@ export class BankAccountService {
   async createBankAccount(data: CreateBankAccountInput): Promise<
     | BankAccount
     | {
-        error:
-          | 'TRANSFERENCISTA_NOT_FOUND'
-          | 'BANK_NOT_FOUND'
-          | 'ACCOUNT_NUMBER_EXISTS'
-          | 'OWNER_ID_REQUIRED_FOR_TRANSFERENCISTA'
+        error: 'TRANSFERENCISTA_NOT_FOUND' | 'BANK_NOT_FOUND' | 'OWNER_ID_REQUIRED_FOR_TRANSFERENCISTA'
       }
   > {
     const bankAccountRepo = DI.em.getRepository(BankAccount)
@@ -41,11 +35,6 @@ export class BankAccountService {
     console.log('🚀 ~ BankAccountService ~ createBankAccount ~ bank:', bank)
     if (!bank) {
       return { error: 'BANK_NOT_FOUND' }
-    }
-
-    const existingCount = await bankAccountRepo.count({ accountNumber: data.accountNumber })
-    if (existingCount > 0) {
-      return { error: 'ACCOUNT_NUMBER_EXISTS' }
     }
 
     let transferencista: Transferencista | null = null
@@ -64,9 +53,7 @@ export class BankAccountService {
     // Crear la entidad usando em.create()
     const newBankAccount = DI.em.create(BankAccount, {
       bank: bank,
-      accountNumber: data.accountNumber,
       accountHolder: data.accountHolder,
-      accountType: data.accountType ?? AccountType.AHORROS,
       balance: 0,
       ownerType: data.ownerType,
       ownerId: data.ownerId,
@@ -200,9 +187,7 @@ export class BankAccountService {
     // Retornar solo info relevante
     return accounts.map((a) => ({
       id: a.id,
-      accountNumber: a.accountNumber,
       accountHolder: a.accountHolder,
-      accountType: a.accountType,
       balance: a.balance,
       bank: {
         id: a.bank.id,
