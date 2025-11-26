@@ -835,6 +835,7 @@ giroRouter.get('/:giroId/thermal-ticket', requireAuth(), async (req: Request, re
           'transferencista',
           'transferencista.user',
           'minorista',
+          'rateApplied',
           'bankAccountUsed',
           'bankAccountUsed.bank',
           'bankAccountUsed.transferencista',
@@ -843,6 +844,7 @@ giroRouter.get('/:giroId/thermal-ticket', requireAuth(), async (req: Request, re
       }
     )
 
+    console.log('🚀 ~ giro:', giro)
     if (!giro) {
       return res.status(404).json(ApiResponse.notFound('Giro no encontrado'))
     }

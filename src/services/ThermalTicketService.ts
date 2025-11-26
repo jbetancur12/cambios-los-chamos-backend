@@ -20,6 +20,8 @@ export interface ThermalTicketData {
   // Encabezado
   companyName: string
   companyPhone: string
+  companyAddress: string
+  companyCity: string
   divider: string
 
   // Info del giro
@@ -79,7 +81,9 @@ export class ThermalTicketService {
     return {
       // Encabezado
       companyName: 'CAMBIOS LOS CHAMOS',
-      companyPhone: '+58 XXXXXXXXXX', // Actualizar con número real
+      companyPhone: '+57 302 341 4813', // Actualizar con número real
+      companyAddress: 'Cra 21 # 43 - 26 Av, Molinos',
+      companyCity: 'Dosquebradas, Risaralda',
       divider: '================================',
 
       // Info del giro
@@ -99,7 +103,7 @@ export class ThermalTicketService {
       currencyInput: giro.currencyInput,
       amountBs: formatCurrency(giro.amountBs),
       commission,
-      bcvApplied: formatCurrency(giro.bcvValueApplied),
+      bcvApplied: formatCurrency(giro.rateApplied.bcv),
 
       // Ganancias
       systemProfit: formatCurrency(giro.systemProfit),
