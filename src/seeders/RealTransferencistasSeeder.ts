@@ -8,17 +8,17 @@ import { makePassword } from '@/lib/passwordUtils'
 const realTransferencistasData = [
   { fullName: 'Aurora Isabel Zambrano', email: 'auroraisabelzambrano@gmail.com' },
   { fullName: 'Rossana Monticelli', email: 'kilross17@gmail.com' },
-];
+]
 
 export class RealTransferencistasSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    const defaultPassword = makePassword('12345678');
-    
-    console.log('Iniciando RealTransferencistasSeeder...');
+    const defaultPassword = makePassword('12345678')
+
+    console.log('Iniciando RealTransferencistasSeeder...')
 
     for (const data of realTransferencistasData) {
       // 1. Verificar si el usuario ya existe
-      const existingUser = await em.findOne(User, { email: data.email });
+      const existingUser = await em.findOne(User, { email: data.email })
 
       if (!existingUser) {
         // 2. Crear la entidad User
@@ -31,8 +31,8 @@ export class RealTransferencistasSeeder extends Seeder {
           emailVerified: true,
           createdAt: new Date(),
           updatedAt: new Date(),
-        });
-        em.persist(user);
+        })
+        em.persist(user)
 
         // 3. Crear la entidad Transferencista asociada
         const transferencista = em.create(Transferencista, {
@@ -40,16 +40,16 @@ export class RealTransferencistasSeeder extends Seeder {
           available: true, // Asumimos que están disponibles por defecto
           bankAccounts: [], // Sin cuentas bancarias iniciales
           giros: [],
-        });
-        em.persist(transferencista);
-        console.log(`Transferencista creado: ${data.fullName} (${data.email})`);
+        })
+        em.persist(transferencista)
+        console.log(`Transferencista creado: ${data.fullName} (${data.email})`)
       } else {
-        console.log(`Usuario ya existe, omitiendo: ${data.email}`);
+        console.log(`Usuario ya existe, omitiendo: ${data.email}`)
       }
     }
 
     // Guardar todos los cambios
-    await em.flush();
-    console.log('RealTransferencistasSeeder finalizado.');
+    await em.flush()
+    console.log('RealTransferencistasSeeder finalizado.')
   }
 }

@@ -372,7 +372,7 @@ giroRouter.post(
   async (req: Request, res: Response) => {
     const user = req.context?.requestUser?.user
     const { giroId } = req.params
-    const { bankAccountId, executionType, proofUrl, fee } = req.body
+    const { bankAccountId, executionType, fee } = req.body
 
     if (!user) {
       return res.status(401).json(ApiResponse.unauthorized())

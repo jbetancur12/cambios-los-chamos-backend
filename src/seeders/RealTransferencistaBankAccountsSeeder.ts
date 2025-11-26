@@ -38,41 +38,47 @@ const realBankAccountsData = [
       },
     ],
   },
-];
+]
 
 export class RealTransferencistaBankAccountsSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    console.log('Iniciando RealTransferencistaBankAccountsSeeder...');
-    
+    console.log('Iniciando RealTransferencistaBankAccountsSeeder...')
+
     // Asumimos que la entidad Bank existe para estos nombres
-    const bankNames = new Set(realBankAccountsData.flatMap(d => d.banks.map(b => b.bankName)));
-    const existingBanks = await em.find(Bank, { name: { $in: Array.from(bankNames) } });
-    const bankMap = new Map(existingBanks.map(b => [b.name, b]));
+    const bankNames = new Set(realBankAccountsData.flatMap((d) => d.banks.map((b) => b.bankName)))
+    const existingBanks = await em.find(Bank, { name: { $in: Array.from(bankNames) } })
+    const bankMap = new Map(existingBanks.map((b) => [b.name, b]))
 
     for (const data of realBankAccountsData) {
       // 1. Buscar al Transferencista
-      const user = await em.findOne(User, { email: data.transferencistaEmail });
-      
+      const user = await em.findOne(User, { email: data.transferencistaEmail })
+
       if (!user) {
-        console.warn(`Usuario no encontrado para el email: ${data.transferencistaEmail}. Omitiendo la creación de cuentas.`);
-        continue;
+        console.warn(
+          `Usuario no encontrado para el email: ${data.transferencistaEmail}. Omitiendo la creación de cuentas.`
+        )
+        continue
       }
-      
+
       // La relación Transferencista debería estar cargada o ser buscable desde el User
-      const transferencista = await em.findOne(Transferencista, { user });
+      const transferencista = await em.findOne(Transferencista, { user })
 
       if (!transferencista) {
-        console.warn(`Entidad Transferencista no encontrada para el usuario: ${data.transferencistaEmail}. Omitiendo la creación de cuentas.`);
-        continue;
+        console.warn(
+          `Entidad Transferencista no encontrada para el usuario: ${data.transferencistaEmail}. Omitiendo la creación de cuentas.`
+        )
+        continue
       }
 
       // 2. Crear las cuentas bancarias
       for (const bankData of data.banks) {
-        const bank = bankMap.get(bankData.bankName);
+        const bank = bankMap.get(bankData.bankName)
 
         if (!bank) {
-          console.error(`ERROR: El banco con nombre "${bankData.bankName}" NO existe en la base de datos. Omitiendo la cuenta.`);
-          continue;
+          console.error(
+            `ERROR: El banco con nombre "${bankData.bankName}" NO existe en la base de datos. Omitiendo la cuenta.`
+          )
+          continue
         }
 
         // Se crea la cuenta bancaria
@@ -84,13 +90,13 @@ export class RealTransferencistaBankAccountsSeeder extends Seeder {
           ownerType: 'TRANSFERENCISTA' as any,
           createdAt: new Date(),
           updatedAt: new Date(),
-        });
-        em.persist(bankAccount);
-        console.log(`Cuenta creada para ${data.fullName}: ${bankData.bankName}`);
+        })
+        em.persist(bankAccount)
+        console.log(`Cuenta creada para ${data.fullName}: ${bankData.bankName}`)
       }
     }
 
-    await em.flush();
-    console.log('RealTransferencistaBankAccountsSeeder finalizado.');
+    await em.flush()
+    console.log('RealTransferencistaBankAccountsSeeder finalizado.')
   }
 }

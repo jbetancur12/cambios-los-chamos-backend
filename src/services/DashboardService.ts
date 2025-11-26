@@ -6,7 +6,7 @@ import { wrap } from '@mikro-orm/core'
 export interface DashboardStats {
   girosCount: number
   girosLabel: string
-  usersCount?: number
+  fees?: number
   volumeBs?: number
   volumeCOP?: number
   volumeUSD?: number
@@ -56,13 +56,22 @@ export class DashboardService {
         createdAt: { $gte: today, $lt: tomorrow },
       })
 
-      const activeUsers = await DI.users.count({
-        isActive: true,
+      const processingToday = await DI.giros.count({
+        status: GiroStatus.PROCESANDO,
+        createdAt: { $gte: today, $lt: tomorrow },
+      })
+
+      // Count giros in COMPLETADO status for today
+      const completedToday = await DI.giros.count({
+        status: GiroStatus.COMPLETADO,
+        createdAt: { $gte: today, $lt: tomorrow },
       })
 
       const girosThisMonth = await DI.giros.find({
         createdAt: { $gte: monthStart, $lte: monthEnd },
       })
+
+      const feesThisMonth = girosThisMonth.reduce((sum: number, giro: Giro) => sum + Number(giro.commission), 0)
 
       const volumeBs = girosThisMonth.reduce((sum: number, giro: Giro) => sum + Number(giro.amountBs), 0)
       const volumeCOP = girosThisMonth.reduce((sum: number, giro: Giro) => {
@@ -80,12 +89,14 @@ export class DashboardService {
       return {
         girosCount: girosToday,
         girosLabel: 'Giros Hoy',
-        usersCount: activeUsers,
+        fees: feesThisMonth,
         volumeBs,
         volumeCOP,
         volumeUSD,
         systemEarnings,
         minoristaEarnings,
+        processingToday,
+        completedToday,
       }
     } else if (role === 'TRANSFERENCISTA') {
       // Transferencista stats

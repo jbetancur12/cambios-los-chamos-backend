@@ -254,7 +254,6 @@ export class GiroService {
           | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
       }
   > {
-    console.log('🚀 ~ GiroService ~ executeGiro ~ fee:', fee)
     const giro = await DI.giros.findOne(
       { id: giroId },
       {
@@ -347,6 +346,7 @@ export class GiroService {
     giro.bankAccountUsed = bankAccount
     giro.executionType = executionType
     giro.status = GiroStatus.COMPLETADO
+    giro.commission = fee
     giro.completedAt = new Date()
     giro.updatedAt = new Date()
 

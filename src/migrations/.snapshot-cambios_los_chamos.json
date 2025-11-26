@@ -577,7 +577,30 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "owner_type": {
+          "name": "owner_type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
           "nullable": false,
+          "enumItems": [
+            "TRANSFERENCISTA",
+            "ADMIN"
+          ],
+          "mappedType": "enum"
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
           "length": 255,
           "mappedType": "string"
         },
@@ -597,7 +620,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "length": 255,
           "mappedType": "string"
         },
@@ -635,11 +658,51 @@
           "scale": 0,
           "default": "0",
           "mappedType": "decimal"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
         }
       },
       "name": "bank_accounts",
       "schema": "public",
       "indexes": [
+        {
+          "columnNames": [
+            "owner_type"
+          ],
+          "composite": false,
+          "keyName": "bank_accounts_owner_type_index",
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "owner_id"
+          ],
+          "composite": false,
+          "keyName": "bank_accounts_owner_id_index",
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
         {
           "keyName": "bank_accounts_pkey",
           "columnNames": [
@@ -1647,7 +1710,6 @@
             "RECHARGE",
             "DISCOUNT",
             "ADJUSTMENT",
-            "PROFIT",
             "REFUND"
           ],
           "mappedType": "enum"

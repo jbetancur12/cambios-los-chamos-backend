@@ -35,18 +35,18 @@ const realMinoristasData = [
   { fullName: 'Barbara Pérez', email: 'nanip2304@gmail.com' },
   { fullName: 'Johalis Pérez', email: 'carmennperez.9000@gmail.com' },
   { fullName: 'Christian Campiño', email: 'mayraalejandracampinosalazar@gmail.com' },
-];
+]
 
 export class RealMinoristasSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    const defaultPassword = makePassword('12345678');
-    const creditLimit = 0; // Mismo límite de crédito usado en el seeder de prueba
+    const defaultPassword = makePassword('12345678')
+    const creditLimit = 0 // Mismo límite de crédito usado en el seeder de prueba
 
-    console.log('Iniciando RealMinoristasSeeder...');
+    console.log('Iniciando RealMinoristasSeeder...')
 
     for (const data of realMinoristasData) {
       // 1. Verificar si el usuario ya existe
-      const existingUser = await em.findOne(User, { email: data.email });
+      const existingUser = await em.findOne(User, { email: data.email })
 
       if (!existingUser) {
         // 2. Crear la entidad User
@@ -59,8 +59,8 @@ export class RealMinoristasSeeder extends Seeder {
           emailVerified: true,
           createdAt: new Date(),
           updatedAt: new Date(),
-        });
-        em.persist(user);
+        })
+        em.persist(user)
 
         // 3. Crear la entidad Minorista
         const minorista = em.create(Minorista, {
@@ -70,16 +70,16 @@ export class RealMinoristasSeeder extends Seeder {
           creditBalance: 0,
           transactions: [],
           giros: [],
-        });
-        em.persist(minorista);
-        console.log(`Minorista creado: ${data.fullName} (${data.email})`);
+        })
+        em.persist(minorista)
+        console.log(`Minorista creado: ${data.fullName} (${data.email})`)
       } else {
-        console.log(`Usuario ya existe, omitiendo: ${data.email}`);
+        console.log(`Usuario ya existe, omitiendo: ${data.email}`)
       }
     }
 
     // Usar flush() para guardar todos los cambios en la base de datos
-    await em.flush();
-    console.log('RealMinoristasSeeder finalizado.');
+    await em.flush()
+    console.log('RealMinoristasSeeder finalizado.')
   }
 }
