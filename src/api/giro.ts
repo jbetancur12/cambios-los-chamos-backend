@@ -820,8 +820,11 @@ giroRouter.get('/:giroId/payment-proof/download', requireAuth(), async (req: Req
 giroRouter.get('/:giroId/thermal-ticket', requireAuth(), async (req: Request, res: Response) => {
   try {
     const { giroId } = req.params
-    const userId = req.context?.requestUser?.user?.id
-    const userRole = req.user?.role
+    const user = req.context?.requestUser?.user
+
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
 
     // Obtener el giro
     const giro = await DI.giros.findOne(
@@ -845,11 +848,9 @@ giroRouter.get('/:giroId/thermal-ticket', requireAuth(), async (req: Request, re
     }
 
     // Validar permisos: solo quien lo creó, el transferencista asignado, o admin
-    const isAdmin = userRole === UserRole.SUPER_ADMIN || userRole === UserRole.ADMIN
-    const isTransferencista = giro.transferencista?.user?.id === userId
-
-    console.log('🚀 ~ giro.transferencista?.user?.id:', giro.transferencista?.user?.id)
-    const isCreator = giro.createdBy?.id === userId
+    const isAdmin = user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN
+    const isTransferencista = giro.transferencista?.user?.id === user.id
+    const isCreator = giro.createdBy?.id === user.id
 
     if (!isAdmin && !isTransferencista && !isCreator) {
       return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver este tiquete'))
