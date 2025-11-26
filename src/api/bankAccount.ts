@@ -266,7 +266,7 @@ bankAccountRouter.patch(
 
     const result = await bankAccountTransactionService.createTransaction({
       bankAccountId,
-      amount: Math.abs(amount), // El servicio maneja el signo según el tipo
+      amount: amount >= 0 ? Math.abs(amount) : amount, // DEPOSIT usa valor absoluto, ADJUSTMENT usa el signo
       type: transactionType as any,
       reference: 'Recarga manual de saldo',
       fee: 0,
