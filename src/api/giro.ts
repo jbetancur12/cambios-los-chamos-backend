@@ -456,8 +456,8 @@ giroRouter.post(
   }
 )
 
-// ------------------ ELIMINAR GIRO (Solo Minorista) ------------------
-giroRouter.delete('/:giroId', requireRole(UserRole.MINORISTA), async (req: Request, res: Response) => {
+// ------------------ ELIMINAR GIRO (Solo quien lo creó) ------------------
+giroRouter.delete('/:giroId', requireAuth(), async (req: Request, res: Response) => {
   const { giroId } = req.params
   const user = req.context?.requestUser?.user
 
@@ -472,7 +472,7 @@ giroRouter.delete('/:giroId', requireRole(UserRole.MINORISTA), async (req: Reque
       case 'GIRO_NOT_FOUND':
         return res.status(404).json(ApiResponse.notFound('Giro', giroId))
       case 'FORBIDDEN':
-        return res.status(403).json(ApiResponse.forbidden('No puedes eliminar este giro'))
+        return res.status(403).json(ApiResponse.forbidden('Solo puedes eliminar giros que tú creaste'))
       case 'INVALID_STATUS':
         return res
           .status(400)

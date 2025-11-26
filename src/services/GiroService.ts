@@ -435,8 +435,8 @@ export class GiroService {
   }
 
   /**
-   * Elimina un giro creado por un minorista.
-   * Solo minorista puede eliminar sus propios giros.
+   * Elimina un giro.
+   * Solo el usuario que creó el giro puede eliminarlo.
    * Solo en estados PENDIENTE, ASIGNADO o DEVUELTO.
    * Reembolsa el monto al minorista antes de eliminar.
    */
@@ -445,17 +445,17 @@ export class GiroService {
     user: User
   ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'FORBIDDEN' | 'INVALID_STATUS' }> {
     try {
-      const giro = await DI.em.getRepository(Giro).findOne({ id: giroId }, { populate: ['minorista'] })
+      const giro = await DI.em.getRepository(Giro).findOne({ id: giroId }, { populate: ['minorista', 'createdBy'] })
 
       if (!giro) {
         console.warn(`[GIRO] Delete failed: GIRO_NOT_FOUND (giroId: ${giroId}, user: ${user.id})`)
         return { error: 'GIRO_NOT_FOUND' }
       }
 
-      // Solo minorista puede eliminar sus giros
-      if (user.role !== UserRole.MINORISTA || giro.minorista?.id !== user.id) {
+      // Solo el usuario que creó el giro puede eliminarlo
+      if (giro.createdBy?.id !== user.id) {
         console.warn(
-          `[GIRO] Delete failed: FORBIDDEN (giroId: ${giroId}, user: ${user.id}, giro minoristaId: ${giro.minorista?.id})`
+          `[GIRO] Delete failed: FORBIDDEN (giroId: ${giroId}, user: ${user.id}, createdBy: ${giro.createdBy?.id})`
         )
         return { error: 'FORBIDDEN' }
       }
