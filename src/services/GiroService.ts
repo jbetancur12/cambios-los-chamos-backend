@@ -347,6 +347,7 @@ export class GiroService {
     giro.executionType = executionType
     giro.status = GiroStatus.COMPLETADO
     giro.commission = fee
+    giro.executedBy = executingUser || giro.transferencista?.user
     giro.completedAt = new Date()
     giro.updatedAt = new Date()
 

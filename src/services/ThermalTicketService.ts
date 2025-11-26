@@ -66,7 +66,7 @@ export class ThermalTicketService {
    */
   async generateTicketData(giro: Giro): Promise<ThermalTicketData> {
     const createdByUser = giro.createdBy
-    const executedByUser = giro.bankAccountUsed?.transferencista?.user
+    const executedByUser = giro.executedBy
 
     // Obtener datos de la transacción bancaria si existe
     let bankAccountUsedFormatted = ''
@@ -131,6 +131,7 @@ export class ThermalTicketService {
       {
         populate: [
           'createdBy',
+          'executedBy',
           'bankAccountUsed',
           'bankAccountUsed.bank',
           'bankAccountUsed.transferencista',

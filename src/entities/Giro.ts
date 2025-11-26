@@ -95,6 +95,9 @@ export class Giro {
   @ManyToOne(() => User, { deleteRule: 'restrict', updateRule: 'cascade' })
   createdBy!: User
 
+  @ManyToOne(() => User, { nullable: true, deleteRule: 'restrict', updateRule: 'cascade' })
+  executedBy?: User
+
   @Property({ onCreate: () => new Date() })
   @Index()
   createdAt: Date = new Date()

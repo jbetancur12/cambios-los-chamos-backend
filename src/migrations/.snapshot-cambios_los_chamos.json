@@ -1531,6 +1531,16 @@
           "length": 255,
           "mappedType": "string"
         },
+        "executed_by_id": {
+          "name": "executed_by_id",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz",
@@ -1654,6 +1664,19 @@
           "constraintName": "giros_created_by_id_foreign",
           "columnNames": [
             "created_by_id"
+          ],
+          "localTableName": "public.giros",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.users",
+          "deleteRule": "restrict",
+          "updateRule": "cascade"
+        },
+        "giros_executed_by_id_foreign": {
+          "constraintName": "giros_executed_by_id_foreign",
+          "columnNames": [
+            "executed_by_id"
           ],
           "localTableName": "public.giros",
           "referencedColumnNames": [

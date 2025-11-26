@@ -832,6 +832,7 @@ giroRouter.get('/:giroId/thermal-ticket', requireAuth(), async (req: Request, re
       {
         populate: [
           'createdBy',
+          'executedBy',
           'transferencista',
           'transferencista.user',
           'minorista',
