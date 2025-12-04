@@ -1,0 +1,41 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 1
+      arrivalRate: 1
+      name: "Debug"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+  plugins:
+    expect: {}
+
+scenarios:
+  - name: "Debug Flow"
+    flow:
+      - post:
+          url: "/user/login"
+          json:
+            email: "jesusnsegurap@gmail.com"
+            password: "12345678"
+          capture:
+            - json: "$.data.token"
+              as: "token"
+          expect:
+            - statusCode: 200
+      - log: "Token: {{ token }}"
+      - post:
+          url: "/giro/create"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            beneficiaryName: "Debug User"
+            beneficiaryId: "12345678"
+            bankId: "6b858da3-d1d0-45fa-9e06-3871b6168a39"
+            accountNumber: "01020102010201020102"
+            phone: "04141234567"
+            amountInput: 100
+            currencyInput: "VES"
+            executionType: "TRANSFERENCIA"
+          expect:
+            - statusCode: 200
