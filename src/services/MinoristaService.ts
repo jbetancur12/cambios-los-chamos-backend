@@ -18,18 +18,18 @@ export class MinoristaService {
    */
   async createMinorista(data: CreateMinoristaInput): Promise<
     | {
-        user: {
-          id: string
-          fullName: string
-          email: string
-          role: UserRole
-          isActive: boolean
-          emailVerified: boolean
-        }
-        minorista: {
-          id: string
-        }
+      user: {
+        id: string
+        fullName: string
+        email: string
+        role: UserRole
+        isActive: boolean
+        emailVerified: boolean
       }
+      minorista: {
+        id: string
+      }
+    }
     | { error: 'EMAIL_ALREADY_EXISTS' }
   > {
     const userRepo = DI.em.getRepository(User)
@@ -153,19 +153,19 @@ export class MinoristaService {
    */
   async getMinoristaByUserId(userId: string): Promise<
     | {
-        id: string
+      id: string
 
-        creditLimit: number
-        availableCredit: number
-        creditBalance: number
-        user: {
-          id: string
-          fullName: string
-          email: string
-          role: UserRole
-          isActive: boolean
-        }
+      creditLimit: number
+      availableCredit: number
+      creditBalance: number
+      user: {
+        id: string
+        fullName: string
+        email: string
+        role: UserRole
+        isActive: boolean
       }
+    }
     | { error: 'MINORISTA_NOT_FOUND' }
   > {
     const minoristaRepo = DI.em.getRepository(Minorista)
@@ -196,18 +196,18 @@ export class MinoristaService {
    */
   async getMinoristaById(minoristaId: string): Promise<
     | {
+      id: string
+      creditLimit: number
+      availableCredit: number
+      creditBalance: number
+      user: {
         id: string
-        creditLimit: number
-        availableCredit: number
-        creditBalance: number
-        user: {
-          id: string
-          fullName: string
-          email: string
-          role: UserRole
-          isActive: boolean
-        }
+        fullName: string
+        email: string
+        role: UserRole
+        isActive: boolean
       }
+    }
     | { error: 'MINORISTA_NOT_FOUND' }
   > {
     const minoristaRepo = DI.em.getRepository(Minorista)
@@ -243,8 +243,8 @@ export class MinoristaService {
     newBalance: number
   ): Promise<
     | {
-        id: string
-      }
+      id: string
+    }
     | { error: 'MINORISTA_NOT_FOUND' | 'INVALID_BALANCE' }
   > {
     if (newBalance < 0) {
@@ -274,16 +274,16 @@ export class MinoristaService {
     creditLimit: number
   ): Promise<
     | {
+      id: string
+      creditLimit: number
+      availableCredit: number
+      creditBalance: number
+      user: {
         id: string
-        creditLimit: number
-        availableCredit: number
-        creditBalance: number
-        user: {
-          id: string
-          fullName: string
-          email: string
-        }
+        fullName: string
+        email: string
       }
+    }
     | { error: 'MINORISTA_NOT_FOUND' }
   > {
     const minoristaRepo = DI.em.getRepository(Minorista)
@@ -293,8 +293,12 @@ export class MinoristaService {
       return { error: 'MINORISTA_NOT_FOUND' }
     }
 
+    // Calcular el crédito usado actual (deuda)
+    const usedCredit = minorista.creditLimit - minorista.availableCredit
+
     minorista.creditLimit = creditLimit
-    minorista.availableCredit = creditLimit
+    // El nuevo crédito disponible es el nuevo límite menos lo que ya se usó
+    minorista.availableCredit = creditLimit - usedCredit
 
     // Si hay diferencia positiva, crear transacción de recarga
     // if (creditLimit > oldCreditLimit) {
@@ -332,17 +336,17 @@ export class MinoristaService {
     createdBy: User
   ): Promise<
     | {
+      id: string
+      creditLimit: number
+      availableCredit: number
+      creditBalance: number
+      debtAmount: number
+      user: {
         id: string
-        creditLimit: number
-        availableCredit: number
-        creditBalance: number
-        debtAmount: number
-        user: {
-          id: string
-          fullName: string
-          email: string
-        }
+        fullName: string
+        email: string
       }
+    }
     | { error: 'MINORISTA_NOT_FOUND' | 'INSUFFICIENT_PAYMENT' }
   > {
     const minoristaRepo = DI.em.getRepository(Minorista)
