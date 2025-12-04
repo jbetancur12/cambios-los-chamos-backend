@@ -149,6 +149,7 @@ export class GiroService {
           beneficiaryName: data.beneficiaryName,
           beneficiaryId: data.beneficiaryId,
           bankName: bank.name, // Nombre del banco destino para registro histórico
+          bankCode: bank.code,
           accountNumber: data.accountNumber,
           phone: data.phone,
           rateApplied: data.rateApplied,
@@ -190,7 +191,7 @@ export class GiroService {
 
           // Vincular las transacciones a este giro
           for (const transaction of minoristaTransactions) {
-            ;(transaction as MinoristaTransaction).giro = giro
+            ; (transaction as MinoristaTransaction).giro = giro
             em.persist(transaction)
           }
           await em.flush()
@@ -245,14 +246,14 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error:
-          | 'GIRO_NOT_FOUND'
-          | 'INVALID_STATUS'
-          | 'BANK_ACCOUNT_NOT_FOUND'
-          | 'INSUFFICIENT_BALANCE'
-          | 'UNAUTHORIZED_ACCOUNT'
-          | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
-      }
+      error:
+      | 'GIRO_NOT_FOUND'
+      | 'INVALID_STATUS'
+      | 'BANK_ACCOUNT_NOT_FOUND'
+      | 'INSUFFICIENT_BALANCE'
+      | 'UNAUTHORIZED_ACCOUNT'
+      | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+    }
   > {
     const giro = await DI.giros.findOne(
       { id: giroId },
@@ -666,6 +667,7 @@ export class GiroService {
       populate: ['minorista', 'minorista.user', 'transferencista', 'transferencista.user', 'rateApplied', 'createdBy'],
     })
 
+
     return {
       giros,
       total,
@@ -741,13 +743,13 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error:
-          | 'MINORISTA_NOT_FOUND'
-          | 'NO_TRANSFERENCISTA_ASSIGNED'
-          | 'INSUFFICIENT_BALANCE'
-          | 'OPERATOR_NOT_FOUND'
-          | 'AMOUNT_NOT_FOUND'
-      }
+      error:
+      | 'MINORISTA_NOT_FOUND'
+      | 'NO_TRANSFERENCISTA_ASSIGNED'
+      | 'INSUFFICIENT_BALANCE'
+      | 'OPERATOR_NOT_FOUND'
+      | 'AMOUNT_NOT_FOUND'
+    }
   > {
     const giroRepo = DI.em.getRepository(Giro)
 
@@ -810,6 +812,7 @@ export class GiroService {
       beneficiaryName: data.contactoEnvia,
       beneficiaryId: data.phone, // Usar teléfono como ID temporal
       bankName: operator.name, // Nombre del operador
+      bankCode: operator.code || 0,
       accountNumber: data.phone,
       phone: data.phone,
       rateApplied: exchangeRate,
@@ -848,8 +851,8 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
-      }
+      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
+    }
   > {
     const giroRepo = DI.em.getRepository(Giro)
 
@@ -905,6 +908,7 @@ export class GiroService {
       beneficiaryName: data.contactoEnvia,
       beneficiaryId: data.cedula,
       bankName: bank.name,
+      bankCode: bank.code,
       accountNumber: data.phone,
       phone: data.phone,
       rateApplied: exchangeRate,

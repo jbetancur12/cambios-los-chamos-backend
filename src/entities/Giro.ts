@@ -48,6 +48,9 @@ export class Giro {
   @Property()
   bankName!: string
 
+  @Property({ default: 0 })
+  bankCode!: number
+
   @Property()
   accountNumber!: string
 

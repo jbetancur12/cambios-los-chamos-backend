@@ -9,6 +9,9 @@ export class RechargeOperator {
   @Property()
   name!: string
 
+  @Property({ default: 0 })
+  code!: number
+
   @Property({ type: 'varchar' })
   type!: string
 

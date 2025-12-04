@@ -90,6 +90,16 @@
           "length": 255,
           "mappedType": "string"
         },
+        "code": {
+          "name": "code",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "0",
+          "mappedType": "integer"
+        },
         "type": {
           "name": "type",
           "type": "varchar(255)",
@@ -1353,6 +1363,16 @@
           "nullable": false,
           "length": 255,
           "mappedType": "string"
+        },
+        "bank_code": {
+          "name": "bank_code",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "0",
+          "mappedType": "integer"
         },
         "account_number": {
           "name": "account_number",
