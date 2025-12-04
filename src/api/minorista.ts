@@ -165,7 +165,13 @@ minoristaRouter.post(
       }
     }
 
-    if (!amount || amount <= 0) {
+    // Validación de monto
+    if (!amount || amount === 0) {
+      return res.status(400).json(ApiResponse.badRequest('El monto no puede ser 0'))
+    }
+
+    // Minoristas solo pueden pagar (monto positivo)
+    if (user.role === UserRole.MINORISTA && amount < 0) {
       return res.status(400).json(ApiResponse.badRequest('El monto a pagar debe ser mayor a 0'))
     }
 
