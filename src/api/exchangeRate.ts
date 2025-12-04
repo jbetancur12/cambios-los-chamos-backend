@@ -38,6 +38,35 @@ exchangeRateRouter.post(
   }
 )
 
+
+// ------------------ ACTUALIZAR TASA DE CAMBIO ------------------
+exchangeRateRouter.put(
+  '/:rateId',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  validateBody(createExchangeRateSchema.partial()),
+  async (req: Request, res: Response) => {
+    const { rateId } = req.params
+    const { buyRate, sellRate, usd, bcv } = req.body
+
+    const result = await exchangeRateService.updateExchangeRate(rateId, {
+      buyRate,
+      sellRate,
+      usd,
+      bcv,
+    })
+
+    if ('error' in result) {
+      return res.status(404).json(ApiResponse.notFound('Tasa de cambio', rateId))
+    }
+
+    res.json(
+      ApiResponse.success({
+        data: result,
+        message: 'Tasa de cambio actualizada exitosamente',
+      })
+    )
+  }
+)
 // ------------------ OBTENER TASA ACTUAL ------------------
 exchangeRateRouter.get('/current', requireAuth(), async (req: Request, res: Response) => {
   const result = await exchangeRateService.getCurrentRate()

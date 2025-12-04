@@ -25,7 +25,11 @@ export class RechargeSeeder extends Seeder {
     }
 
     // Paso 1: Crear Recharge Operators
-    const operatorsData = Object.keys(operatorsConfig).map((name) => ({ name, type: 'MOVIL' }))
+    const operatorsData = [
+      { name: 'Movilnet', code: 416, type: 'MOVIL' },
+      { name: 'Movistar', code: 414, type: 'MOVIL' },
+      { name: 'Digitel', code: 412, type: 'MOVIL' },
+    ]
     const operators: Record<string, RechargeOperator> = {}
 
     for (const operatorData of operatorsData) {
@@ -34,6 +38,7 @@ export class RechargeSeeder extends Seeder {
       if (!operator) {
         operator = em.create(RechargeOperator, {
           name: operatorData.name,
+          code: operatorData.code,
           type: operatorData.type,
           isActive: true,
           createdAt: new Date(),

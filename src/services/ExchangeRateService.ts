@@ -119,18 +119,18 @@ export class ExchangeRateService {
    */
   async getExchangeRateById(rateId: string): Promise<
     | {
+      id: string
+      buyRate: number
+      sellRate: number
+      usd: number
+      bcv: number
+      createdBy: {
         id: string
-        buyRate: number
-        sellRate: number
-        usd: number
-        bcv: number
-        createdBy: {
-          id: string
-          fullName: string
-          email: string
-        }
-        createdAt: Date
+        fullName: string
+        email: string
       }
+      createdAt: Date
+    }
     | { error: 'RATE_NOT_FOUND' }
   > {
     const exchangeRateRepo = DI.em.getRepository(ExchangeRate)
@@ -154,6 +154,34 @@ export class ExchangeRateService {
       },
       createdAt: rate.createdAt,
     }
+  }
+  /**
+   * Actualiza una tasa de cambio existente
+   */
+  async updateExchangeRate(
+    rateId: string,
+    data: {
+      buyRate?: number
+      sellRate?: number
+      usd?: number
+      bcv?: number
+    }
+  ): Promise<ExchangeRate | { error: 'RATE_NOT_FOUND' }> {
+    const exchangeRateRepo = DI.em.getRepository(ExchangeRate)
+    const rate = await exchangeRateRepo.findOne({ id: rateId })
+
+    if (!rate) {
+      return { error: 'RATE_NOT_FOUND' }
+    }
+
+    if (data.buyRate !== undefined) rate.buyRate = data.buyRate
+    if (data.sellRate !== undefined) rate.sellRate = data.sellRate
+    if (data.usd !== undefined) rate.usd = data.usd
+    if (data.bcv !== undefined) rate.bcv = data.bcv
+
+    await DI.em.flush()
+
+    return rate
   }
 }
 
