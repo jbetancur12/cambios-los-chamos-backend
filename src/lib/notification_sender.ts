@@ -32,7 +32,7 @@ export async function sendGiroAssignedNotification(userId: string, giroId: strin
   const fcmTokens = await getFcmTokensByUserId(userId)
 
   if (fcmTokens.length === 0) {
-    console.warn(`[FCM] No se encontraron tokens para el usuario ${userId}. Notificación omitida.`)
+    // console.warn(`[FCM] No se encontraron tokens para el usuario ${userId}. Notificación omitida.`)
     return
   }
 

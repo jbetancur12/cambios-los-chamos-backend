@@ -28,7 +28,7 @@ scenarios:
           json:
             beneficiaryName: "Stress Test User 1"
             beneficiaryId: "12345678"
-            bankId: "2be2d42e-5a2e-4a57-9997-b9378bb7b150"
+            bankId: "42ab899b-eff6-41bf-ba34-f575187ef05e"
             accountNumber: "01020102010201020102"
             phone: "04141234567"
             amountInput: 3000
@@ -54,7 +54,7 @@ scenarios:
           json:
             beneficiaryName: "Stress Test User 2"
             beneficiaryId: "12345678"
-            bankId: "2be2d42e-5a2e-4a57-9997-b9378bb7b150"
+            bankId: "42ab899b-eff6-41bf-ba34-f575187ef05e"
             accountNumber: "01020102010201020102"
             phone: "04141234567"
             amountInput: 3000
@@ -80,7 +80,7 @@ scenarios:
           json:
             beneficiaryName: "Stress Test User 3"
             beneficiaryId: "12345678"
-            bankId: "2be2d42e-5a2e-4a57-9997-b9378bb7b150"
+            bankId: "42ab899b-eff6-41bf-ba34-f575187ef05e"
             accountNumber: "01020102010201020102"
             phone: "04141234567"
             amountInput: 3000
@@ -106,7 +106,7 @@ scenarios:
           json:
             beneficiaryName: "Stress Test User 4"
             beneficiaryId: "12345678"
-            bankId: "2be2d42e-5a2e-4a57-9997-b9378bb7b150"
+            bankId: "42ab899b-eff6-41bf-ba34-f575187ef05e"
             accountNumber: "01020102010201020102"
             phone: "04141234567"
             amountInput: 3000
@@ -132,7 +132,7 @@ scenarios:
           json:
             beneficiaryName: "Stress Test User 5"
             beneficiaryId: "12345678"
-            bankId: "2be2d42e-5a2e-4a57-9997-b9378bb7b150"
+            bankId: "42ab899b-eff6-41bf-ba34-f575187ef05e"
             accountNumber: "01020102010201020102"
             phone: "04141234567"
             amountInput: 3000

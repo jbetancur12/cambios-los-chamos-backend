@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Stress Test Report</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 2rem;
+            background-color: #f4f4f9;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 1rem;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .card {
+            background: #f9f9f9;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #eee;
+        }
+
+        .card h3 {
+            margin: 0 0 0.5rem 0;
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .card.success .value {
+            color: #2ecc71;
+        }
+
+        .card.error .value {
+            color: #e74c3c;
+        }
+
+        .card.warning .value {
+            color: #f39c12;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2rem;
+        }
+
+        th,
+        td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Production Stress Test Report</h1>
+        <p><strong>Target:</strong> https://cambiosloschamo.com/api</p>
+        <p><strong>Scenario:</strong> 5 Concurrent Minoristas</p>
+        <p><strong>Duration:</strong> 60 seconds</p>
+
+        <div class="summary-grid">
+            <div class="card">
+                <h3>Total Requests</h3>
+                <div class="value">566</div>
+            </div>
+            <div class="card success">
+                <h3>Successful (200 OK)</h3>
+                <div class="value">277</div>
+            </div>
+            <div class="card error">
+                <h3>Timeouts</h3>
+                <div class="value">286</div>
+            </div>
+            <div class="card warning">
+                <h3>503 Errors</h3>
+                <div class="value">3</div>
+            </div>
+        </div>
+
+        <h2>Response Time Metrics</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Value (ms)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Minimum</td>
+                    <td>4265.8</td>
+                </tr>
+                <tr>
+                    <td>Median (p50)</td>
+                    <td>6976.1</td>
+                </tr>
+                <tr>
+                    <td>p95</td>
+                    <td>11050.8</td>
+                </tr>
+                <tr>
+                    <td>p99</td>
+                    <td>11050.8</td>
+                </tr>
+                <tr>
+                    <td>Maximum</td>
+                    <td>11687.9</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Detailed Counters</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Counter</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Virtual Users Created</td>
+                    <td>300</td>
+                </tr>
+                <tr>
+                    <td>Failed Virtual Users</td>
+                    <td>286</td>
+                </tr>
+                <tr>
+                    <td>Successful Requests (200 OK)</td>
+                    <td>277</td>
+                </tr>
+                <tr>
+                    <td>Timeouts (ETIMEDOUT)</td>
+                    <td>286</td>
+                </tr>
+                <tr>
+                    <td>Service Unavailable (503)</td>
+                    <td>3</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+
+</html>
