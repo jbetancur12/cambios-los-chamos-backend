@@ -1,0 +1,913 @@
+[dotenv@17.2.3] injecting env (37) from .env -- tip: ­ƒöä add secrets lifecycle management: https://dotenvx.com/ops
+Initializing DI...
+Setting up test data...
+Current Available Credit: 100000000
+Updated Available Credit to 100,000,000 for testing
+Starting stress test with 50 concurrent requests...
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Request failed: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  entity: undefined
+}
+Error stack: ValidationError: Using global EntityManager instance methods for context specific actions is disallowed. If you need to work with the global instance's identity map, use `allowGlobalContext` configuration option or `fork()` instead.
+    at Function.cannotUseGlobalContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\errors.js:96:16)
+    at SqlEntityManager.getContext (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:1474:44)
+    at SqlEntityManager.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\EntityManager.js:533:25)
+    at SqlEntityRepository.findOne (C:\Users\alejo\Documents\cambios-los-chamos\backend\node_modules\@mikro-orm\core\entity\EntityRepository.js:17:40)
+------------------------------------------------
+    at GiroService.createGiro (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts:72:33)
+    at runStressTest (C:\Users\alejo\Documents\cambios-los-chamos\backend\src\scripts\stress_test.ts:80:29)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+Stress Test Completed in 0.00 seconds
+Total Requests: 50
+Successful: 0
+Failed: 50
+Requests per second: 25000.00
+------------------------------------------------

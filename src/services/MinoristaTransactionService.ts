@@ -2,6 +2,7 @@ import { DI } from '@/di'
 import { MinoristaTransaction, MinoristaTransactionType } from '@/entities/MinoristaTransaction'
 import { Minorista } from '@/entities/Minorista'
 import { User } from '@/entities/User'
+import { EntityManager } from '@mikro-orm/core'
 
 export interface CreateTransactionInput {
   minoristaId: string
@@ -21,10 +22,12 @@ export class MinoristaTransactionService {
    * 4. Actualiza el balance del minorista
    */
   async createTransaction(
-    data: CreateTransactionInput
+    data: CreateTransactionInput,
+    em?: EntityManager
   ): Promise<MinoristaTransaction | { error: 'MINORISTA_NOT_FOUND' | 'INSUFFICIENT_BALANCE' }> {
-    const minoristaRepo = DI.em.getRepository(Minorista)
-    const transactionRepo = DI.em.getRepository(MinoristaTransaction)
+    const manager = em || DI.em
+    const minoristaRepo = manager.getRepository(Minorista)
+    const transactionRepo = manager.getRepository(MinoristaTransaction)
 
     // Buscar minorista
     const minorista = await minoristaRepo.findOne({ id: data.minoristaId })
@@ -162,10 +165,14 @@ export class MinoristaTransactionService {
     minorista.availableCredit = newAvailableCredit
     minorista.creditBalance = newBalanceInFavor
 
-    // Guardar en una transacción atómica
-    await DI.em.transactional(async (em) => {
-      await em.persistAndFlush([transaction, minorista])
-    })
+    // Guardar en la base de datos
+    // Si se pasó un EM, usamos persist (el caller hace flush/commit)
+    // Si NO se pasó un EM, usamos persistAndFlush
+    if (em) {
+      manager.persist([transaction, minorista])
+    } else {
+      await manager.persistAndFlush([transaction, minorista])
+    }
 
     return transaction
   }
@@ -178,23 +185,23 @@ export class MinoristaTransactionService {
     options?: { page?: number; limit?: number; startDate?: string; endDate?: string }
   ): Promise<
     | {
-        total: number
-        page: number
-        limit: number
-        transactions: Array<{
+      total: number
+      page: number
+      limit: number
+      transactions: Array<{
+        id: string
+        amount: number
+        type: MinoristaTransactionType
+        previousBalance: number
+        currentBalance: number
+        createdBy: {
           id: string
-          amount: number
-          type: MinoristaTransactionType
-          previousBalance: number
-          currentBalance: number
-          createdBy: {
-            id: string
-            fullName: string
-            email: string
-          }
-          createdAt: Date
-        }>
-      }
+          fullName: string
+          email: string
+        }
+        createdAt: Date
+      }>
+    }
     | { error: 'MINORISTA_NOT_FOUND' }
   > {
     const minoristaRepo = DI.em.getRepository(Minorista)
@@ -262,27 +269,27 @@ export class MinoristaTransactionService {
    */
   async getTransactionById(transactionId: string): Promise<
     | {
+      id: string
+      amount: number
+      type: MinoristaTransactionType
+      previousBalance: number
+      currentBalance: number
+      minorista: {
         id: string
-        amount: number
-        type: MinoristaTransactionType
-        previousBalance: number
-        currentBalance: number
-        minorista: {
-          id: string
-          availableCredit: number
-          user: {
-            id: string
-            fullName: string
-            email: string
-          }
-        }
-        createdBy: {
+        availableCredit: number
+        user: {
           id: string
           fullName: string
           email: string
         }
-        createdAt: Date
       }
+      createdBy: {
+        id: string
+        fullName: string
+        email: string
+      }
+      createdAt: Date
+    }
     | { error: 'TRANSACTION_NOT_FOUND' }
   > {
     const transactionRepo = DI.em.getRepository(MinoristaTransaction)

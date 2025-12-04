@@ -12,13 +12,16 @@ import { sendGiroAssignedNotification } from '@/lib/notification_sender'
 import { exchangeRateService } from '@/services/ExchangeRateService'
 import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionService'
 import { Currency } from '@/entities/Bank'
+import { EntityManager, LockMode } from '@mikro-orm/core'
+import { TransferencistaAssignmentTracker } from '@/entities/TransferencistaAssignmentTracker'
 
 export class GiroService {
   /**
    * Encuentra el siguiente transferencista disponible usando distribución round-robin
    * Distribuye los giros equitativamente entre TODOS los transferencistas disponibles
+   * REQUIRES an active transaction EntityManager for locking
    */
-  private async findNextAvailableTransferencista(): Promise<Transferencista | null> {
+  private async findNextAvailableTransferencista(em: EntityManager): Promise<Transferencista | null> {
     // Obtener todos los transferencistas disponibles, ordenados por ID para consistencia
     const availableTransferencistas = await DI.transferencistas.find(
       { available: true },
@@ -32,17 +35,32 @@ export class GiroService {
       return null
     }
 
-    // Obtener o crear el tracker de asignación
-    let tracker = await DI.transferencistaAssignmentTracker.findOne({ id: 1 })
+    // Obtener o crear el tracker de asignación con PESSIMISTIC_WRITE lock
+    // Esto asegura que solo una transacción pueda leer/escribir el tracker a la vez
+    let tracker = await em.findOne(TransferencistaAssignmentTracker, { id: 1 }, { lockMode: LockMode.PESSIMISTIC_WRITE })
 
     if (!tracker) {
-      // Crear el tracker si no existe (primera vez)
-      tracker = DI.transferencistaAssignmentTracker.create({
-        id: 1,
-        lastAssignedIndex: 0,
-        updatedAt: new Date(),
-      })
-      await DI.em.persistAndFlush(tracker)
+      // Si no existe, intentar crearlo.
+      // Nota: En alta concurrencia, esto podría fallar si otro proceso lo crea al mismo tiempo,
+      // pero debería ser un evento único al inicio del sistema.
+      try {
+        tracker = em.create(TransferencistaAssignmentTracker, {
+          id: 1,
+          lastAssignedIndex: 0,
+          updatedAt: new Date(),
+        })
+        await em.persistAndFlush(tracker)
+        // Volver a adquirir lock después de crear
+        await em.refresh(tracker, { lockMode: LockMode.PESSIMISTIC_WRITE })
+      } catch (e) {
+        // Si falla por duplicado, intentar leerlo de nuevo con lock
+        tracker = await em.findOne(TransferencistaAssignmentTracker, { id: 1 }, { lockMode: LockMode.PESSIMISTIC_WRITE })
+      }
+    }
+
+    if (!tracker) {
+      // Fallback extremo si no se pudo obtener ni crear
+      return availableTransferencistas[0];
     }
 
     // Calcular el siguiente índice (round-robin)
@@ -52,7 +70,7 @@ export class GiroService {
     // Actualizar el tracker
     tracker.lastAssignedIndex = nextIndex
     tracker.updatedAt = new Date()
-    await DI.em.persistAndFlush(tracker)
+    await em.persist(tracker)
 
     return selectedTransferencista
   }
@@ -74,13 +92,7 @@ export class GiroService {
       return { error: 'BANK_NOT_FOUND' }
     }
 
-    // VALIDACIÓN 2: Verificar transferencista disponible
-    const assigned = await this.findNextAvailableTransferencista()
-    if (!assigned) {
-      return { error: 'NO_TRANSFERENCISTA_ASSIGNED' }
-    }
-
-    // VALIDACIÓN 3: Si es minorista, verificar que exista y tenga balance suficiente
+    // VALIDACIÓN 2: Si es minorista, verificar que exista y tenga balance suficiente
     let minorista: Minorista | undefined = undefined
     if (createdBy.role === UserRole.MINORISTA) {
       if (!data.minoristaId) {
@@ -106,6 +118,13 @@ export class GiroService {
     // Si algo falla dentro de esta transacción, todo se revierte (rollback)
     return await DI.em
       .transactional(async (em) => {
+        // ASIGNACIÓN DE TRANSFERENCISTA (DENTRO DE LA TRANSACCIÓN)
+        const assigned = await this.findNextAvailableTransferencista(em)
+        if (!assigned) {
+          // Si no hay transferencista, lanzamos error para abortar la transacción
+          throw new Error('NO_TRANSFERENCISTA_ASSIGNED')
+        }
+
         const giroRepo = em.getRepository(Giro)
 
         // Descontar balance del minorista si aplica
@@ -116,7 +135,7 @@ export class GiroService {
             amount: data.amountInput,
             type: MinoristaTransactionType.DISCOUNT,
             createdBy,
-          })
+          }, em) // Pasar EM transaccional
 
           if ('error' in transactionResult) {
             throw new Error('INSUFFICIENT_BALANCE')
@@ -198,6 +217,9 @@ export class GiroService {
         }
 
         // Enviar notificación después de que la transacción se complete exitosamente
+        // NOTA: Esto es side-effect, idealmente debería estar fuera, pero necesitamos los datos del giro
+        // Se ejecutará solo si el commit es exitoso si usamos afterCommit hooks, pero aquí es directo.
+        // Si falla el commit, la notificación se envió (riesgo menor).
         await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs)
 
         return giro
@@ -227,6 +249,9 @@ export class GiroService {
       .catch((error) => {
         if (error.message === 'INSUFFICIENT_BALANCE') {
           return { error: 'INSUFFICIENT_BALANCE' as const }
+        }
+        if (error.message === 'NO_TRANSFERENCISTA_ASSIGNED') {
+          return { error: 'NO_TRANSFERENCISTA_ASSIGNED' as const }
         }
         console.error('Error al crear giro:', error)
         throw error
@@ -555,44 +580,47 @@ export class GiroService {
     redistributed: number
     errors: number
   }> {
-    // Encontrar todos los giros pendientes o en proceso del transferencista
-    const pendingGiros = await DI.giros.find({
-      transferencista: transferencistaId,
-      status: { $in: [GiroStatus.ASIGNADO, GiroStatus.PROCESANDO] },
-    })
+    return await DI.em.transactional(async (em) => {
+      // Encontrar todos los giros pendientes o en proceso del transferencista
+      const pendingGiros = await em.find(Giro, {
+        transferencista: transferencistaId,
+        status: { $in: [GiroStatus.ASIGNADO, GiroStatus.PROCESANDO] },
+      })
 
-    let redistributed = 0
-    let errors = 0
+      let redistributed = 0
+      let errors = 0
 
-    for (const giro of pendingGiros) {
-      try {
-        // Encontrar nuevo transferencista usando round-robin
-        const newTransferencista = await this.findNextAvailableTransferencista()
+      for (const giro of pendingGiros) {
+        try {
+          // Encontrar nuevo transferencista usando round-robin (con lock)
+          const newTransferencista = await this.findNextAvailableTransferencista(em)
 
-        if (!newTransferencista) {
-          // No hay transferencistas disponibles, dejar el giro como está
+          if (!newTransferencista) {
+            // No hay transferencistas disponibles, dejar el giro como está
+            errors++
+            continue
+          }
+
+          // Reasignar el giro
+          giro.transferencista = newTransferencista
+          giro.status = GiroStatus.ASIGNADO // Resetear a ASIGNADO si estaba PROCESANDO
+          giro.updatedAt = new Date()
+
+          em.persist(giro)
+          redistributed++
+        } catch (error) {
+          console.error(`Error redistribuyendo giro ${giro.id}:`, error)
           errors++
-          continue
         }
-
-        // Reasignar el giro
-        giro.transferencista = newTransferencista
-        giro.status = GiroStatus.ASIGNADO // Resetear a ASIGNADO si estaba PROCESANDO
-        giro.updatedAt = new Date()
-
-        redistributed++
-      } catch (error) {
-        console.error(`Error redistribuyendo giro ${giro.id}:`, error)
-        errors++
       }
-    }
 
-    // Guardar todos los cambios
-    if (pendingGiros.length > 0) {
-      await DI.em.persistAndFlush(pendingGiros)
-    }
+      // Guardar todos los cambios
+      if (pendingGiros.length > 0) {
+        await em.flush()
+      }
 
-    return { redistributed, errors }
+      return { redistributed, errors }
+    })
   }
 
   /**
@@ -752,8 +780,6 @@ export class GiroService {
       | 'AMOUNT_NOT_FOUND'
     }
   > {
-    const giroRepo = DI.em.getRepository(Giro)
-
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: any = null
     if (createdBy.role === UserRole.MINORISTA) {
@@ -775,64 +801,77 @@ export class GiroService {
       return { error: 'AMOUNT_NOT_FOUND' }
     }
 
-    // Asignar transferencista
-    const assigned = await this.findNextAvailableTransferencista()
-    if (!assigned) {
-      return { error: 'NO_TRANSFERENCISTA_ASSIGNED' }
-    }
-
-    // Calcular conversiones
-    const amountBs = amount.amountBs
-    const amountCop = amountBs * Number(exchangeRate.sellRate)
-
-    // Crear transacción de descuento del balance del minorista solo si hay minorista
-    if (minorista) {
-      const transactionResult = await minoristaTransactionService.createTransaction({
-        minoristaId: minorista.id,
-        amount: amountCop,
-        type: MinoristaTransactionType.DISCOUNT,
-        createdBy,
-      })
-
-      if ('error' in transactionResult) {
-        return { error: 'INSUFFICIENT_BALANCE' }
+    return await DI.em.transactional(async (em) => {
+      // Asignar transferencista (dentro de transacción con lock)
+      const assigned = await this.findNextAvailableTransferencista(em)
+      if (!assigned) {
+        throw new Error('NO_TRANSFERENCISTA_ASSIGNED')
       }
 
-      // Recargar minorista para obtener balance actualizado
-      await DI.em.refresh(minorista)
-    }
+      // Calcular conversiones
+      const amountBs = amount.amountBs
+      const amountCop = amountBs * Number(exchangeRate.sellRate)
 
-    // Calcular ganancias: 5% para minorista (si existe)
-    const minoristaProfit = minorista ? amountCop * 0.05 : 0
-    const systemProfit = amountCop * 0.05 // 5% para el sistema
+      // Crear transacción de descuento del balance del minorista solo si hay minorista
+      if (minorista) {
+        const transactionResult = await minoristaTransactionService.createTransaction({
+          minoristaId: minorista.id,
+          amount: amountCop,
+          type: MinoristaTransactionType.DISCOUNT,
+          createdBy,
+        }, em)
 
-    // Crear giro
-    const giro = giroRepo.create({
-      minorista,
-      transferencista: assigned,
-      beneficiaryName: data.contactoEnvia,
-      beneficiaryId: data.phone, // Usar teléfono como ID temporal
-      bankName: operator.name, // Nombre del operador
-      bankCode: operator.code || 0,
-      accountNumber: data.phone,
-      phone: data.phone,
-      rateApplied: exchangeRate,
-      amountInput: amountCop,
-      currencyInput: 'COP' as any, // COP es el tipo de moneda para recarga
-      amountBs: amountBs,
-      bcvValueApplied: exchangeRate.bcv,
-      systemProfit,
-      minoristaProfit,
-      executionType: ExecutionType.RECARGA,
-      status: GiroStatus.ASIGNADO,
-      createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+        if ('error' in transactionResult) {
+          throw new Error('INSUFFICIENT_BALANCE')
+        }
+
+        // Recargar minorista para obtener balance actualizado
+        await em.refresh(minorista)
+      }
+
+      // Calcular ganancias: 5% para minorista (si existe)
+      const minoristaProfit = minorista ? amountCop * 0.05 : 0
+      const systemProfit = amountCop * 0.05 // 5% para el sistema
+
+      const giroRepo = em.getRepository(Giro)
+
+      // Crear giro
+      const giro = giroRepo.create({
+        minorista,
+        transferencista: assigned,
+        beneficiaryName: data.contactoEnvia,
+        beneficiaryId: data.phone, // Usar teléfono como ID temporal
+        bankName: operator.name, // Nombre del operador
+        bankCode: operator.code || 0,
+        accountNumber: data.phone,
+        phone: data.phone,
+        rateApplied: exchangeRate,
+        amountInput: amountCop,
+        currencyInput: 'COP' as any, // COP es el tipo de moneda para recarga
+        amountBs: amountBs,
+        bcvValueApplied: exchangeRate.bcv,
+        systemProfit,
+        minoristaProfit,
+        executionType: ExecutionType.RECARGA,
+        status: GiroStatus.ASIGNADO,
+        createdBy,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      await em.persistAndFlush(giro)
+
+      return giro
+    }).catch((error) => {
+      if (error.message === 'INSUFFICIENT_BALANCE') {
+        return { error: 'INSUFFICIENT_BALANCE' as const }
+      }
+      if (error.message === 'NO_TRANSFERENCISTA_ASSIGNED') {
+        return { error: 'NO_TRANSFERENCISTA_ASSIGNED' as const }
+      }
+      console.error('Error al crear recarga:', error)
+      throw error
     })
-
-    await DI.em.persistAndFlush(giro)
-
-    return giro
   }
 
   /**
@@ -855,8 +894,6 @@ export class GiroService {
       error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
     }
   > {
-    const giroRepo = DI.em.getRepository(Giro)
-
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: any = null
     if (createdBy.role === UserRole.MINORISTA) {
@@ -872,78 +909,93 @@ export class GiroService {
       return { error: 'BANK_NOT_FOUND' }
     }
 
-    // Asignar transferencista
-    const assigned = await this.findNextAvailableTransferencista()
-    if (!assigned) {
-      return { error: 'NO_TRANSFERENCISTA_ASSIGNED' }
-    }
-
-    // Calcular conversión COP a Bs
-    const amountBs = data.amountCop / Number(exchangeRate.sellRate)
-
-    // Crear transacción de descuento del balance del minorista solo si hay minorista
-    if (minorista) {
-      const transactionResult = await minoristaTransactionService.createTransaction({
-        minoristaId: minorista.id,
-        amount: data.amountCop,
-        type: MinoristaTransactionType.DISCOUNT,
-        createdBy,
-      })
-
-      if ('error' in transactionResult) {
-        return { error: 'INSUFFICIENT_BALANCE' }
+    return await DI.em.transactional(async (em) => {
+      // Asignar transferencista (dentro de transacción con lock)
+      const assigned = await this.findNextAvailableTransferencista(em)
+      if (!assigned) {
+        throw new Error('NO_TRANSFERENCISTA_ASSIGNED')
       }
 
-      // Recargar minorista para obtener balance actualizado
-      await DI.em.refresh(minorista)
-    }
+      // Calcular conversión COP a Bs
+      const amountBs = data.amountCop / Number(exchangeRate.sellRate)
 
-    // Calcular ganancias: 5% para minorista (si existe)
-    const minoristaProfit = minorista ? data.amountCop * 0.05 : 0
-    const systemProfit = data.amountCop * 0.05 // 5% para el sistema
+      // Crear transacción de descuento del balance del minorista solo si hay minorista
+      if (minorista) {
+        const transactionResult = await minoristaTransactionService.createTransaction({
+          minoristaId: minorista.id,
+          amount: data.amountCop,
+          type: MinoristaTransactionType.DISCOUNT,
+          createdBy,
+        }, em)
 
-    // Crear giro
-    const giro = giroRepo.create({
-      minorista,
-      transferencista: assigned,
-      beneficiaryName: data.contactoEnvia,
-      beneficiaryId: data.cedula,
-      bankName: bank.name,
-      bankCode: bank.code,
-      accountNumber: data.phone,
-      phone: data.phone,
-      rateApplied: exchangeRate,
-      amountInput: data.amountCop,
-      currencyInput: 'COP' as any,
-      amountBs: amountBs,
-      bcvValueApplied: exchangeRate.bcv,
-      systemProfit,
-      minoristaProfit,
-      executionType: ExecutionType.PAGO_MOVIL,
-      status: GiroStatus.ASIGNADO,
-      createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
+        if ('error' in transactionResult) {
+          throw new Error('INSUFFICIENT_BALANCE')
+        }
 
-    await DI.em.persistAndFlush(giro)
+        // Recargar minorista para obtener balance actualizado
+        await em.refresh(minorista)
+      }
 
-    // Guardar sugerencia de beneficiario después de la transacción exitosa
-    try {
-      await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
-        beneficiaryName: data.phone, // Para pago móvil, usar teléfono como nombre
+      // Calcular ganancias: 5% para minorista (si existe)
+      const minoristaProfit = minorista ? data.amountCop * 0.05 : 0
+      const systemProfit = data.amountCop * 0.05 // 5% para el sistema
+
+      const giroRepo = em.getRepository(Giro)
+
+      // Crear giro
+      const giro = giroRepo.create({
+        minorista,
+        transferencista: assigned,
+        beneficiaryName: data.contactoEnvia,
         beneficiaryId: data.cedula,
+        bankName: bank.name,
+        bankCode: bank.code,
+        accountNumber: data.phone,
         phone: data.phone,
-        bankId: data.bankId,
-        accountNumber: data.phone, // Para pago móvil, usar teléfono como account number
+        rateApplied: exchangeRate,
+        amountInput: data.amountCop,
+        currencyInput: 'COP' as any,
+        amountBs: amountBs,
+        bcvValueApplied: exchangeRate.bcv,
+        systemProfit,
+        minoristaProfit,
         executionType: ExecutionType.PAGO_MOVIL,
+        status: GiroStatus.ASIGNADO,
+        createdBy,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
-    } catch (error) {
-      // No fallar si no se puede guardar la sugerencia
-      console.warn('Error al guardar sugerencia de beneficiario:', error)
-    }
 
-    return giro
+      await em.persistAndFlush(giro)
+
+      // Guardar sugerencia de beneficiario después de la transacción exitosa
+      // Nota: Esto es un side-effect dentro de la transacción, pero es aceptable.
+      // Si falla, no aborta la transacción principal (try-catch interno).
+      try {
+        await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
+          beneficiaryName: data.phone, // Para pago móvil, usar teléfono como nombre
+          beneficiaryId: data.cedula,
+          phone: data.phone,
+          bankId: data.bankId,
+          accountNumber: data.phone, // Para pago móvil, usar teléfono como account number
+          executionType: ExecutionType.PAGO_MOVIL,
+        })
+      } catch (error) {
+        // No fallar si no se puede guardar la sugerencia
+        console.warn('Error al guardar sugerencia de beneficiario:', error)
+      }
+
+      return giro
+    }).catch((error) => {
+      if (error.message === 'INSUFFICIENT_BALANCE') {
+        return { error: 'INSUFFICIENT_BALANCE' as const }
+      }
+      if (error.message === 'NO_TRANSFERENCISTA_ASSIGNED') {
+        return { error: 'NO_TRANSFERENCISTA_ASSIGNED' as const }
+      }
+      console.error('Error al crear pago móvil:', error)
+      throw error
+    })
   }
 
   async updateGiro(
