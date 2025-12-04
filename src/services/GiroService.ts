@@ -334,6 +334,7 @@ export class GiroService {
       type: BankAccountTransactionType.WITHDRAWAL,
       reference: `Giro ${giro.id}`,
       createdBy: createdByUser,
+      allowOverdraft: true,
     })
 
     if ('error' in transactionResult) {

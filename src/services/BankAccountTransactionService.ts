@@ -10,6 +10,7 @@ export interface CreateBankAccountTransactionInput {
   type: BankAccountTransactionType
   reference?: string
   createdBy: User
+  allowOverdraft?: boolean
 }
 
 export class BankAccountTransactionService {
@@ -43,16 +44,16 @@ export class BankAccountTransactionService {
         newBalance = previousBalance + data.amount
         break
       case BankAccountTransactionType.WITHDRAWAL:
-        // Retiro: restar del balance (validar que no quede negativo)
+        // Retiro: restar del balance (validar que no quede negativo, a menos que se permita sobregiro)
         newBalance = previousBalance - data.amount - data.fee
-        if (newBalance < 0) {
+        if (newBalance < 0 && !data.allowOverdraft) {
           return { error: 'INSUFFICIENT_BALANCE' }
         }
         break
       case BankAccountTransactionType.ADJUSTMENT:
         // Ajuste: puede ser positivo o negativo
         newBalance = previousBalance + data.amount
-        if (newBalance < 0) {
+        if (newBalance < 0 && !data.allowOverdraft) {
           return { error: 'INSUFFICIENT_BALANCE' }
         }
         break
@@ -90,25 +91,25 @@ export class BankAccountTransactionService {
     options?: { page?: number; limit?: number; startDate?: string; endDate?: string }
   ): Promise<
     | {
-        total: number
-        page: number
-        limit: number
-        transactions: Array<{
+      total: number
+      page: number
+      limit: number
+      transactions: Array<{
+        id: string
+        amount: number
+        fee: number
+        type: BankAccountTransactionType
+        reference?: string
+        previousBalance: number
+        currentBalance: number
+        createdBy: {
           id: string
-          amount: number
-          fee: number
-          type: BankAccountTransactionType
-          reference?: string
-          previousBalance: number
-          currentBalance: number
-          createdBy: {
-            id: string
-            fullName: string
-            email: string
-          }
-          createdAt: Date
-        }>
-      }
+          fullName: string
+          email: string
+        }
+        createdAt: Date
+      }>
+    }
     | { error: 'BANK_ACCOUNT_NOT_FOUND' }
   > {
     const bankAccountRepo = DI.em.getRepository(BankAccount)
@@ -171,24 +172,24 @@ export class BankAccountTransactionService {
    */
   async getTransactionById(transactionId: string): Promise<
     | {
+      id: string
+      amount: number
+      type: BankAccountTransactionType
+      reference?: string
+      previousBalance: number
+      currentBalance: number
+      bankAccount: {
         id: string
-        amount: number
-        type: BankAccountTransactionType
-        reference?: string
-        previousBalance: number
-        currentBalance: number
-        bankAccount: {
-          id: string
-          accountHolder: string
-          balance: number
-        }
-        createdBy: {
-          id: string
-          fullName: string
-          email: string
-        }
-        createdAt: Date
+        accountHolder: string
+        balance: number
       }
+      createdBy: {
+        id: string
+        fullName: string
+        email: string
+      }
+      createdAt: Date
+    }
     | { error: 'TRANSACTION_NOT_FOUND' }
   > {
     const transactionRepo = DI.em.getRepository(BankAccountTransaction)
