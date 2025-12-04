@@ -3,3 +3,7 @@ dist
 src/lib/firebase-admin-key.json
 temp/
 .env
+
+# Artillery Reports
+artillery_report*.json
+stress_test_report.html

@@ -8,7 +8,7 @@ import { makePassword } from '@/lib/passwordUtils'
 const realMinoristasData = [
   { fullName: 'José Gregorio Vela', email: 'mayerlinrocam@gmail.com' },
   { fullName: 'Odalis', email: 'odalisg024@gmail.com' },
-  { fullName: 'Alejandra Campos', email: 'andreinacampos0510@gmail' },
+  { fullName: 'Alejandra Campos', email: 'andreinacampos0510@gmail.com' },
   { fullName: 'Rossy Erazo', email: 'rosyerazo.51@gmail.com' },
   { fullName: 'Stefanny Toledo', email: 'toledostefanny65@gmail.com' },
   { fullName: 'Jhon Freddy', email: 'fredyrobotina@hotmail.com' },

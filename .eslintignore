@@ -9,6 +9,8 @@ build/
 temp/
 *.tmp
 
+artillery_report*
+
 # Configuration files
 *.config.js
 *.config.mjs
