@@ -20,7 +20,7 @@ export default defineConfig({
 
   pool: {
     min: 0,
-    max: 100,
+    max: 40,
   },
 
   migrations: {
