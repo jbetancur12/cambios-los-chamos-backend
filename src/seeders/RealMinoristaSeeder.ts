@@ -68,6 +68,7 @@ export class RealMinoristasSeeder extends Seeder {
           creditLimit,
           availableCredit: creditLimit,
           creditBalance: 0,
+          profitPercentage: data.fullName === 'Jesús Segura' ? 0.06 : 0.05,
           transactions: [],
           giros: [],
         })
