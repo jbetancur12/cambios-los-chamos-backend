@@ -1,5 +1,5 @@
 config:
-  target: "https://cambiosloschamo.com/api/"
+  target: "https://cambiosloschamo.com/api"
   phases:
     - duration: 60
       arrivalRate: 5
