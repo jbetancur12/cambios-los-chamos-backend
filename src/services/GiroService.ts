@@ -133,8 +133,8 @@ export class GiroService {
         let minoristaProfit = 0
 
         if (createdBy.role === UserRole.MINORISTA && minorista) {
-          // Minorista: 5% para él, 95% para el sistema
-          minoristaProfit = data.amountInput * 0.05
+          // Minorista: Porcentaje configurado para él (default 5%), resto para el sistema
+          minoristaProfit = data.amountInput * minorista.profitPercentage
           systemProfit = totalProfit - minoristaProfit
         } else {
           // Admin/SuperAdmin: 100% para el sistema

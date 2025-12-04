@@ -1130,6 +1130,18 @@
           "scale": 0,
           "default": "0",
           "mappedType": "decimal"
+        },
+        "profit_percentage": {
+          "name": "profit_percentage",
+          "type": "numeric(5,4)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "precision": 5,
+          "scale": 4,
+          "default": "0.05",
+          "mappedType": "decimal"
         }
       },
       "name": "minoristas",
