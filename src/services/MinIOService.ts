@@ -161,12 +161,12 @@ class MinIOService {
    */
   async processImage(fileBuffer: Buffer, mimetype: string, options: UploadOptions): Promise<ProcessedImages> {
     const compressed = await this.compressImage(fileBuffer, mimetype)
-    const withWatermark = await this.addWatermark(compressed, mimetype, options)
+    // const withWatermark = await this.addWatermark(compressed, mimetype, options)
 
     return {
       original: fileBuffer,
       compressed,
-      withWatermark,
+      withWatermark: compressed,
     }
   }
 
