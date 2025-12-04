@@ -1,19 +1,19 @@
 config:
   target: "http://localhost:3000"
   phases:
-    - duration: 30
-      arrivalRate: 5
-      name: "Warm up"
-    - duration: 30
-      arrivalRate: 5
-      rampTo: 20
-      name: "Ramp up load"
     - duration: 60
-      arrivalRate: 20
-      name: "Sustained load"
+      arrivalRate: 5
+      name: "5 Concurrent Minoristas"
   defaults:
     headers:
       Content-Type: "application/json"
+  payload:
+    path: "users.csv"
+    fields:
+      - "email"
+      - "password"
+    order: sequence
+    skipHeader: true
 
 scenarios:
   - name: "Create Giro Flow"
@@ -21,8 +21,8 @@ scenarios:
       - post:
           url: "/user/login"
           json:
-            email: "jesusnsegurap@gmail.com"
-            password: "12345678"
+            email: "{{ email }}"
+            password: "{{ password }}"
           capture:
             - json: "$.data.token"
               as: "token"
@@ -34,9 +34,9 @@ scenarios:
           json:
             beneficiaryName: "Stress Test User"
             beneficiaryId: "12345678"
-            bankId: "6b858da3-d1d0-45fa-9e06-3871b6168a39"
+            bankId: "2be2d42e-5a2e-4a57-9997-b9378bb7b150"
             accountNumber: "01020102010201020102"
             phone: "04141234567"
-            amountInput: 100
-            currencyInput: "VES"
+            amountInput: 3000
+            currencyInput: "COP"
             executionType: "TRANSFERENCIA"

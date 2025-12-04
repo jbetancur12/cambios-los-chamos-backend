@@ -1,0 +1,140 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "5 Concurrent Minoristas (Mixed)"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "Minorista 1 Flow"
+    weight: 20
+    flow:
+      - post:
+          url: "/user/login"
+          json:
+            email: "mayerlinrocam@gmail.com"
+            password: "12345678"
+          capture:
+            - json: "$.data.token"
+              as: "token"
+      - think: 1
+      - post:
+          url: "/giro/create"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            beneficiaryName: "Stress Test User 1"
+            beneficiaryId: "12345678"
+            bankId: "2be2d42e-5a2e-4a57-9997-b9378bb7b150"
+            accountNumber: "01020102010201020102"
+            phone: "04141234567"
+            amountInput: 3000
+            currencyInput: "COP"
+            executionType: "TRANSFERENCIA"
+
+  - name: "Minorista 2 Flow"
+    weight: 20
+    flow:
+      - post:
+          url: "/user/login"
+          json:
+            email: "odalisg024@gmail.com"
+            password: "12345678"
+          capture:
+            - json: "$.data.token"
+              as: "token"
+      - think: 1
+      - post:
+          url: "/giro/create"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            beneficiaryName: "Stress Test User 2"
+            beneficiaryId: "12345678"
+            bankId: "2be2d42e-5a2e-4a57-9997-b9378bb7b150"
+            accountNumber: "01020102010201020102"
+            phone: "04141234567"
+            amountInput: 3000
+            currencyInput: "COP"
+            executionType: "TRANSFERENCIA"
+
+  - name: "Minorista 3 Flow"
+    weight: 20
+    flow:
+      - post:
+          url: "/user/login"
+          json:
+            email: "rosyerazo.51@gmail.com"
+            password: "12345678"
+          capture:
+            - json: "$.data.token"
+              as: "token"
+      - think: 1
+      - post:
+          url: "/giro/create"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            beneficiaryName: "Stress Test User 3"
+            beneficiaryId: "12345678"
+            bankId: "2be2d42e-5a2e-4a57-9997-b9378bb7b150"
+            accountNumber: "01020102010201020102"
+            phone: "04141234567"
+            amountInput: 3000
+            currencyInput: "COP"
+            executionType: "TRANSFERENCIA"
+
+  - name: "Minorista 4 Flow"
+    weight: 20
+    flow:
+      - post:
+          url: "/user/login"
+          json:
+            email: "toledostefanny65@gmail.com"
+            password: "12345678"
+          capture:
+            - json: "$.data.token"
+              as: "token"
+      - think: 1
+      - post:
+          url: "/giro/create"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            beneficiaryName: "Stress Test User 4"
+            beneficiaryId: "12345678"
+            bankId: "2be2d42e-5a2e-4a57-9997-b9378bb7b150"
+            accountNumber: "01020102010201020102"
+            phone: "04141234567"
+            amountInput: 3000
+            currencyInput: "COP"
+            executionType: "TRANSFERENCIA"
+
+  - name: "Minorista 5 Flow"
+    weight: 20
+    flow:
+      - post:
+          url: "/user/login"
+          json:
+            email: "fredyrobotina@hotmail.com"
+            password: "12345678"
+          capture:
+            - json: "$.data.token"
+              as: "token"
+      - think: 1
+      - post:
+          url: "/giro/create"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            beneficiaryName: "Stress Test User 5"
+            beneficiaryId: "12345678"
+            bankId: "2be2d42e-5a2e-4a57-9997-b9378bb7b150"
+            accountNumber: "01020102010201020102"
+            phone: "04141234567"
+            amountInput: 3000
+            currencyInput: "COP"
+            executionType: "TRANSFERENCIA"

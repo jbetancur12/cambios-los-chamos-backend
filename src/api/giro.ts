@@ -153,7 +153,7 @@ giroRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
 
   const status = req.query.status as GiroStatus | undefined
   const page = parseInt(req.query.page as string) || 1
-  const limit = parseInt(req.query.limit as string) || 50
+  const limit = parseInt(req.query.limit as string) || 100
 
   // Parse dates from ISO strings
   let dateFrom: Date | undefined = undefined
