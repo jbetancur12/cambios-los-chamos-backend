@@ -62,6 +62,7 @@ export class MinoristaService {
       creditLimit: 0,
       availableCredit: 0,
       creditBalance: 0,
+      profitPercentage: 0.05,
       transactions: [],
       giros: [],
     })

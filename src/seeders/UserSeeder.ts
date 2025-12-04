@@ -150,6 +150,7 @@ export class UserSeeder extends Seeder {
           creditLimit,
           availableCredit: creditLimit, // Inicialmente todo el crédito está disponible
           creditBalance: 0, // Sin saldo utilizado
+          profitPercentage: 0.05,
           transactions: [],
           giros: [],
         })
