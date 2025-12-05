@@ -91,25 +91,25 @@ export class BankAccountTransactionService {
     options?: { page?: number; limit?: number; startDate?: string; endDate?: string }
   ): Promise<
     | {
-      total: number
-      page: number
-      limit: number
-      transactions: Array<{
-        id: string
-        amount: number
-        fee: number
-        type: BankAccountTransactionType
-        reference?: string
-        previousBalance: number
-        currentBalance: number
-        createdBy: {
+        total: number
+        page: number
+        limit: number
+        transactions: Array<{
           id: string
-          fullName: string
-          email: string
-        }
-        createdAt: Date
-      }>
-    }
+          amount: number
+          fee: number
+          type: BankAccountTransactionType
+          reference?: string
+          previousBalance: number
+          currentBalance: number
+          createdBy: {
+            id: string
+            fullName: string
+            email: string
+          }
+          createdAt: Date
+        }>
+      }
     | { error: 'BANK_ACCOUNT_NOT_FOUND' }
   > {
     const bankAccountRepo = DI.em.getRepository(BankAccount)
@@ -172,24 +172,24 @@ export class BankAccountTransactionService {
    */
   async getTransactionById(transactionId: string): Promise<
     | {
-      id: string
-      amount: number
-      type: BankAccountTransactionType
-      reference?: string
-      previousBalance: number
-      currentBalance: number
-      bankAccount: {
         id: string
-        accountHolder: string
-        balance: number
+        amount: number
+        type: BankAccountTransactionType
+        reference?: string
+        previousBalance: number
+        currentBalance: number
+        bankAccount: {
+          id: string
+          accountHolder: string
+          balance: number
+        }
+        createdBy: {
+          id: string
+          fullName: string
+          email: string
+        }
+        createdAt: Date
       }
-      createdBy: {
-        id: string
-        fullName: string
-        email: string
-      }
-      createdAt: Date
-    }
     | { error: 'TRANSACTION_NOT_FOUND' }
   > {
     const transactionRepo = DI.em.getRepository(BankAccountTransaction)

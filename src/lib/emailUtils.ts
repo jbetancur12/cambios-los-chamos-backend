@@ -1,5 +1,5 @@
 import { CreateEmailResponseSuccess, ErrorResponse, Resend } from 'resend'
-import { EMAIL_DOMAIN, RESEND_API_KEY } from '@/settings'
+import { EMAIL_DOMAIN, RESEND_API_KEY, IS_DEVELOPMENT } from '@/settings'
 
 // Initialize Resend only if API key is available
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null
@@ -46,6 +46,14 @@ export async function sendEmail(
   if (!resend) {
     throw new Error('Resend API key not configured')
   }
+
+  // Development override
+  if (IS_DEVELOPMENT) {
+    console.log(`[EMAIL-DEV] Override: Redirecting email for ${toEmail} to jabetancur12@gmail.com`)
+    toEmail = 'jabetancur12@gmail.com'
+    subject = `[DEV OVERRIDE] ${subject}`
+  }
+
   const { data, error } = await resend.emails.send({
     from: `${fromUser}@${EMAIL_DOMAIN}`,
     to: toEmail,

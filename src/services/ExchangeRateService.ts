@@ -119,18 +119,18 @@ export class ExchangeRateService {
    */
   async getExchangeRateById(rateId: string): Promise<
     | {
-      id: string
-      buyRate: number
-      sellRate: number
-      usd: number
-      bcv: number
-      createdBy: {
         id: string
-        fullName: string
-        email: string
+        buyRate: number
+        sellRate: number
+        usd: number
+        bcv: number
+        createdBy: {
+          id: string
+          fullName: string
+          email: string
+        }
+        createdAt: Date
       }
-      createdAt: Date
-    }
     | { error: 'RATE_NOT_FOUND' }
   > {
     const exchangeRateRepo = DI.em.getRepository(ExchangeRate)
