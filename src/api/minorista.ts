@@ -257,13 +257,30 @@ minoristaRouter.get(
 
       const transactions = result.transactions
       const total = result.total
+
+      console.log(`[API] Found ${transactions.length} transactions for minorista ${minoristaId}`)
+
+      if (transactions.length === 0) {
+        return res.json(
+          ApiResponse.success({
+            transactions: [],
+            pagination: {
+              total: total,
+              page: page,
+              limit: limit,
+              totalPages: Math.ceil(total / limit),
+            },
+          })
+        )
+      }
+
       // Obtener transacciones completas del repositorio para tener todos los campos
       const fullTransactions = await transactionRepo.find(
-        result.transactions.map((t: any) => t.id).length > 0
-          ? { id: { $in: result.transactions.map((t: any) => t.id) } }
-          : {},
+        { id: { $in: transactions.map((t: any) => t.id) } },
         { populate: ['minorista'] }
       )
+
+      console.log(`[API] Refetched ${fullTransactions.length} full transactions`)
 
       res.json(
         ApiResponse.success({
