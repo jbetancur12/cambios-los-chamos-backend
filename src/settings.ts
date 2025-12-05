@@ -9,13 +9,13 @@ const logger = pino({
   transport:
     process.env.NODE_ENV === 'development'
       ? {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'HH:MM:ss Z',
-            ignore: 'pid,hostname',
-          },
-        }
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          translateTime: 'HH:MM:ss Z',
+          ignore: 'pid,hostname',
+        },
+      }
       : undefined,
 })
 config({ path: resolve(__dirname, '../.env') })
@@ -120,7 +120,7 @@ if (CORS_ORIGINS_ENV) {
     'http://192.168.40.15:5173',
   ]
 } else {
-  CORS_ALLOWED_ORIGINS = ['https://app.useskald.com', 'https://api.useskald.com', 'https://platform.useskald.com']
+  CORS_ALLOWED_ORIGINS = ['https://app.cambiosloschamo.com', 'https://api.useskald.com', 'https://platform.useskald.com']
 }
 
 // Add self-hosted deployment URLs
