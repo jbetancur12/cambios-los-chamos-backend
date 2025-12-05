@@ -252,13 +252,14 @@ minoristaRouter.get(
       })
 
       if ('error' in result) {
+        console.error(`[API] Error fetching transactions: ${result.error}`)
         return res.status(404).json(ApiResponse.notFound('Minorista', minoristaId))
       }
 
       const transactions = result.transactions
       const total = result.total
 
-      console.log(`[API] Found ${transactions.length} transactions for minorista ${minoristaId}`)
+      console.log(`[API] Found ${transactions.length} transactions (Total: ${total}) for minorista ${minoristaId}`)
 
       if (transactions.length === 0) {
         return res.json(
