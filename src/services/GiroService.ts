@@ -142,7 +142,7 @@ export class GiroService {
           }
 
           // Recargar minorista para obtener balance actualizado
-          await em.refresh(minorista)
+          // await em.refresh(minorista) // COMENTADO: Esto descartaba los cambios hechos por createTransaction
         }
 
         // Calcular ganancias: ((monto / sellRate) * buyRate) - monto
