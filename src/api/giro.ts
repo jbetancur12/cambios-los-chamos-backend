@@ -50,9 +50,9 @@ giroRouter.post(
       return res.status(403).json(ApiResponse.forbidden('Solo el SUPER_ADMIN puede enviar dólares'))
     }
 
-    // VALIDACIÓN 2: Solo SUPER_ADMIN puede hacer override de la tasa
-    if (customRate && user.role !== UserRole.SUPER_ADMIN) {
-      return res.status(403).json(ApiResponse.forbidden('Solo el SUPER_ADMIN puede cambiar la tasa del giro'))
+    // VALIDACIÓN 2: Solo SUPER_ADMIN y ADMIN pueden hacer override de la tasa
+    if (customRate && user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.ADMIN) {
+      return res.status(403).json(ApiResponse.forbidden('Solo el SUPER_ADMIN o ADMIN puede cambiar la tasa del giro'))
     }
 
     // Determinar minoristaId según rol
@@ -579,7 +579,12 @@ giroRouter.post(
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
-    const { cedula, bankId, phone, contactoEnvia, amountCop } = req.body
+    const { cedula, bankId, phone, contactoEnvia, amountCop, customRate } = req.body
+
+    // Validar customRate
+    if (customRate && user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.ADMIN) {
+      return res.status(403).json(ApiResponse.forbidden('Solo el SUPER_ADMIN o ADMIN puede cambiar la tasa del giro'))
+    }
 
     if (!cedula || !bankId || !phone || !contactoEnvia || !amountCop) {
       return res.status(400).json(
@@ -593,10 +598,26 @@ giroRouter.post(
       )
     }
 
-    // Obtener tasa de cambio actual
-    const currentRateResult = await exchangeRateService.getCurrentRate()
-    if ('error' in currentRateResult) {
-      return res.status(404).json(ApiResponse.notFound('No hay tasa de cambio configurada. Contacte al administrador.'))
+    // Obtener tasa de cambio (customRate o tasa del día)
+    let rateApplied
+    if (customRate) {
+      // Admin/SuperAdmin hizo override: crear ExchangeRate temporal con valores custom
+      const customExchangeRate = await exchangeRateService.createExchangeRate({
+        buyRate: customRate.buyRate,
+        sellRate: customRate.sellRate,
+        usd: customRate.usd,
+        bcv: customRate.bcv,
+        createdBy: user,
+        isCustom: true, // Marcar como tasa personalizada para este giro
+      })
+      rateApplied = customExchangeRate
+    } else {
+      // Usar la tasa del día (última creada)
+      const currentRateResult = await exchangeRateService.getCurrentRate()
+      if ('error' in currentRateResult) {
+        return res.status(404).json(ApiResponse.notFound('No hay tasa de cambio configurada. Contacte al administrador.'))
+      }
+      rateApplied = currentRateResult
     }
 
     const result = await giroService.createMobilePayment(
@@ -608,7 +629,7 @@ giroRouter.post(
         amountCop: Number(amountCop),
       },
       user,
-      currentRateResult
+      rateApplied
     )
 
     if ('error' in result) {
