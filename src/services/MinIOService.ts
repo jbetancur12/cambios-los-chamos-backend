@@ -127,7 +127,7 @@ class MinIOService {
 
       // Cargar el logo
       const logoPath = path.join(__dirname, '../../assets/LogoLosChamos.avif')
-      let compositeArray: Array<{ input: Buffer | string; gravity: any; bottom?: number; right?: number }> = [
+      const compositeArray: Array<{ input: Buffer | string; gravity: any; bottom?: number; right?: number }> = [
         {
           input: svgBuffer,
           gravity: 'northwest' as const,
