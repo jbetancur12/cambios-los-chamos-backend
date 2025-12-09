@@ -87,7 +87,7 @@ userRouter.post('/logout', requireAuth(), async (_req: Request, res: Response) =
 // ------------------ REGISTRO ------------------
 userRouter.post(
   '/register',
-  requireRole(UserRole.SUPER_ADMIN),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   validateBody(registerSchema),
   async (req: Request, res: Response) => {
     const { email, password, fullName, role } = req.body
@@ -200,7 +200,7 @@ userRouter.post('/send-reset-password', validateBody(sendResetPasswordSchema), a
 userRouter.get(
   '/by-role/:role',
   requireAuth(),
-  requireRole(UserRole.SUPER_ADMIN),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   validateParams(getByRoleSchema),
   async (req: Request, res: Response) => {
     const { role } = req.params as { role: UserRole }
@@ -226,7 +226,7 @@ userRouter.get(
 userRouter.put(
   '/:userId/toggle-active',
   requireAuth(),
-  requireRole(UserRole.SUPER_ADMIN),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   async (req: Request, res: Response) => {
     const { userId } = req.params
 

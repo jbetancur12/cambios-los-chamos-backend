@@ -11,7 +11,7 @@ export const transferencistaRouter = express.Router()
 
 transferencistaRouter.post(
   '/create',
-  requireRole(UserRole.SUPER_ADMIN),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   validateBody(createTransferencistaSchema),
   async (req: Request, res: Response) => {
     const { fullName, email, password, available } = req.body
