@@ -615,7 +615,9 @@ giroRouter.post(
       // Usar la tasa del día (última creada)
       const currentRateResult = await exchangeRateService.getCurrentRate()
       if ('error' in currentRateResult) {
-        return res.status(404).json(ApiResponse.notFound('No hay tasa de cambio configurada. Contacte al administrador.'))
+        return res
+          .status(404)
+          .json(ApiResponse.notFound('No hay tasa de cambio configurada. Contacte al administrador.'))
       }
       rateApplied = currentRateResult
     }
