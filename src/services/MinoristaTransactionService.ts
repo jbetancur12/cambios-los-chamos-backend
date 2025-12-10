@@ -53,8 +53,31 @@ export class MinoristaTransactionService {
           newAvailableCredit = previousAvailableCredit
           newBalanceInFavor = previousBalanceInFavorValue + data.amount
         } else {
-          newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
-          newBalanceInFavor = previousBalanceInFavorValue
+          // Lógica estándar para RECHARGE (Abono positivo o "Pago de Deuda" negativo)
+          if (data.amount < 0 && previousBalanceInFavorValue > 0) {
+            // Caso especial: Hay un débito (o carga negativa) y el usuario tiene saldo a favor.
+            // Primero consumimos el saldo a favor para cubrir la deuda.
+            const absAmount = Math.abs(data.amount)
+
+            if (previousBalanceInFavorValue >= absAmount) {
+              // El saldo a favor cubre todo el débito
+              newBalanceInFavor = previousBalanceInFavorValue - absAmount
+              balanceInFavorUsed = absAmount
+              newAvailableCredit = previousAvailableCredit // No se toca el crédito disponible si se cubre con el saldo
+            } else {
+              // El saldo a favor cubre parcialmente
+              balanceInFavorUsed = previousBalanceInFavorValue
+              const remainingDebt = absAmount - previousBalanceInFavorValue
+              newBalanceInFavor = 0
+
+              // El resto se descuenta del crédito disponible (generando deuda real si baja de el límite)
+              newAvailableCredit = Math.min(previousAvailableCredit - remainingDebt, minorista.creditLimit)
+            }
+          } else {
+            // Comportamiento estándar: Sumar directamente al crédito disponible (o restar si es negativo y no hay saldo a favor)
+            newAvailableCredit = Math.min(previousAvailableCredit + data.amount, minorista.creditLimit)
+            newBalanceInFavor = previousBalanceInFavorValue
+          }
         }
         break
 
@@ -206,23 +229,23 @@ export class MinoristaTransactionService {
     options?: { page?: number; limit?: number; startDate?: string; endDate?: string }
   ): Promise<
     | {
-        total: number
-        page: number
-        limit: number
-        transactions: Array<{
+      total: number
+      page: number
+      limit: number
+      transactions: Array<{
+        id: string
+        amount: number
+        type: MinoristaTransactionType
+        previousBalance: number
+        currentBalance: number
+        createdBy: {
           id: string
-          amount: number
-          type: MinoristaTransactionType
-          previousBalance: number
-          currentBalance: number
-          createdBy: {
-            id: string
-            fullName: string
-            email: string
-          }
-          createdAt: Date
-        }>
-      }
+          fullName: string
+          email: string
+        }
+        createdAt: Date
+      }>
+    }
     | { error: 'MINORISTA_NOT_FOUND' }
   > {
     const minoristaRepo = DI.em.getRepository(Minorista)
@@ -290,27 +313,27 @@ export class MinoristaTransactionService {
    */
   async getTransactionById(transactionId: string): Promise<
     | {
+      id: string
+      amount: number
+      type: MinoristaTransactionType
+      previousBalance: number
+      currentBalance: number
+      minorista: {
         id: string
-        amount: number
-        type: MinoristaTransactionType
-        previousBalance: number
-        currentBalance: number
-        minorista: {
-          id: string
-          availableCredit: number
-          user: {
-            id: string
-            fullName: string
-            email: string
-          }
-        }
-        createdBy: {
+        availableCredit: number
+        user: {
           id: string
           fullName: string
           email: string
         }
-        createdAt: Date
       }
+      createdBy: {
+        id: string
+        fullName: string
+        email: string
+      }
+      createdAt: Date
+    }
     | { error: 'TRANSACTION_NOT_FOUND' }
   > {
     const transactionRepo = DI.em.getRepository(MinoristaTransaction)
