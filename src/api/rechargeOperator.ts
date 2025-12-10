@@ -130,6 +130,7 @@ router.delete(
       console.error('Error deleting recharge operator:', error)
       res.status(500).json(ApiResponse.serverError())
     }
-  })
+  }
+)
 
 export default router

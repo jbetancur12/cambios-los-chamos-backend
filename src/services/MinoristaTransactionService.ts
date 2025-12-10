@@ -206,23 +206,23 @@ export class MinoristaTransactionService {
     options?: { page?: number; limit?: number; startDate?: string; endDate?: string }
   ): Promise<
     | {
-      total: number
-      page: number
-      limit: number
-      transactions: Array<{
-        id: string
-        amount: number
-        type: MinoristaTransactionType
-        previousBalance: number
-        currentBalance: number
-        createdBy: {
+        total: number
+        page: number
+        limit: number
+        transactions: Array<{
           id: string
-          fullName: string
-          email: string
-        }
-        createdAt: Date
-      }>
-    }
+          amount: number
+          type: MinoristaTransactionType
+          previousBalance: number
+          currentBalance: number
+          createdBy: {
+            id: string
+            fullName: string
+            email: string
+          }
+          createdAt: Date
+        }>
+      }
     | { error: 'MINORISTA_NOT_FOUND' }
   > {
     const minoristaRepo = DI.em.getRepository(Minorista)
@@ -290,27 +290,27 @@ export class MinoristaTransactionService {
    */
   async getTransactionById(transactionId: string): Promise<
     | {
-      id: string
-      amount: number
-      type: MinoristaTransactionType
-      previousBalance: number
-      currentBalance: number
-      minorista: {
         id: string
-        availableCredit: number
-        user: {
+        amount: number
+        type: MinoristaTransactionType
+        previousBalance: number
+        currentBalance: number
+        minorista: {
+          id: string
+          availableCredit: number
+          user: {
+            id: string
+            fullName: string
+            email: string
+          }
+        }
+        createdBy: {
           id: string
           fullName: string
           email: string
         }
+        createdAt: Date
       }
-      createdBy: {
-        id: string
-        fullName: string
-        email: string
-      }
-      createdAt: Date
-    }
     | { error: 'TRANSACTION_NOT_FOUND' }
   > {
     const transactionRepo = DI.em.getRepository(MinoristaTransaction)

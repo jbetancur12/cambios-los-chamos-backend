@@ -140,6 +140,7 @@ router.delete(
       console.error('Error deleting operator-amount relation:', error)
       res.status(500).json(ApiResponse.serverError())
     }
-  })
+  }
+)
 
 export default router

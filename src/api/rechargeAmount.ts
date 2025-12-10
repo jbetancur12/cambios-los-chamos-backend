@@ -137,6 +137,7 @@ router.delete(
       console.error('Error deleting recharge amount:', error)
       res.status(500).json(ApiResponse.serverError())
     }
-  })
+  }
+)
 
 export default router

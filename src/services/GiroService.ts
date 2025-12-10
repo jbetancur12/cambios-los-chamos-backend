@@ -222,7 +222,7 @@ export class GiroService {
 
           // Vincular las transacciones a este giro
           for (const transaction of minoristaTransactions) {
-            ; (transaction as MinoristaTransaction).giro = giro
+            ;(transaction as MinoristaTransaction).giro = giro
             em.persist(transaction)
           }
           await em.flush()
@@ -311,14 +311,14 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error:
-      | 'GIRO_NOT_FOUND'
-      | 'INVALID_STATUS'
-      | 'BANK_ACCOUNT_NOT_FOUND'
-      | 'INSUFFICIENT_BALANCE'
-      | 'UNAUTHORIZED_ACCOUNT'
-      | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
-    }
+        error:
+          | 'GIRO_NOT_FOUND'
+          | 'INVALID_STATUS'
+          | 'BANK_ACCOUNT_NOT_FOUND'
+          | 'INSUFFICIENT_BALANCE'
+          | 'UNAUTHORIZED_ACCOUNT'
+          | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+      }
   > {
     const giro = await DI.giros.findOne(
       { id: giroId },
@@ -590,9 +590,7 @@ export class GiroService {
           }
           console.info(`[GIRO] Delete refund successful (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`)
         } else if (giro.minorista && giro.status === GiroStatus.DEVUELTO) {
-          console.info(
-            `[GIRO] Skipping refund for deleted giro because it is already RETURNED (giroId: ${giroId})`
-          )
+          console.info(`[GIRO] Skipping refund for deleted giro because it is already RETURNED (giroId: ${giroId})`)
         }
 
         // Eliminar giro
@@ -846,13 +844,13 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error:
-      | 'MINORISTA_NOT_FOUND'
-      | 'NO_TRANSFERENCISTA_ASSIGNED'
-      | 'INSUFFICIENT_BALANCE'
-      | 'OPERATOR_NOT_FOUND'
-      | 'AMOUNT_NOT_FOUND'
-    }
+        error:
+          | 'MINORISTA_NOT_FOUND'
+          | 'NO_TRANSFERENCISTA_ASSIGNED'
+          | 'INSUFFICIENT_BALANCE'
+          | 'OPERATOR_NOT_FOUND'
+          | 'AMOUNT_NOT_FOUND'
+      }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: any = null
@@ -970,8 +968,8 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
-    }
+        error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
+      }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: any = null
