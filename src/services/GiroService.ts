@@ -568,7 +568,9 @@ export class GiroService {
         console.info(`[GIRO] Starting delete process (giroId: ${giroId}, minoristaId: ${giro.minorista?.id})`)
 
         // Reembolsar balance si hay minorista
-        if (giro.minorista) {
+        // Reembolsar balance si hay minorista Y el giro no está ya devuelto
+        // Si está DEVUELTO, el reembolso ya se hizo al momento de la devolución
+        if (giro.minorista && giro.status !== GiroStatus.DEVUELTO) {
           console.info(
             `[GIRO] Processing refund before deletion (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`
           )
@@ -587,6 +589,10 @@ export class GiroService {
             throw new Error('Error al reembolsar minorista')
           }
           console.info(`[GIRO] Delete refund successful (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`)
+        } else if (giro.minorista && giro.status === GiroStatus.DEVUELTO) {
+          console.info(
+            `[GIRO] Skipping refund for deleted giro because it is already RETURNED (giroId: ${giroId})`
+          )
         }
 
         // Eliminar giro
