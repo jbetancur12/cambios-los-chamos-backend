@@ -114,6 +114,27 @@ export class MinoristaTransactionService {
         }
         newBalanceInFavor = previousBalanceInFavorValue
         break
+
+      case MinoristaTransactionType.REFUND: {
+        // Reembolso: Se devuelve el monto neto (Monto - Ganancia ya otorgada)
+        const profitToRevert = data.amount * 0.05
+        const netRefund = data.amount - profitToRevert
+
+        // Calcular liquidez total: (Crédito disponible actual) + (Saldo a favor actual) + (Reembolso)
+        // Nota: Si el crédito disponible ya excedía el límite (por un bug previo), esto se normalizará aquí.
+        const totalFunds = previousAvailableCredit + previousBalanceInFavorValue + netRefund
+
+        if (totalFunds > minorista.creditLimit) {
+          // Llenamos el cupo hasta el límite y el resto es saldo a favor
+          newAvailableCredit = minorista.creditLimit
+          newBalanceInFavor = totalFunds - minorista.creditLimit
+        } else {
+          // Si no supera el límite, todo va al crédito disponible y no hay saldo a favor
+          newAvailableCredit = totalFunds
+          newBalanceInFavor = 0
+        }
+        break
+      }
     }
 
     // Calcular ganancia: 5% para DISCOUNT
@@ -185,23 +206,23 @@ export class MinoristaTransactionService {
     options?: { page?: number; limit?: number; startDate?: string; endDate?: string }
   ): Promise<
     | {
-        total: number
-        page: number
-        limit: number
-        transactions: Array<{
+      total: number
+      page: number
+      limit: number
+      transactions: Array<{
+        id: string
+        amount: number
+        type: MinoristaTransactionType
+        previousBalance: number
+        currentBalance: number
+        createdBy: {
           id: string
-          amount: number
-          type: MinoristaTransactionType
-          previousBalance: number
-          currentBalance: number
-          createdBy: {
-            id: string
-            fullName: string
-            email: string
-          }
-          createdAt: Date
-        }>
-      }
+          fullName: string
+          email: string
+        }
+        createdAt: Date
+      }>
+    }
     | { error: 'MINORISTA_NOT_FOUND' }
   > {
     const minoristaRepo = DI.em.getRepository(Minorista)
@@ -269,27 +290,27 @@ export class MinoristaTransactionService {
    */
   async getTransactionById(transactionId: string): Promise<
     | {
+      id: string
+      amount: number
+      type: MinoristaTransactionType
+      previousBalance: number
+      currentBalance: number
+      minorista: {
         id: string
-        amount: number
-        type: MinoristaTransactionType
-        previousBalance: number
-        currentBalance: number
-        minorista: {
-          id: string
-          availableCredit: number
-          user: {
-            id: string
-            fullName: string
-            email: string
-          }
-        }
-        createdBy: {
+        availableCredit: number
+        user: {
           id: string
           fullName: string
           email: string
         }
-        createdAt: Date
       }
+      createdBy: {
+        id: string
+        fullName: string
+        email: string
+      }
+      createdAt: Date
+    }
     | { error: 'TRANSACTION_NOT_FOUND' }
   > {
     const transactionRepo = DI.em.getRepository(MinoristaTransaction)

@@ -222,7 +222,7 @@ export class GiroService {
 
           // Vincular las transacciones a este giro
           for (const transaction of minoristaTransactions) {
-            ;(transaction as MinoristaTransaction).giro = giro
+            ; (transaction as MinoristaTransaction).giro = giro
             em.persist(transaction)
           }
           await em.flush()
@@ -311,14 +311,14 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error:
-          | 'GIRO_NOT_FOUND'
-          | 'INVALID_STATUS'
-          | 'BANK_ACCOUNT_NOT_FOUND'
-          | 'INSUFFICIENT_BALANCE'
-          | 'UNAUTHORIZED_ACCOUNT'
-          | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
-      }
+      error:
+      | 'GIRO_NOT_FOUND'
+      | 'INVALID_STATUS'
+      | 'BANK_ACCOUNT_NOT_FOUND'
+      | 'INSUFFICIENT_BALANCE'
+      | 'UNAUTHORIZED_ACCOUNT'
+      | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+    }
   > {
     const giro = await DI.giros.findOne(
       { id: giroId },
@@ -543,10 +543,16 @@ export class GiroService {
         return { error: 'GIRO_NOT_FOUND' }
       }
 
-      // Solo el usuario que creó el giro puede eliminarlo
-      if (giro.createdBy?.id !== user.id) {
+      // Permisos de eliminación:
+      // 1. El creador del giro siempre puede eliminarlo (si el estado lo permite)
+      // 2. ADMIN/SUPER_ADMIN pueden eliminar giros en estado DEVUELTO
+      const isCreator = giro.createdBy?.id === user.id
+      const isAdminDeletingReturned =
+        (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) && giro.status === GiroStatus.DEVUELTO
+
+      if (!isCreator && !isAdminDeletingReturned) {
         console.warn(
-          `[GIRO] Delete failed: FORBIDDEN (giroId: ${giroId}, user: ${user.id}, createdBy: ${giro.createdBy?.id})`
+          `[GIRO] Delete failed: FORBIDDEN (giroId: ${giroId}, user: ${user.id}, role: ${user.role}, status: ${giro.status})`
         )
         return { error: 'FORBIDDEN' }
       }
@@ -834,13 +840,13 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error:
-          | 'MINORISTA_NOT_FOUND'
-          | 'NO_TRANSFERENCISTA_ASSIGNED'
-          | 'INSUFFICIENT_BALANCE'
-          | 'OPERATOR_NOT_FOUND'
-          | 'AMOUNT_NOT_FOUND'
-      }
+      error:
+      | 'MINORISTA_NOT_FOUND'
+      | 'NO_TRANSFERENCISTA_ASSIGNED'
+      | 'INSUFFICIENT_BALANCE'
+      | 'OPERATOR_NOT_FOUND'
+      | 'AMOUNT_NOT_FOUND'
+    }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: any = null
@@ -958,8 +964,8 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
-      }
+      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
+    }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: any = null
@@ -1078,7 +1084,8 @@ export class GiroService {
       bankId: string
       accountNumber: string
       phone: string
-    }
+    },
+    user: User
   ): Promise<Giro> {
     const giroRepo = DI.em.getRepository(Giro)
 
@@ -1098,27 +1105,57 @@ export class GiroService {
       }
     )
     if (!giro) {
-      throw new Error('Giro no encontrado')
+      throw new Error('GIRO_NOT_FOUND')
     }
 
     const bank = await DI.banks.findOne({ id: data.bankId })
     if (!bank) {
-      throw new Error('Banco no encontrado')
+      throw new Error('BANCO_NO_ENCONTRADO')
     }
 
-    if (giro.status === GiroStatus.DEVUELTO) {
-      giro.status = GiroStatus.ASIGNADO
-    }
+    return await DI.em.transactional(async (em) => {
+      // Detectar reactivación: Estaba DEVUELTO y se va a actualizar (implica re-asignar)
+      if (giro.status === GiroStatus.DEVUELTO) {
+        console.info(`[GIRO] Reactivating returned giro (giroId: ${giroId}, user: ${user.id})`)
+        giro.status = GiroStatus.ASIGNADO
 
-    giro.beneficiaryName = data.beneficiaryName
-    giro.beneficiaryId = data.beneficiaryId
-    giro.bankName = bank.name
-    giro.accountNumber = data.accountNumber
-    giro.phone = data.phone
-    giro.updatedAt = new Date()
+        // Si pertenece a un minorista, debemos volver a descontar el saldo
+        // (Al devolverlo se le reembolsó, así que para activarlo debe pagar de nuevo)
+        if (giro.minorista) {
+          console.info(
+            `[GIRO] Processing re-deduction for minorista (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`
+          )
 
-    await DI.em.persistAndFlush(giro)
-    return giro
+          const transactionResult = await minoristaTransactionService.createTransaction(
+            {
+              minoristaId: giro.minorista.id,
+              amount: giro.amountInput,
+              type: MinoristaTransactionType.DISCOUNT,
+              createdBy: user,
+            },
+            em
+          )
+
+          if ('error' in transactionResult) {
+            console.error(
+              `[GIRO] Re-deduction failed (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, error: ${transactionResult.error})`
+            )
+            throw new Error('INSUFFICIENT_BALANCE') // O el error específico
+          }
+          console.info(`[GIRO] Re-deduction successful (giroId: ${giroId})`)
+        }
+      }
+
+      giro.beneficiaryName = data.beneficiaryName
+      giro.beneficiaryId = data.beneficiaryId
+      giro.bankName = bank.name
+      giro.accountNumber = data.accountNumber
+      giro.phone = data.phone
+      giro.updatedAt = new Date()
+
+      em.persist(giro)
+      return giro
+    })
   }
 
   /**

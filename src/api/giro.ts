@@ -270,30 +270,44 @@ giroRouter.patch(
   '/:giroId',
   requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MINORISTA),
   async (req: Request, res: Response) => {
+    const user = req.context?.requestUser?.user
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
     const { giroId } = req.params
     const { beneficiaryName, beneficiaryId, bankId, accountNumber, phone } = req.body
 
-    const result = await giroService.updateGiro(giroId, {
-      beneficiaryName,
-      beneficiaryId,
-      bankId,
-      accountNumber,
-      phone,
-    })
+    try {
+      const result = await giroService.updateGiro(
+        giroId,
+        {
+          beneficiaryName,
+          beneficiaryId,
+          bankId,
+          accountNumber,
+          phone,
+        },
+        user
+      )
 
-    if ('error' in result) {
-      switch (result.error) {
-        case 'GIRO_NOT_FOUND':
-          return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+      // Emitir evento de WebSocket
+      if (giroSocketManager) {
+        giroSocketManager.broadcastGiroUpdated(result, 'beneficiary')
       }
-    }
 
-    // Emitir evento de WebSocket
-    if (giroSocketManager) {
-      giroSocketManager.broadcastGiroUpdated(result, 'beneficiary')
+      res.json(ApiResponse.success({ giro: result, message: 'Giro actualizado exitosamente' }))
+    } catch (error: any) {
+      if (error.message === 'GIRO_NOT_FOUND') {
+        return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+      }
+      if (error.message === 'INSUFFICIENT_BALANCE') {
+        return res.status(400).json(ApiResponse.badRequest('Balance insuficiente para reactivar el giro'))
+      }
+      // Manejar otros errores
+      console.error('Error updating giro:', error)
+      return res.status(500).json(ApiResponse.serverError())
     }
-
-    res.json(ApiResponse.success({ giro: result, message: 'Giro actualizado exitosamente' }))
   }
 )
 
