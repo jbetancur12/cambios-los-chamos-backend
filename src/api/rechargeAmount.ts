@@ -37,95 +37,106 @@ router.get('/all', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: 
 
 /**
  * POST /api/recharge-amounts
- * Create a new recharge amount - SUPER_ADMIN only
+ * Create a new recharge amount - Restricted roles
  */
-router.post('/', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
-  try {
-    const { amountBs } = req.body
+router.post(
+  '/',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA),
+  async (req: Request, res: Response) => {
+    try {
+      const { amountBs } = req.body
 
-    if (!amountBs || typeof amountBs !== 'number' || amountBs <= 0) {
-      return res.status(400).json({
-        error: 'INVALID_AMOUNT',
-        message: 'amountBs is required and must be a positive number',
-      })
+      if (!amountBs || typeof amountBs !== 'number' || amountBs <= 0) {
+        return res.status(400).json({
+          error: 'INVALID_AMOUNT',
+          message: 'amountBs is required and must be a positive number',
+        })
+      }
+
+      const amount = new RechargeAmount()
+      amount.amountBs = amountBs
+      const user = req.context?.requestUser?.user
+      if (!user) {
+        return res.status(401).json({
+          error: 'UNAUTHORIZED',
+          message: 'User not found in request context',
+        })
+      }
+      amount.createdBy = user
+
+      await DI.em.persistAndFlush(amount)
+      res.status(201).json(ApiResponse.success(amount))
+    } catch (error) {
+      console.error('Error creating recharge amount:', error)
+      res.status(500).json(ApiResponse.serverError())
     }
-
-    const amount = new RechargeAmount()
-    amount.amountBs = amountBs
-    const user = req.context?.requestUser?.user
-    if (!user) {
-      return res.status(401).json({
-        error: 'UNAUTHORIZED',
-        message: 'User not found in request context',
-      })
-    }
-    amount.createdBy = user
-
-    await DI.em.persistAndFlush(amount)
-    res.status(201).json(ApiResponse.success(amount))
-  } catch (error) {
-    console.error('Error creating recharge amount:', error)
-    res.status(500).json(ApiResponse.serverError())
   }
-})
+)
 
 /**
  * PUT /api/recharge-amounts/:id
- * Update a recharge amount - SUPER_ADMIN only
+ * Update a recharge amount - Restricted roles
  */
-router.put('/:id', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params
-    const { amountBs, isActive } = req.body
+router.put(
+  '/:id',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA),
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params
+      const { amountBs, isActive } = req.body
 
-    const amount = await DI.rechargeAmounts.findOne({ id })
-    if (!amount) {
-      return res.status(404).json({
-        error: 'NOT_FOUND',
-        message: 'Recharge amount not found',
-      })
+      const amount = await DI.rechargeAmounts.findOne({ id })
+      if (!amount) {
+        return res.status(404).json({
+          error: 'NOT_FOUND',
+          message: 'Recharge amount not found',
+        })
+      }
+
+      if (amountBs && typeof amountBs === 'number' && amountBs > 0) {
+        amount.amountBs = amountBs
+      }
+
+      if (typeof isActive === 'boolean') {
+        amount.isActive = isActive
+      }
+
+      await DI.em.persistAndFlush(amount)
+      res.json(ApiResponse.success(amount))
+    } catch (error) {
+      console.error('Error updating recharge amount:', error)
+      res.status(500).json(ApiResponse.serverError())
     }
-
-    if (amountBs && typeof amountBs === 'number' && amountBs > 0) {
-      amount.amountBs = amountBs
-    }
-
-    if (typeof isActive === 'boolean') {
-      amount.isActive = isActive
-    }
-
-    await DI.em.persistAndFlush(amount)
-    res.json(ApiResponse.success(amount))
-  } catch (error) {
-    console.error('Error updating recharge amount:', error)
-    res.status(500).json(ApiResponse.serverError())
   }
-})
+)
 
 /**
  * DELETE /api/recharge-amounts/:id
- * Soft delete a recharge amount - SUPER_ADMIN only
+ * Soft delete a recharge amount - Restricted roles
  */
-router.delete('/:id', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params
+router.delete(
+  '/:id',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA),
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params
 
-    const amount = await DI.rechargeAmounts.findOne({ id })
-    if (!amount) {
-      return res.status(404).json({
-        error: 'NOT_FOUND',
-        message: 'Recharge amount not found',
-      })
+      const amount = await DI.rechargeAmounts.findOne({ id })
+      if (!amount) {
+        return res.status(404).json({
+          error: 'NOT_FOUND',
+          message: 'Recharge amount not found',
+        })
+      }
+
+      amount.isActive = false
+      await DI.em.persistAndFlush(amount)
+
+      res.json(ApiResponse.success({ message: 'Recharge amount deactivated' }))
+    } catch (error) {
+      console.error('Error deleting recharge amount:', error)
+      res.status(500).json(ApiResponse.serverError())
     }
-
-    amount.isActive = false
-    await DI.em.persistAndFlush(amount)
-
-    res.json(ApiResponse.success({ message: 'Recharge amount deactivated' }))
-  } catch (error) {
-    console.error('Error deleting recharge amount:', error)
-    res.status(500).json(ApiResponse.serverError())
-  }
-})
+  })
 
 export default router

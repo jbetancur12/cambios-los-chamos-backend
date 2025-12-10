@@ -23,98 +23,113 @@ router.get('/', requireAuth(), async (req: Request, res: Response) => {
 
 /**
  * GET /api/recharge-operators/all
- * Get all recharge operators (including inactive) - SUPER_ADMIN only
+ * Get all recharge operators (including inactive) - Restricted roles
  */
-router.get('/all', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
-  try {
-    const operators = await DI.rechargeOperators.findAll()
-    res.json(ApiResponse.success(operators))
-  } catch (error) {
-    console.error('Error fetching all recharge operators:', error)
-    res.status(500).json(ApiResponse.serverError())
+router.get(
+  '/all',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA),
+  async (req: Request, res: Response) => {
+    try {
+      const operators = await DI.rechargeOperators.findAll()
+      res.json(ApiResponse.success(operators))
+    } catch (error) {
+      console.error('Error fetching all recharge operators:', error)
+      res.status(500).json(ApiResponse.serverError())
+    }
   }
-})
+)
 
 /**
  * POST /api/recharge-operators
- * Create a new recharge operator - SUPER_ADMIN only
+ * Create a new recharge operator - Restricted roles
  */
-router.post('/', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
-  try {
-    const { name, type } = req.body
+router.post(
+  '/',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA),
+  async (req: Request, res: Response) => {
+    try {
+      const { name, type } = req.body
 
-    if (!name || !type) {
-      return res.status(400).json({
-        error: 'MISSING_PARAMETERS',
-        message: 'name and type are required',
-      })
+      if (!name || !type) {
+        return res.status(400).json({
+          error: 'MISSING_PARAMETERS',
+          message: 'name and type are required',
+        })
+      }
+
+      const operator = new RechargeOperator()
+      operator.name = name
+      operator.type = type
+
+      await DI.em.persistAndFlush(operator)
+      res.status(201).json(ApiResponse.success(operator))
+    } catch (error) {
+      console.error('Error creating recharge operator:', error)
+      res.status(500).json(ApiResponse.serverError())
     }
-
-    const operator = new RechargeOperator()
-    operator.name = name
-    operator.type = type
-
-    await DI.em.persistAndFlush(operator)
-    res.status(201).json(ApiResponse.success(operator))
-  } catch (error) {
-    console.error('Error creating recharge operator:', error)
-    res.status(500).json(ApiResponse.serverError())
   }
-})
+)
 
 /**
  * PUT /api/recharge-operators/:id
- * Update a recharge operator - SUPER_ADMIN only
+ * Update a recharge operator - Restricted roles
  */
-router.put('/:id', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params
-    const { name, type, isActive } = req.body
+router.put(
+  '/:id',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA),
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params
+      const { name, type, isActive } = req.body
 
-    const operator = await DI.rechargeOperators.findOne({ id })
-    if (!operator) {
-      return res.status(404).json({
-        error: 'NOT_FOUND',
-        message: 'Operator not found',
-      })
+      const operator = await DI.rechargeOperators.findOne({ id })
+      if (!operator) {
+        return res.status(404).json({
+          error: 'NOT_FOUND',
+          message: 'Operator not found',
+        })
+      }
+
+      if (name) operator.name = name
+      if (type) operator.type = type
+      if (typeof isActive === 'boolean') operator.isActive = isActive
+
+      await DI.em.persistAndFlush(operator)
+      res.json(ApiResponse.success(operator))
+    } catch (error) {
+      console.error('Error updating recharge operator:', error)
+      res.status(500).json(ApiResponse.serverError())
     }
-
-    if (name) operator.name = name
-    if (type) operator.type = type
-    if (typeof isActive === 'boolean') operator.isActive = isActive
-
-    await DI.em.persistAndFlush(operator)
-    res.json(ApiResponse.success(operator))
-  } catch (error) {
-    console.error('Error updating recharge operator:', error)
-    res.status(500).json(ApiResponse.serverError())
   }
-})
+)
 
 /**
  * DELETE /api/recharge-operators/:id
- * Soft delete a recharge operator - SUPER_ADMIN only
+ * Soft delete a recharge operator - Restricted roles
  */
-router.delete('/:id', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params
+router.delete(
+  '/:id',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA),
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params
 
-    const operator = await DI.rechargeOperators.findOne({ id })
-    if (!operator) {
-      return res.status(404).json({
-        error: 'NOT_FOUND',
-        message: 'Operator not found',
-      })
+      const operator = await DI.rechargeOperators.findOne({ id })
+      if (!operator) {
+        return res.status(404).json({
+          error: 'NOT_FOUND',
+          message: 'Operator not found',
+        })
+      }
+
+      operator.isActive = false
+      await DI.em.persistAndFlush(operator)
+
+      res.json(ApiResponse.success({ message: 'Operator deactivated' }))
+    } catch (error) {
+      console.error('Error deleting recharge operator:', error)
+      res.status(500).json(ApiResponse.serverError())
     }
-
-    operator.isActive = false
-    await DI.em.persistAndFlush(operator)
-
-    res.json(ApiResponse.success({ message: 'Operator deactivated' }))
-  } catch (error) {
-    console.error('Error deleting recharge operator:', error)
-    res.status(500).json(ApiResponse.serverError())
-  }
-})
+  })
 
 export default router
