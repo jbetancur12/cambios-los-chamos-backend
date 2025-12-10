@@ -22,7 +22,7 @@ export const bankAccountRouter = express.Router({ mergeParams: true })
 bankAccountRouter.post(
   '/create',
   requireAuth(),
-  requireRole(UserRole.SUPER_ADMIN),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   validateBody(createBankAccountSchema),
   async (req: Request, res: Response) => {
     const user = req.context?.requestUser?.user
@@ -37,9 +37,9 @@ bankAccountRouter.post(
       return res.status(400).json(ApiResponse.validationErrorSingle('ownerType', 'ownerType inválido'))
     }
 
-    // ✨ NUEVA VALIDACIÓN: Solo SUPERADMIN puede crear cuentas ADMIN
-    if (ownerType === BankAccountOwnerType.ADMIN && user.role !== UserRole.SUPER_ADMIN) {
-      return res.status(403).json(ApiResponse.forbidden('Solo SUPERADMIN puede crear cuentas ADMIN compartidas'))
+    // ✨ NUEVA VALIDACIÓN: SUPERADMIN y ADMIN pueden crear cuentas ADMIN
+    if (ownerType === BankAccountOwnerType.ADMIN && user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.ADMIN) {
+      return res.status(403).json(ApiResponse.forbidden('Solo SUPERADMIN o ADMIN pueden crear cuentas ADMIN compartidas'))
     }
 
     try {
@@ -250,7 +250,7 @@ bankAccountRouter.get('/:bankAccountId', requireAuth(), async (req: Request, res
 bankAccountRouter.patch(
   '/update',
   requireAuth(),
-  requireRole(UserRole.SUPER_ADMIN),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
   validateBody(updateBankAccountBalanceSchema),
   async (req: Request, res: Response) => {
     const { bankAccountId, amount } = req.body
