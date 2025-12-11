@@ -32,6 +32,8 @@ export class GiroSocketManager {
             minoristaId: data.minoristaId,
             transferencistaId: data.transferencistaId,
           })
+          console.log(`[WS] ✅ Usuario conectado: ${data.role} (userId: ${data.userId}, socketId: ${socket.id})`)
+          console.log(`[WS] 📊 Total usuarios conectados: ${this.connectedUsers.size}`)
         }
       )
 
@@ -199,24 +201,24 @@ export class GiroSocketManager {
       minorista: giro.minorista ? { id: giro.minorista.id } : undefined,
       transferencista: giro.transferencista
         ? {
-            id: giro.transferencista.id,
-            user: giro.transferencista.user
-              ? {
-                  id: giro.transferencista.user.id,
-                  fullName: giro.transferencista.user.fullName,
-                }
-              : undefined,
-          }
+          id: giro.transferencista.id,
+          user: giro.transferencista.user
+            ? {
+              id: giro.transferencista.user.id,
+              fullName: giro.transferencista.user.fullName,
+            }
+            : undefined,
+        }
         : undefined,
       rateApplied: giro.rateApplied
         ? {
-            id: giro.rateApplied.id,
-            buyRate: giro.rateApplied.buyRate,
-            sellRate: giro.rateApplied.sellRate,
-            usd: giro.rateApplied.usd,
-            bcv: giro.rateApplied.bcv,
-            isCustom: giro.rateApplied.isCustom,
-          }
+          id: giro.rateApplied.id,
+          buyRate: giro.rateApplied.buyRate,
+          sellRate: giro.rateApplied.sellRate,
+          usd: giro.rateApplied.usd,
+          bcv: giro.rateApplied.bcv,
+          isCustom: giro.rateApplied.isCustom,
+        }
         : undefined,
     }
   }
@@ -246,7 +248,10 @@ export class GiroSocketManager {
       (user) => user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN
     )
 
+    console.log(`[WS] 📤 Enviando evento "${event}" a ${adminUsers.length} admin(s)`)
+
     for (const adminUser of adminUsers) {
+      console.log(`[WS]   → Enviando a Admin: ${adminUser.userId} (socket: ${adminUser.socketId})`)
       this.io.to(adminUser.socketId).emit(event, payload)
     }
   }
