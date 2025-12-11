@@ -11,8 +11,12 @@ const formatCurrency = (amount: number): string => {
 
 const formatDate = (date: Date): string => {
   return new Intl.DateTimeFormat('es-VE', {
-    dateStyle: 'short',
-    timeStyle: 'short',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: true,
   }).format(date)
 }
 

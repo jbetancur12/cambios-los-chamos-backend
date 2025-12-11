@@ -9,13 +9,13 @@ const logger = pino({
   transport:
     process.env.NODE_ENV === 'development'
       ? {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'HH:MM:ss Z',
-          ignore: 'pid,hostname',
-        },
-      }
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'HH:MM:ss Z',
+            ignore: 'pid,hostname',
+          },
+        }
       : undefined,
 })
 config({ path: resolve(__dirname, '../.env') })
@@ -147,7 +147,13 @@ interface CorsCallback {
 const corsOptions: CorsOptions = {
   origin: (origin: string | undefined, callback: CorsCallback) => {
     console.log(`[CORS] Origin recibido: ${origin}`)
-    if (!origin || IS_DEVELOPMENT || CORS_ALLOWED_ORIGINS.some(allowed => origin.replace(/\/$/, '') === allowed || origin.endsWith('.cambiosloschamo.com'))) {
+    if (
+      !origin ||
+      IS_DEVELOPMENT ||
+      CORS_ALLOWED_ORIGINS.some(
+        (allowed) => origin.replace(/\/$/, '') === allowed || origin.endsWith('.cambiosloschamo.com')
+      )
+    ) {
       if (IS_DEVELOPMENT) console.log(`[CORS] Permitido: ${origin}`)
       callback(null, true)
     } else {

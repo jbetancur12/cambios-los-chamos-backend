@@ -38,8 +38,14 @@ bankAccountRouter.post(
     }
 
     // ✨ NUEVA VALIDACIÓN: SUPERADMIN y ADMIN pueden crear cuentas ADMIN
-    if (ownerType === BankAccountOwnerType.ADMIN && user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.ADMIN) {
-      return res.status(403).json(ApiResponse.forbidden('Solo SUPERADMIN o ADMIN pueden crear cuentas ADMIN compartidas'))
+    if (
+      ownerType === BankAccountOwnerType.ADMIN &&
+      user.role !== UserRole.SUPER_ADMIN &&
+      user.role !== UserRole.ADMIN
+    ) {
+      return res
+        .status(403)
+        .json(ApiResponse.forbidden('Solo SUPERADMIN o ADMIN pueden crear cuentas ADMIN compartidas'))
     }
 
     try {
