@@ -118,8 +118,8 @@ export class RechargeSeeder extends Seeder {
     await em.flush()
 
     console.log('✅ Recharge operators and amounts seeded successfully based on images')
-    console.log(`   - Creados ${Object.keys(operators).length} operadores`)
-    console.log(`   - Creados ${amounts.length} montos de recarga únicos`)
-    console.log(`   - Creadas ${createdRelationships} relaciones operador-monto`)
+    console.log(`   - Creados ${Object.keys(operators).length} operadores`)
+    console.log(`   - Creados ${amounts.length} montos de recarga únicos`)
+    console.log(`   - Creadas ${createdRelationships} relaciones operador-monto`)
   }
 }

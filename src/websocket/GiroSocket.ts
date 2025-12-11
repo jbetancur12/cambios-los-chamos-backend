@@ -196,7 +196,7 @@ export class GiroSocketManager {
   /**
    * Enviar mensaje a todos los admins usando rooms (compatible con Redis adapter)
    */
-  private broadcastToAdmins(event: string, payload: any) {
+  private broadcastToAdmins(event: string, payload: unknown) {
     // Usar rooms de Socket.IO que se sincronizan automáticamente vía Redis
     this.io.to('admins').emit(event, payload)
   }
@@ -204,14 +204,14 @@ export class GiroSocketManager {
   /**
    * Enviar mensaje a un minorista específico usando rooms (compatible con Redis adapter)
    */
-  private broadcastToMinorista(minoristaId: string, event: string, payload: any) {
+  private broadcastToMinorista(minoristaId: string, event: string, payload: unknown) {
     this.io.to(`minorista:${minoristaId}`).emit(event, payload)
   }
 
   /**
    * Enviar mensaje a un transferencista específico usando rooms (compatible con Redis adapter)
    */
-  private broadcastToTransferencista(transferencistaId: string, event: string, payload: any) {
+  private broadcastToTransferencista(transferencistaId: string, event: string, payload: unknown) {
     this.io.to(`transferencista:${transferencistaId}`).emit(event, payload)
   }
 

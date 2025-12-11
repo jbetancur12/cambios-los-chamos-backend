@@ -1,0 +1,23 @@
+
+> backend@1.0.0 lint
+> eslint .
+
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\lib\logger.ts
+   8:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\lib\validateParams.ts
+  6:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\middleware\requestUser.ts
+  8:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\seeders\RealTransferencistaBankAccountsSeeder.ts
+  90:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\seeders\UserSeeder.ts
+  102:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Ô£û 6 problems (0 errors, 6 warnings)
+

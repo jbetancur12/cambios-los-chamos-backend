@@ -1,10 +1,9 @@
 import { DI } from '@/di'
-import { BankAccount, AccountType, BankAccountOwnerType } from '@/entities/BankAccount'
+import { BankAccount, BankAccountOwnerType } from '@/entities/BankAccount'
 import { Transferencista } from '@/entities/Transferencista'
 import { Bank } from '@/entities/Bank'
 import { User } from '@/entities/User'
 import { canAccessBankAccount } from '@/lib/bankAccountPermissions'
-import { v4 as uuidv4 } from 'uuid'
 
 export interface CreateBankAccountInput {
   bankId: string
@@ -27,7 +26,6 @@ export class BankAccountService {
         error: 'TRANSFERENCISTA_NOT_FOUND' | 'BANK_NOT_FOUND' | 'OWNER_ID_REQUIRED_FOR_TRANSFERENCISTA'
       }
   > {
-    const bankAccountRepo = DI.em.getRepository(BankAccount)
     const transferencistaRepo = DI.em.getRepository(Transferencista)
     const bankRepo = DI.em.getRepository(Bank)
 

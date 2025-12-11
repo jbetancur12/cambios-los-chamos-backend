@@ -30,8 +30,8 @@ transferencistaRouter.post(
           message: 'Usuario Transferencista creado exitosamente',
         })
       )
-    } catch (err: any) {
-      if (err.message.includes('Email ya registrado')) {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.includes('Email ya registrado')) {
         return res.status(400).json(ApiResponse.validationErrorSingle('email', err.message))
       }
       res.status(500).json(ApiResponse.error('Error al crear transferencista'))
@@ -50,7 +50,7 @@ transferencistaRouter.get(
       const result = await transferencistaService.listTransferencistas({ page, limit })
 
       res.json(ApiResponse.success(result))
-    } catch (err: any) {
+    } catch {
       res.status(500).json(ApiResponse.error('Error al obtener transferencistas'))
     }
   }
@@ -88,7 +88,7 @@ transferencistaRouter.put(
       }
 
       res.json(ApiResponse.success({ data: result, message }))
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error al actualizar disponibilidad:', err)
       res.status(500).json(ApiResponse.error('Error al actualizar disponibilidad'))
     }

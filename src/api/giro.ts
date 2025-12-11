@@ -21,7 +21,7 @@ export const giroRouter = express.Router({ mergeParams: true })
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  fileFilter: (req: any, file: any, cb: any) => {
+  fileFilter: (req, file: Express.Multer.File, cb) => {
     const allowedMimes = ['image/jpeg', 'image/png', 'image/gif']
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true)
@@ -237,7 +237,7 @@ giroRouter.get('/:giroId/minorista-transaction', requireAuth(), async (req: Requ
     }
 
     res.json(ApiResponse.success({ transaction }))
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching minorista transaction:', error)
     res.status(500).json(ApiResponse.serverError('Error al obtener los detalles de la transacción'))
   }
@@ -297,11 +297,11 @@ giroRouter.patch(
       }
 
       res.json(ApiResponse.success({ giro: result, message: 'Giro actualizado exitosamente' }))
-    } catch (error: any) {
-      if (error.message === 'GIRO_NOT_FOUND') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message === 'GIRO_NOT_FOUND') {
         return res.status(404).json(ApiResponse.notFound('Giro', giroId))
       }
-      if (error.message === 'INSUFFICIENT_BALANCE') {
+      if (error instanceof Error && error.message === 'INSUFFICIENT_BALANCE') {
         return res.status(400).json(ApiResponse.badRequest('Balance insuficiente para reactivar el giro'))
       }
       // Manejar otros errores
@@ -702,7 +702,7 @@ giroRouter.delete('/:giroId', requireRole(UserRole.MINORISTA), async (req: Reque
     }
 
     res.json(ApiResponse.success({ message: 'Giro eliminado exitosamente' }))
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error eliminando giro:', error)
     res.status(500).json(ApiResponse.serverError())
   }
@@ -713,7 +713,7 @@ giroRouter.post(
   '/:giroId/payment-proof/upload',
   upload.single('file'),
   requireRole(UserRole.TRANSFERENCISTA, UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  async (req: Request & { file?: any }, res: Response) => {
+  async (req: Request & { file?: Express.Multer.File }, res: Response) => {
     try {
       const { giroId } = req.params
       const file = req.file
@@ -784,7 +784,7 @@ giroRouter.post(
           message: 'Payment proof uploaded successfully',
         })
       )
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error uploading payment proof:', error)
       res.status(500).json(ApiResponse.serverError())
     }
@@ -850,7 +850,7 @@ giroRouter.get('/:giroId/payment-proof/download', requireAuth(), async (req: Req
     res.set('Content-Length', fileBuffer.length.toString())
 
     res.end(fileBuffer)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error getting payment proof URL:', error)
     res.status(500).json(ApiResponse.serverError())
   }
@@ -906,7 +906,7 @@ giroRouter.get('/:giroId/thermal-ticket', requireAuth(), async (req: Request, re
     const ticketData = await thermalTicketService.generateTicketData(giro)
 
     res.json(ApiResponse.success(ticketData))
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error getting thermal ticket data:', error)
     res.status(500).json(ApiResponse.serverError())
   }

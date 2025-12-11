@@ -1,0 +1,113 @@
+
+> backend@1.0.0 lint
+> eslint .
+
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\api\giro.ts
+   24:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   24:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   24:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  240:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  300:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  705:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  716:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  787:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  853:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  909:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\api\minorista.ts
+  280:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  288:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\api\printerConfig.ts
+    2:23  warning  'requireRole' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+    3:10  warning  'UserRole' is defined but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+   48:19  warning  Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+   80:21  warning  Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+  103:19  warning  Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\api\transferencista.ts
+  33:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  53:14  warning  'err' is defined but never used           @typescript-eslint/no-unused-vars
+  53:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  91:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\api\user.ts
+   64:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  219:14  warning  'err' is defined but never used           @typescript-eslint/no-unused-vars
+  219:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  251:14  warning  'err' is defined but never used           @typescript-eslint/no-unused-vars
+  251:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\entities\MinoristaTransaction.ts
+  1:64  warning  'OneToOne' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\expressServer.ts
+   28:10  warning  'authRateLimiter' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  109:33  warning  Unexpected any. Specify a different type                                           @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\lib\logger.ts
+   8:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\lib\validateParams.ts
+  6:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\middleware\requestUser.ts
+  8:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\schemas\bankAccountSchema.ts
+  2:10  warning  'AccountType' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\seeders\DatabaseSeeder.ts
+  4:10  warning  'UserSeeder' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\seeders\RealTransferencistaBankAccountsSeeder.ts
+  90:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\seeders\UserSeeder.ts
+  102:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\BankAccountTransactionService.ts
+  129:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\BeneficiarySuggestionService.ts
+  25:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  66:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  88:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  96:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\GiroService.ts
+  61:16  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\MinIOService.ts
+  130:70  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  162:60  warning  'options' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  234:21  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  245:34  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\MinoristaTransactionService.ts
+  265:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\NotificationService.ts
+  29:65  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\services\ReportService.ts
+  231:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  232:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  233:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  235:60  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  236:66  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  237:66  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\types\ApiResponse.ts
+  12:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  26:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\alejo\Documents\cambios-los-chamos\backend\src\websocket\GiroSocket.ts
+  199:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  207:77  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  214:89  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Ô£û 60 problems (0 errors, 60 warnings)
+

@@ -13,7 +13,8 @@ import { DI } from '@/di'
 import { validateParams } from '@/lib/validateParams'
 import { bankAccountTransactionService } from '@/services/BankAccountTransactionService'
 import { BankAccount, BankAccountOwnerType } from '@/entities/BankAccount'
-import { canAccessBankAccount, canManageBankAccounts } from '@/lib/bankAccountPermissions'
+import { BankAccountTransactionType } from '@/entities/BankAccountTransaction'
+import { canAccessBankAccount } from '@/lib/bankAccountPermissions'
 
 export const bankAccountRouter = express.Router({ mergeParams: true })
 
@@ -77,7 +78,7 @@ bankAccountRouter.post(
           message: 'Cuenta bancaria creada exitosamente',
         })
       )
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error al crear cuenta bancaria:', err)
       res.status(500).json(ApiResponse.error('Error al crear cuenta bancaria'))
     }
@@ -150,7 +151,7 @@ bankAccountRouter.get(
     const accounts = await bankAccountRepo.find({}, { populate: ['bank', 'transferencista', 'transferencista.user'] })
 
     const formattedAccounts = accounts.map((account) => {
-      const formatted: any = {
+      const formatted: Record<string, unknown> = {
         id: account.id,
         accountHolder: account.accountHolder,
         balance: account.balance,
@@ -193,8 +194,8 @@ bankAccountRouter.get(
     try {
       const accounts = await bankAccountService.listByTransferencista(transferencistaId)
       res.json(ApiResponse.success({ accounts }))
-    } catch (err: any) {
-      if (err.message.includes('Transferencista no encontrado')) {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.includes('Transferencista no encontrado')) {
         return res.status(404).json(ApiResponse.notFound('Transferencista'))
       }
       res.status(500).json(ApiResponse.error('Error al listar cuentas'))
@@ -224,7 +225,7 @@ bankAccountRouter.get('/:bankAccountId', requireAuth(), async (req: Request, res
     return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver esta cuenta'))
   }
 
-  const formatted: any = {
+  const formatted: Record<string, unknown> = {
     id: bankAccount.id,
     accountHolder: bankAccount.accountHolder,
     balance: bankAccount.balance,
@@ -273,7 +274,7 @@ bankAccountRouter.patch(
     const result = await bankAccountTransactionService.createTransaction({
       bankAccountId,
       amount: amount >= 0 ? Math.abs(amount) : amount, // DEPOSIT usa valor absoluto, ADJUSTMENT usa el signo
-      type: transactionType as any,
+      type: transactionType as BankAccountTransactionType,
       reference: 'Recarga manual de saldo',
       fee: 0,
       createdBy: user,

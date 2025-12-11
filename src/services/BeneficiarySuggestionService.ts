@@ -1,4 +1,5 @@
 import { DI } from '@/di'
+import { FilterQuery } from '@mikro-orm/core'
 import { BeneficiarySuggestion } from '@/entities/BeneficiarySuggestion'
 import { User } from '@/entities/User'
 import { ExecutionType } from '@/entities/Giro'
@@ -22,7 +23,7 @@ export class BeneficiarySuggestionService {
     }
 
     // Check if this beneficiary already exists for this user and execution type
-    const whereClause: any = {
+    const whereClause: FilterQuery<BeneficiarySuggestion> = {
       user: userId,
       beneficiaryName: data.beneficiaryName,
       beneficiaryId: data.beneficiaryId,
@@ -63,7 +64,7 @@ export class BeneficiarySuggestionService {
     executionType?: ExecutionType,
     limit: number = 50
   ): Promise<BeneficiarySuggestion[]> {
-    const where: any = { user: userId }
+    const where: FilterQuery<BeneficiarySuggestion> = { user: userId }
     if (executionType) {
       where.executionType = executionType
     }
@@ -85,7 +86,7 @@ export class BeneficiarySuggestionService {
     }
 
     const searchLower = `%${searchTerm.toLowerCase()}%`
-    const orConditions: any[] = [
+    const orConditions: FilterQuery<BeneficiarySuggestion>[] = [
       { beneficiaryName: { $ilike: searchLower } },
       { beneficiaryId: { $ilike: searchLower } },
     ]
@@ -93,7 +94,7 @@ export class BeneficiarySuggestionService {
     if (searchTerm.trim()) {
       orConditions.push({ phone: { $ilike: searchLower } })
     }
-    const where: any = {
+    const where: FilterQuery<BeneficiarySuggestion> = {
       user: userId,
       $or: orConditions,
     }

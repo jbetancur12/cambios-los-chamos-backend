@@ -61,9 +61,9 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
         },
       })
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Capturar error de correo no verificado
-    if (error?.message?.includes('no ha sido verificado')) {
+    if (error instanceof Error && error.message.includes('no ha sido verificado')) {
       return res.status(403).json(ApiResponse.error(error.message, ErrorCode.EMAIL_NOT_VERIFIED))
     }
     // Cualquier otro error
@@ -216,7 +216,7 @@ userRouter.get(
         emailVerified: user.emailVerified,
       }))
       res.json(ApiResponse.success({ users: usersResponse }))
-    } catch (err: any) {
+    } catch {
       res.status(500).json(ApiResponse.error('Error al obtener usuarios por rol'))
     }
   }
@@ -248,7 +248,7 @@ userRouter.put(
           },
         })
       )
-    } catch (err: any) {
+    } catch {
       res.status(500).json(ApiResponse.error('Error al cambiar el estado del usuario'))
     }
   }

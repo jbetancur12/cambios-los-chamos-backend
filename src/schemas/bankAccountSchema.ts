@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AccountType, BankAccountOwnerType } from '@/entities/BankAccount'
+import { BankAccountOwnerType } from '@/entities/BankAccount'
 
 export const createBankAccountSchema = z.object({
   bankId: z.string().uuid('ID de banco inválido'),

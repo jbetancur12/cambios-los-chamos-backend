@@ -15,7 +15,7 @@ import {
 /**
  * Genera una respuesta exitosa
  */
-export function success<T = any>(data: T, meta?: { timestamp?: string; requestId?: string }): ApiResponseType<T> {
+export function success<T = unknown>(data: T, meta?: { timestamp?: string; requestId?: string }): ApiResponseType<T> {
   return {
     success: true,
     data,
@@ -26,7 +26,7 @@ export function success<T = any>(data: T, meta?: { timestamp?: string; requestId
 /**
  * Genera una respuesta de error genérica
  */
-export function error(message: string, code?: ErrorCode, details?: any): ApiResponseType {
+export function error(message: string, code?: ErrorCode, details?: object): ApiResponseType {
   return {
     success: false,
     error: {
@@ -63,7 +63,7 @@ export function validationErrorSingle(field: string, message: string): ApiRespon
 /**
  * Error de solicitud incorrecta (400)
  */
-export function badRequest(message: string, details?: any): ApiResponseType {
+export function badRequest(message: string, details?: object): ApiResponseType {
   return error(message, ErrorCode.BAD_REQUEST, details)
 }
 
@@ -94,14 +94,14 @@ export function notFound(resource?: string, id?: number | string): ApiResponseTy
 /**
  * Error de conflicto (409)
  */
-export function conflict(message: string, details?: any): ApiResponseType {
+export function conflict(message: string, details?: object): ApiResponseType {
   return error(message, ErrorCode.CONFLICT, details)
 }
 
 /**
  * Error de entidad no procesable (422)
  */
-export function unprocessableEntity(message: string, details?: any): ApiResponseType {
+export function unprocessableEntity(message: string, details?: object): ApiResponseType {
   return error(message, ErrorCode.UNPROCESSABLE_ENTITY, details)
 }
 

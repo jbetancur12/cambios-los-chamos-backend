@@ -228,13 +228,13 @@ export class ReportService {
       createdAt: { $gte: adjustedFrom, $lte: adjustedTo },
     })
 
-    const deposits = transactions.filter((t: any) => t.type === BankAccountTransactionType.DEPOSIT)
-    const withdrawals = transactions.filter((t: any) => t.type === BankAccountTransactionType.WITHDRAWAL)
-    const adjustments = transactions.filter((t: any) => t.type === BankAccountTransactionType.ADJUSTMENT)
+    const deposits = transactions.filter((t) => t.type === BankAccountTransactionType.DEPOSIT)
+    const withdrawals = transactions.filter((t) => t.type === BankAccountTransactionType.WITHDRAWAL)
+    const adjustments = transactions.filter((t) => t.type === BankAccountTransactionType.ADJUSTMENT)
 
-    const depositAmount = deposits.reduce((sum: number, t: any) => sum + (t.amount || 0), 0)
-    const withdrawalAmount = withdrawals.reduce((sum: number, t: any) => sum + (t.amount || 0), 0)
-    const adjustmentAmount = adjustments.reduce((sum: number, t: any) => {
+    const depositAmount = deposits.reduce((sum, t) => sum + (t.amount || 0), 0)
+    const withdrawalAmount = withdrawals.reduce((sum, t) => sum + (t.amount || 0), 0)
+    const adjustmentAmount = adjustments.reduce((sum, t) => {
       // Adjustments can be positive or negative
       return sum + (t.amount || 0)
     }, 0)

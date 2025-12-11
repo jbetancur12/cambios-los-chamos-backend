@@ -15,7 +15,7 @@ export async function sendVerificationEmail(user: User): Promise<void> {
   const record = await createUserToken(user, TokenType.EMAIL_VERIFICATION, 10)
   const link = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${record.token}`
 
-  const { data, error } = await sendEmail(
+  const { error } = await sendEmail(
     user.email,
     'Activa tu cuenta - Sistema de Giros',
     `

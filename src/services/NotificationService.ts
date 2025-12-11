@@ -26,7 +26,7 @@ export class NotificationService {
 
     try {
       // 1. Buscar la entidad User
-      const user = await userRepo.findOneOrFail({ id: userId as any })
+      const user = await userRepo.findOneOrFail({ id: userId })
 
       // 2. Intentar encontrar un registro de token existente
       const tokenRecord = await userFcmTokenRepo.findOne({ fcmToken })

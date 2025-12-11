@@ -43,6 +43,8 @@ export default tseslint.config(
       '*.mjs',
       'src/migrations/**',
       'src/scripts/**',
+      'verify_login.ts',
+      'artillery_report*',
     ],
   }
 )

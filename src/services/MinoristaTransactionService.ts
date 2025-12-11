@@ -2,7 +2,7 @@ import { DI } from '@/di'
 import { MinoristaTransaction, MinoristaTransactionType } from '@/entities/MinoristaTransaction'
 import { Minorista } from '@/entities/Minorista'
 import { User } from '@/entities/User'
-import { EntityManager } from '@mikro-orm/core'
+import { EntityManager, FilterQuery } from '@mikro-orm/core'
 
 export interface CreateTransactionInput {
   minoristaId: string
@@ -262,7 +262,7 @@ export class MinoristaTransactionService {
     const offset = (page - 1) * limit
 
     // Construir filtro con fechas si se proporcionan
-    const where: Record<string, any> = { minorista: minoristaId }
+    const where: FilterQuery<MinoristaTransaction> = { minorista: minoristaId }
 
     if (options?.startDate && options?.endDate) {
       const startDate = new Date(options.startDate)

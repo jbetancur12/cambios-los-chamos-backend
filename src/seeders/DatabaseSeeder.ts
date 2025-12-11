@@ -1,7 +1,6 @@
 import { EntityManager } from '@mikro-orm/core'
 import { Seeder } from '@mikro-orm/seeder'
 import { BankSeeder } from './BankSeeder'
-import { UserSeeder } from './UserSeeder'
 import { ExchangeRateSeeder } from './ExchangeRateSeeder'
 import { RechargeSeeder } from './RechargeSeeder'
 import { RealMinoristasSeeder } from './RealMinoristaSeeder'

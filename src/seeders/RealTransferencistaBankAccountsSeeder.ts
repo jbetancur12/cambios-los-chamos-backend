@@ -2,7 +2,7 @@ import { EntityManager } from '@mikro-orm/core'
 import { Seeder } from '@mikro-orm/seeder'
 import { User } from '@/entities/User'
 import { Transferencista } from '@/entities/Transferencista'
-import { BankAccount } from '@/entities/BankAccount'
+import { BankAccount, BankAccountOwnerType } from '@/entities/BankAccount'
 import { Bank } from '@/entities/Bank'
 
 // Mapeo de transferencistas a sus cuentas.
@@ -87,7 +87,7 @@ export class RealTransferencistaBankAccountsSeeder extends Seeder {
           bank,
           accountHolder: data.fullName, // Usamos el nombre del titular del array principal
           balance: 0, // Balance inicial de 0
-          ownerType: 'TRANSFERENCISTA' as any,
+          ownerType: BankAccountOwnerType.TRANSFERENCISTA,
           createdAt: new Date(),
           updatedAt: new Date(),
         })

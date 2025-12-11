@@ -3,7 +3,7 @@ import { Seeder } from '@mikro-orm/seeder'
 import { User, UserRole } from '@/entities/User'
 import { Transferencista } from '@/entities/Transferencista'
 import { Minorista } from '@/entities/Minorista'
-import { BankAccount } from '@/entities/BankAccount'
+import { BankAccount, BankAccountOwnerType } from '@/entities/BankAccount'
 import { Bank } from '@/entities/Bank'
 import { BankAccountTransaction, BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 import { makePassword } from '@/lib/passwordUtils'
@@ -99,7 +99,7 @@ export class UserSeeder extends Seeder {
                 bank,
                 accountHolder: bankData.accountHolder,
                 balance: 60000,
-                ownerType: 'TRANSFERENCISTA' as any,
+                ownerType: BankAccountOwnerType.TRANSFERENCISTA,
                 createdAt: new Date(),
                 updatedAt: new Date(),
               })

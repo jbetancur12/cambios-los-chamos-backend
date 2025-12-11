@@ -2,6 +2,7 @@ import { Client } from 'minio'
 import path from 'path'
 import sharp from 'sharp'
 import fs from 'fs'
+import { Readable } from 'stream'
 
 interface UploadOptions {
   userId: string
@@ -127,7 +128,7 @@ class MinIOService {
 
       // Cargar el logo
       const logoPath = path.join(__dirname, '../../assets/LogoLosChamos.avif')
-      const compositeArray: Array<{ input: Buffer | string; gravity: any; bottom?: number; right?: number }> = [
+      const compositeArray: Array<{ input: Buffer | string; gravity: string; bottom?: number; right?: number }> = [
         {
           input: svgBuffer,
           gravity: 'northwest' as const,
@@ -159,7 +160,7 @@ class MinIOService {
   /**
    * Procesar imagen: comprimir y agregar watermark
    */
-  async processImage(fileBuffer: Buffer, mimetype: string, options: UploadOptions): Promise<ProcessedImages> {
+  async processImage(fileBuffer: Buffer, mimetype: string, _options: UploadOptions): Promise<ProcessedImages> {
     const compressed = await this.compressImage(fileBuffer, mimetype)
     // const withWatermark = await this.addWatermark(compressed, mimetype, options)
 
@@ -231,7 +232,7 @@ class MinIOService {
   async getFileAsBuffer(bucketName: string, filename: string): Promise<Buffer> {
     try {
       const chunks: Buffer[] = []
-      const stream: any = await this.internalMinioClient.getObject(bucketName, filename)
+      const stream: Readable = await this.internalMinioClient.getObject(bucketName, filename)
 
       return new Promise((resolve, reject) => {
         stream.on('data', (chunk: Buffer) => {
@@ -242,7 +243,7 @@ class MinIOService {
           resolve(Buffer.concat(chunks))
         })
 
-        stream.on('error', (err: any) => {
+        stream.on('error', (err: Error) => {
           reject(err)
         })
       })

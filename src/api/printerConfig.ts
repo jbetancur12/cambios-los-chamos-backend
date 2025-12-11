@@ -1,6 +1,5 @@
 import express, { Request, Response } from 'express'
-import { requireAuth, requireRole } from '@/middleware/authMiddleware'
-import { UserRole } from '@/entities/User'
+import { requireAuth } from '@/middleware/authMiddleware'
 import { ApiResponse } from '@/lib/apiResponse'
 import { validateBody } from '@/lib/zodUtils'
 import { z } from 'zod'
@@ -45,7 +44,7 @@ printerConfigRouter.get('/config', requireAuth, async (req: Request, res: Respon
         message: 'Configuración obtenida exitosamente',
       })
     )
-  } catch (error: any) {
+  } catch (error) {
     console.error('[PRINTER_CONFIG] Error getting config:', error)
     res.status(500).json(ApiResponse.error('Error al obtener configuración de impresora'))
   }
@@ -77,7 +76,7 @@ printerConfigRouter.post(
           message: 'Configuración de impresora guardada exitosamente',
         })
       )
-    } catch (error: any) {
+    } catch (error) {
       console.error('[PRINTER_CONFIG] Error saving config:', error)
       res.status(500).json(ApiResponse.error('Error al guardar configuración de impresora'))
     }
@@ -100,7 +99,7 @@ printerConfigRouter.delete('/config', requireAuth, async (req: Request, res: Res
         message: 'Configuración de impresora eliminada exitosamente',
       })
     )
-  } catch (error: any) {
+  } catch (error) {
     console.error('[PRINTER_CONFIG] Error deleting config:', error)
     res.status(500).json(ApiResponse.error('Error al eliminar configuración de impresora'))
   }

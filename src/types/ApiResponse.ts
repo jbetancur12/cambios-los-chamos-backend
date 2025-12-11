@@ -9,7 +9,7 @@
 export interface ApiError {
   message: string
   code?: ErrorCode
-  details?: any
+  details?: unknown
 }
 
 /**
@@ -23,7 +23,7 @@ export interface ApiMeta {
 /**
  * Estructura base de respuesta de la API
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   error?: ApiError

@@ -39,8 +39,8 @@ beneficiarySuggestionRouter.post('/save', requireAuth(), async (req: Request, re
     })
 
     res.json(ApiResponse.success({ suggestion, message: 'Beneficiario guardado exitosamente' }))
-  } catch (error: any) {
-    if (error.message === 'User not found') {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'User not found') {
       return res.status(404).json(ApiResponse.notFound('Usuario'))
     }
     console.error('Error saving beneficiary suggestion:', error)
@@ -68,7 +68,7 @@ beneficiarySuggestionRouter.get('/search', requireAuth(), async (req: Request, r
     )
 
     res.json(ApiResponse.success({ suggestions }))
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error searching beneficiary suggestions:', error)
     res.status(500).json(ApiResponse.serverError())
   }
@@ -88,7 +88,7 @@ beneficiarySuggestionRouter.get('/list', requireAuth(), async (req: Request, res
     const suggestions = await beneficiarySuggestionService.getBeneficiarySuggestions(user.id, executionType, limit)
 
     res.json(ApiResponse.success({ suggestions }))
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching beneficiary suggestions:', error)
     res.status(500).json(ApiResponse.serverError())
   }
@@ -111,7 +111,7 @@ beneficiarySuggestionRouter.delete('/:suggestionId', requireAuth(), async (req: 
     }
 
     res.json(ApiResponse.success({ message: 'Beneficiario eliminado exitosamente' }))
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error deleting beneficiary suggestion:', error)
     res.status(500).json(ApiResponse.serverError())
   }
@@ -128,7 +128,7 @@ beneficiarySuggestionRouter.delete('/', requireAuth(), async (req: Request, res:
     const count = await beneficiarySuggestionService.deleteAllBeneficiarySuggestions(user.id)
 
     res.json(ApiResponse.success({ count, message: 'Todos los beneficiarios han sido eliminados' }))
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error deleting all beneficiary suggestions:', error)
     res.status(500).json(ApiResponse.serverError())
   }

@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from 'express'
 import { ZodSchema, ZodError } from 'zod'
 import { ApiResponse } from './apiResponse'
 
-export const validateParams = (schema: ZodSchema<any>) => {
+export const validateParams = (schema: ZodSchema<unknown>) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       schema.parse(req.params)

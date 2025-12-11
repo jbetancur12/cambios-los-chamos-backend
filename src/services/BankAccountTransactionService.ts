@@ -1,4 +1,5 @@
 import { DI } from '@/di'
+import { FilterQuery } from '@mikro-orm/core'
 import { BankAccountTransaction, BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 import { BankAccount } from '@/entities/BankAccount'
 import { User } from '@/entities/User'
@@ -126,7 +127,7 @@ export class BankAccountTransactionService {
     const offset = (page - 1) * limit
 
     // Construir filtro con fechas si se proporcionan
-    const where: Record<string, any> = { bankAccount: bankAccountId }
+    const where: FilterQuery<BankAccountTransaction> = { bankAccount: bankAccountId }
 
     if (options?.startDate && options?.endDate) {
       const startDate = new Date(options.startDate)

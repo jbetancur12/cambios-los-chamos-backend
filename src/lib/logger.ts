@@ -5,6 +5,7 @@ import { IS_DEVELOPMENT, LOG_LEVEL } from '@/settings'
  * Serializers to redact sensitive information from logs
  */
 const serializers = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   req: (req: any) => ({
     id: req.id,
     method: req.method,
@@ -18,6 +19,7 @@ const serializers = {
     remoteAddress: req.remoteAddress,
     remotePort: req.remotePort,
   }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   res: (res: any) => ({
     statusCode: res.statusCode,
     headers: res.headers,

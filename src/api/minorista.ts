@@ -277,7 +277,7 @@ minoristaRouter.get(
 
       // Obtener transacciones completas del repositorio para tener todos los campos
       const fullTransactions = await transactionRepo.find(
-        { id: { $in: transactions.map((t: any) => t.id) } },
+        { id: { $in: transactions.map((t) => t.id) } },
         { populate: ['minorista'] }
       )
 
@@ -285,7 +285,7 @@ minoristaRouter.get(
 
       res.json(
         ApiResponse.success({
-          transactions: fullTransactions.map((t: any) => ({
+          transactions: fullTransactions.map((t) => ({
             id: t.id,
             amount: t.amount,
             type: t.type,

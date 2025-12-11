@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property, Enum, ManyToOne, Index, OneToOne } from '@mikro-orm/core'
+import { Entity, PrimaryKey, Property, Enum, ManyToOne, Index } from '@mikro-orm/core'
 import { v4 as uuidv4 } from 'uuid'
 import { Minorista } from './Minorista'
 import { User } from './User'

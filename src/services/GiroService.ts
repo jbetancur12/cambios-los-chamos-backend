@@ -11,8 +11,9 @@ import { BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 import { sendGiroAssignedNotification } from '@/lib/notification_sender'
 import { exchangeRateService } from '@/services/ExchangeRateService'
 import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionService'
+import { ExchangeRate } from '@/entities/ExchangeRate'
 import { Currency } from '@/entities/Bank'
-import { EntityManager, LockMode } from '@mikro-orm/core'
+import { EntityManager, LockMode, FilterQuery } from '@mikro-orm/core'
 import { TransferencistaAssignmentTracker } from '@/entities/TransferencistaAssignmentTracker'
 import { sendEmail } from '@/lib/emailUtils'
 
@@ -57,7 +58,7 @@ export class GiroService {
         await em.persistAndFlush(tracker)
         // Volver a adquirir lock después de crear
         await em.refresh(tracker, { lockMode: LockMode.PESSIMISTIC_WRITE })
-      } catch (e) {
+      } catch {
         // Si falla por duplicado, intentar leerlo de nuevo con lock
         tracker = await em.findOne(
           TransferencistaAssignmentTracker,
@@ -718,7 +719,7 @@ export class GiroService {
     const offset = (page - 1) * limit
 
     // Construir filtros base según rol
-    const where: any = {}
+    const where: FilterQuery<Giro> = {}
 
     if (options.userRole === UserRole.TRANSFERENCISTA) {
       // Transferencista: solo giros asignados a él
@@ -840,7 +841,7 @@ export class GiroService {
       contactoEnvia: string
     },
     createdBy: User,
-    exchangeRate: any
+    exchangeRate: ExchangeRate
   ): Promise<
     | Giro
     | {
@@ -853,7 +854,7 @@ export class GiroService {
       }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
-    let minorista: any = null
+    let minorista: Minorista | null = null
     if (createdBy.role === UserRole.MINORISTA) {
       minorista = await DI.minoristas.findOne({ user: createdBy.id }, { populate: ['user'] })
       if (!minorista) {
@@ -923,7 +924,7 @@ export class GiroService {
           phone: data.phone,
           rateApplied: exchangeRate,
           amountInput: amountCop,
-          currencyInput: 'COP' as any, // COP es el tipo de moneda para recarga
+          currencyInput: Currency.COP, // COP es el tipo de moneda para recarga
           amountBs: amountBs,
           bcvValueApplied: exchangeRate.bcv,
           systemProfit,
@@ -964,7 +965,7 @@ export class GiroService {
       amountCop: number
     },
     createdBy: User,
-    exchangeRate: any
+    exchangeRate: ExchangeRate
   ): Promise<
     | Giro
     | {
@@ -972,7 +973,7 @@ export class GiroService {
       }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
-    let minorista: any = null
+    let minorista: Minorista | null = null
     if (createdBy.role === UserRole.MINORISTA) {
       minorista = await DI.minoristas.findOne({ user: createdBy.id }, { populate: ['user'] })
       if (!minorista) {
@@ -1035,7 +1036,7 @@ export class GiroService {
           phone: data.phone,
           rateApplied: exchangeRate,
           amountInput: data.amountCop,
-          currencyInput: 'COP' as any,
+          currencyInput: Currency.COP,
           amountBs: amountBs,
           bcvValueApplied: exchangeRate.bcv,
           systemProfit,

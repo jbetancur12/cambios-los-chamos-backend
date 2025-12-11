@@ -25,7 +25,7 @@ import operatorAmountRouter from '@/api/operatorAmount'
 import cookieParser from 'cookie-parser'
 import { IS_DEVELOPMENT, ENABLE_SECURITY_SETTINGS, EXPRESS_SERVER_PORT, corsOptions } from '@/settings'
 import { emailVerificationRouter } from '@/api/emailVerification'
-import { authRateLimiter, generalRateLimiter } from '@/middleware/rateLimitMiddleware'
+import { generalRateLimiter } from '@/middleware/rateLimitMiddleware'
 import { logger } from '@/lib/logger'
 import { posthog } from '@/lib/posthogUtils'
 import * as Sentry from '@sentry/node'
@@ -106,7 +106,7 @@ export const startExpressServer = async () => {
   Sentry.setupExpressErrorHandler(app)
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  app.use(function onError(err: any, req: Request, res: Response, next: NextFunction) {
+  app.use(function onError(err: unknown, req: Request, res: Response, next: NextFunction) {
     if (IS_DEVELOPMENT) {
       return res.status(500).json(ApiResponse.serverError(String(err)))
     }
