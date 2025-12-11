@@ -32,7 +32,7 @@ import * as Sentry from '@sentry/node'
 import { ApiResponse } from '@/lib/apiResponse'
 import { notificationRouter } from './api/notification'
 import { beneficiarySuggestionRouter } from '@/api/beneficiarySuggestion'
-import { printerConfigRouter } from '@/api/printerConfig'
+
 import { Server as SocketIOServer } from 'socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
 import { createClient } from 'redis'
@@ -92,7 +92,7 @@ export const startExpressServer = async () => {
   app.use('/operator-amounts', operatorAmountRouter)
   app.use('/notifications', notificationRouter)
   app.use('/beneficiary-suggestion', beneficiarySuggestionRouter)
-  app.use('/printer', printerConfigRouter)
+
 
   // Rutas privadas (requieren autenticación)
   privateRoutesRouter.use('/giro', giroRouter)
