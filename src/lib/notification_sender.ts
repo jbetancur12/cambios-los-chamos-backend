@@ -30,12 +30,14 @@ async function getFcmTokensByUserId(userId: string): Promise<string[]> {
 }
 
 export async function sendGiroAssignedNotification(userId: string, giroId: string, amountBs: number): Promise<void> {
+  console.log(`[FCM-SENDER] Iniciando envío de notificación a usuario ${userId}`)
   const fcmTokens = await getFcmTokensByUserId(userId)
 
   if (fcmTokens.length === 0) {
-    // console.warn(`[FCM] No se encontraron tokens para el usuario ${userId}. Notificación omitida.`)
+    console.warn(`[FCM-SENDER] No se encontraron tokens para el usuario ${userId}. Notificación omitida.`)
     return
   }
+  console.log(`[FCM-SENDER] Se enviará a ${fcmTokens.length} tokens.`)
 
   const message: admin.messaging.MulticastMessage = {
     notification: {
