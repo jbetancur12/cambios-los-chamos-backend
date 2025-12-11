@@ -314,7 +314,7 @@ giroRouter.patch(
 // ------------------ MARCAR GIRO COMO PROCESANDO ------------------
 giroRouter.post(
   '/:giroId/mark-processing',
-  requireRole(UserRole.TRANSFERENCISTA, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  requireRole(UserRole.TRANSFERENCISTA, UserRole.SUPER_ADMIN),
   async (req: Request, res: Response) => {
     const { giroId } = req.params
 
@@ -382,7 +382,7 @@ giroRouter.patch(
 // ✨ ACTUALIZADO: Permite TRANSFERENCISTA, ADMIN, SUPERADMIN
 giroRouter.post(
   '/:giroId/execute',
-  requireRole(UserRole.TRANSFERENCISTA, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  requireRole(UserRole.TRANSFERENCISTA, UserRole.SUPER_ADMIN),
   async (req: Request, res: Response) => {
     const user = req.context?.requestUser?.user
     const { giroId } = req.params
@@ -712,7 +712,7 @@ giroRouter.delete('/:giroId', requireRole(UserRole.MINORISTA), async (req: Reque
 giroRouter.post(
   '/:giroId/payment-proof/upload',
   upload.single('file'),
-  requireRole(UserRole.TRANSFERENCISTA, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  requireRole(UserRole.TRANSFERENCISTA, UserRole.SUPER_ADMIN),
   async (req: Request & { file?: Express.Multer.File }, res: Response) => {
     try {
       const { giroId } = req.params
