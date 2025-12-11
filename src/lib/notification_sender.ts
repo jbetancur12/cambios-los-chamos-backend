@@ -70,6 +70,7 @@ export async function sendGiroAssignedNotification(userId: string, giroId: strin
 
     response.responses.forEach((r, i) => {
       if (r.error) {
+        console.error(`[FCM-ERROR] Token ${fcmTokens[i].substring(0, 10)}... falló:`, r.error.code, r.error.message)
         const code = r.error.code
 
         if (
