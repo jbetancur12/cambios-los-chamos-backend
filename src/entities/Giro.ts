@@ -57,26 +57,26 @@ export class Giro {
   @Property({ nullable: true })
   phone?: string
 
-  @Property({ type: 'decimal' })
+  @Property({ type: 'decimal', precision: 18, scale: 2 })
   amountInput!: number
 
   @Enum(() => Currency)
   currencyInput!: Currency // COP o USD
 
-  @Property({ type: 'decimal' })
+  @Property({ type: 'decimal', precision: 18, scale: 2 })
   amountBs!: number
 
-  @Property({ type: 'decimal' })
+  @Property({ type: 'decimal', precision: 18, scale: 2 })
   bcvValueApplied!: number
 
-  @Property({ type: 'decimal', nullable: true })
+  @Property({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   commission?: number
 
   // Ganancias del giro: ((monto/sellRate)*buyRate) - monto
-  @Property({ type: 'decimal', default: 0 })
+  @Property({ type: 'decimal', precision: 18, scale: 2, default: 0 })
   systemProfit: number = 0 // 100% si admin/superadmin, 50% si minorista
 
-  @Property({ type: 'decimal', default: 0 })
+  @Property({ type: 'decimal', precision: 18, scale: 2, default: 0 })
   minoristaProfit: number = 0 // 50% si minorista, 0 si admin/superadmin
 
   @Enum(() => GiroStatus)
