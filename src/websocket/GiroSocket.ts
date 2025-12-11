@@ -32,8 +32,25 @@ export class GiroSocketManager {
             minoristaId: data.minoristaId,
             transferencistaId: data.transferencistaId,
           })
+
+          // Unir a rooms basadas en rol (se sincronizan vía Redis)
+          if (data.role === UserRole.SUPER_ADMIN || data.role === UserRole.ADMIN) {
+            socket.join('admins')
+            console.log(`[WS] ✅ Admin unido a room "admins"`)
+          }
+
+          if (data.minoristaId) {
+            socket.join(`minorista:${data.minoristaId}`)
+            console.log(`[WS] ✅ Minorista unido a room "minorista:${data.minoristaId}"`)
+          }
+
+          if (data.transferencistaId) {
+            socket.join(`transferencista:${data.transferencistaId}`)
+            console.log(`[WS] ✅ Transferencista unido a room "transferencista:${data.transferencistaId}"`)
+          }
+
           console.log(`[WS] ✅ Usuario conectado: ${data.role} (userId: ${data.userId}, socketId: ${socket.id})`)
-          console.log(`[WS] 📊 Total usuarios conectados: ${this.connectedUsers.size}`)
+          console.log(`[WS] 📊 Total usuarios conectados en este proceso: ${this.connectedUsers.size}`)
         }
       )
 
@@ -57,18 +74,9 @@ export class GiroSocketManager {
       timestamp: new Date().toISOString(),
     }
 
-    // Enviar a admins
-    this.broadcastToAdmins('giro:created', payload)
-
-    // Enviar al minorista si es su giro
-    if (giro.minorista?.id) {
-      this.broadcastToMinorista(giro.minorista.id, 'giro:created', payload)
-    }
-
-    // Enviar al transferencista asignado
-    if (giro.transferencista?.id) {
-      this.broadcastToTransferencista(giro.transferencista.id, 'giro:created', payload)
-    }
+    // Enviar a TODOS los usuarios conectados (se sincroniza vía Redis entre procesos)
+    console.log(`[WS] 📤 Broadcasting giro:created a todos los usuarios`)
+    this.io.emit('giro:created', payload)
   }
 
   /**
@@ -84,18 +92,9 @@ export class GiroSocketManager {
       timestamp: new Date().toISOString(),
     }
 
-    // Enviar a admins
-    this.broadcastToAdmins('giro:updated', payload)
-
-    // Enviar al minorista si es su giro
-    if (giro.minorista?.id) {
-      this.broadcastToMinorista(giro.minorista.id, 'giro:updated', payload)
-    }
-
-    // Enviar al transferencista asignado
-    if (giro.transferencista?.id) {
-      this.broadcastToTransferencista(giro.transferencista.id, 'giro:updated', payload)
-    }
+    // Enviar a TODOS los usuarios conectados (se sincroniza vía Redis entre procesos)
+    console.log(`[WS] 📤 Broadcasting giro:updated a todos los usuarios`)
+    this.io.emit('giro:updated', payload)
   }
 
   /**
@@ -110,18 +109,9 @@ export class GiroSocketManager {
       timestamp: new Date().toISOString(),
     }
 
-    // Enviar a admins
-    this.broadcastToAdmins('giro:returned', payload)
-
-    // Enviar al minorista si es su giro
-    if (giro.minorista?.id) {
-      this.broadcastToMinorista(giro.minorista.id, 'giro:returned', payload)
-    }
-
-    // Enviar al transferencista asignado
-    if (giro.transferencista?.id) {
-      this.broadcastToTransferencista(giro.transferencista.id, 'giro:returned', payload)
-    }
+    // Enviar a TODOS los usuarios conectados
+    console.log(`[WS] 📤 Broadcasting giro:returned a todos los usuarios`)
+    this.io.emit('giro:returned', payload)
   }
 
   /**
@@ -135,18 +125,9 @@ export class GiroSocketManager {
       timestamp: new Date().toISOString(),
     }
 
-    // Enviar a admins
-    this.broadcastToAdmins('giro:executed', payload)
-
-    // Enviar al minorista si es su giro
-    if (giro.minorista?.id) {
-      this.broadcastToMinorista(giro.minorista.id, 'giro:executed', payload)
-    }
-
-    // Enviar al transferencista que ejecutó
-    if (giro.transferencista?.id) {
-      this.broadcastToTransferencista(giro.transferencista.id, 'giro:executed', payload)
-    }
+    // Enviar a TODOS los usuarios conectados
+    console.log(`[WS] 📤 Broadcasting giro:executed a todos los usuarios`)
+    this.io.emit('giro:executed', payload)
   }
 
   /**
@@ -158,18 +139,9 @@ export class GiroSocketManager {
       timestamp: new Date().toISOString(),
     }
 
-    // Enviar a admins
-    this.broadcastToAdmins('giro:processing', payload)
-
-    // Enviar al minorista si es su giro
-    if (giro.minorista?.id) {
-      this.broadcastToMinorista(giro.minorista.id, 'giro:processing', payload)
-    }
-
-    // Enviar al transferencista asignado
-    if (giro.transferencista?.id) {
-      this.broadcastToTransferencista(giro.transferencista.id, 'giro:processing', payload)
-    }
+    // Enviar a TODOS los usuarios conectados
+    console.log(`[WS] 📤 Broadcasting giro:processing a todos los usuarios`)
+    this.io.emit('giro:processing', payload)
   }
 
   /**
@@ -236,48 +208,34 @@ export class GiroSocketManager {
       timestamp: new Date().toISOString(),
     }
 
-    // Enviar a admins (minorista/transferencista se enterarán vía query invalidation)
-    this.broadcastToAdmins('giro:deleted', payload)
+    // Enviar a TODOS los usuarios conectados
+    console.log(`[WS] 📤 Broadcasting giro:deleted a todos los usuarios`)
+    this.io.emit('giro:deleted', payload)
   }
 
   /**
-   * Enviar mensaje a todos los admins
+   * Enviar mensaje a todos los admins usando rooms (compatible con Redis adapter)
    */
   private broadcastToAdmins(event: string, payload: any) {
-    const adminUsers = Array.from(this.connectedUsers.values()).filter(
-      (user) => user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN
-    )
-
-    console.log(`[WS] 📤 Enviando evento "${event}" a ${adminUsers.length} admin(s)`)
-
-    for (const adminUser of adminUsers) {
-      console.log(`[WS]   → Enviando a Admin: ${adminUser.userId} (socket: ${adminUser.socketId})`)
-      this.io.to(adminUser.socketId).emit(event, payload)
-    }
+    // Usar rooms de Socket.IO que se sincronizan automáticamente vía Redis
+    console.log(`[WS] 📤 Enviando evento "${event}" a room "admins"`)
+    this.io.to('admins').emit(event, payload)
   }
 
   /**
-   * Enviar mensaje a un minorista específico
+   * Enviar mensaje a un minorista específico usando rooms (compatible con Redis adapter)
    */
   private broadcastToMinorista(minoristaId: string, event: string, payload: any) {
-    const minoristaUsers = Array.from(this.connectedUsers.values()).filter((user) => user.minoristaId === minoristaId)
-
-    for (const minoristaUser of minoristaUsers) {
-      this.io.to(minoristaUser.socketId).emit(event, payload)
-    }
+    console.log(`[WS] 📤 Enviando evento "${event}" a room "minorista:${minoristaId}"`)
+    this.io.to(`minorista:${minoristaId}`).emit(event, payload)
   }
 
   /**
-   * Enviar mensaje a un transferencista específico
+   * Enviar mensaje a un transferencista específico usando rooms (compatible con Redis adapter)
    */
   private broadcastToTransferencista(transferencistaId: string, event: string, payload: any) {
-    const transferencistaUsers = Array.from(this.connectedUsers.values()).filter(
-      (user) => user.transferencistaId === transferencistaId
-    )
-
-    for (const transferencistaUser of transferencistaUsers) {
-      this.io.to(transferencistaUser.socketId).emit(event, payload)
-    }
+    console.log(`[WS] 📤 Enviando evento "${event}" a room "transferencista:${transferencistaId}"`)
+    this.io.to(`transferencista:${transferencistaId}`).emit(event, payload)
   }
 
   /**
