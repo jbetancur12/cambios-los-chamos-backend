@@ -93,7 +93,6 @@ export const startExpressServer = async () => {
   app.use('/notifications', notificationRouter)
   app.use('/beneficiary-suggestion', beneficiarySuggestionRouter)
 
-
   // Rutas privadas (requieren autenticación)
   privateRoutesRouter.use('/giro', giroRouter)
   privateRoutesRouter.use('/dashboard', dashboardRouter)
