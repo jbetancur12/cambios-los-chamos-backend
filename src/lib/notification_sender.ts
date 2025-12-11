@@ -1,6 +1,7 @@
 import admin from './admin_init'
 import { DI } from '@/di' // Asumo que tienes la inyección de dependencias global configurada
 import { UserFcmToken } from '@/entities/UserFcmToken'
+import { FRONTEND_URL } from '@/settings'
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('es-VE', {
@@ -53,8 +54,8 @@ export async function sendGiroAssignedNotification(userId: string, giroId: strin
         Urgency: 'high',
       },
       notification: {
-        icon: 'http://localhost:5173/icons/icon-192x192.png',
-        badge: 'http://localhost:5173/icons/icon-192x192.png',
+        icon: `${FRONTEND_URL}/icons/icon-192x192.png`,
+        badge: `${FRONTEND_URL}/icons/icon-192x192.png`,
       },
     },
   }
