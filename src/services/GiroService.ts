@@ -1194,8 +1194,8 @@ export class GiroService {
       return { error: 'GIRO_NOT_FOUND' }
     }
 
-    // Solo giros en estado PENDIENTE o ASIGNADO pueden tener su tasa modificada
-    if (giro.status !== GiroStatus.ASIGNADO && giro.status !== GiroStatus.PENDIENTE) {
+    // Solo giros en estado ASIGNADO pueden tener su tasa modificada
+    if (giro.status !== GiroStatus.ASIGNADO) {
       return { error: 'INVALID_STATUS' }
     }
 

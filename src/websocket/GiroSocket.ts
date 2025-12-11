@@ -156,24 +156,24 @@ export class GiroSocketManager {
       minorista: giro.minorista ? { id: giro.minorista.id } : undefined,
       transferencista: giro.transferencista
         ? {
-          id: giro.transferencista.id,
-          user: giro.transferencista.user
-            ? {
-              id: giro.transferencista.user.id,
-              fullName: giro.transferencista.user.fullName,
-            }
-            : undefined,
-        }
+            id: giro.transferencista.id,
+            user: giro.transferencista.user
+              ? {
+                  id: giro.transferencista.user.id,
+                  fullName: giro.transferencista.user.fullName,
+                }
+              : undefined,
+          }
         : undefined,
       rateApplied: giro.rateApplied
         ? {
-          id: giro.rateApplied.id,
-          buyRate: giro.rateApplied.buyRate,
-          sellRate: giro.rateApplied.sellRate,
-          usd: giro.rateApplied.usd,
-          bcv: giro.rateApplied.bcv,
-          isCustom: giro.rateApplied.isCustom,
-        }
+            id: giro.rateApplied.id,
+            buyRate: giro.rateApplied.buyRate,
+            sellRate: giro.rateApplied.sellRate,
+            usd: giro.rateApplied.usd,
+            bcv: giro.rateApplied.bcv,
+            isCustom: giro.rateApplied.isCustom,
+          }
         : undefined,
     }
   }
