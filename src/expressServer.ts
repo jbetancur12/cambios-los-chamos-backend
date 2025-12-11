@@ -34,6 +34,8 @@ import { notificationRouter } from './api/notification'
 import { beneficiarySuggestionRouter } from '@/api/beneficiarySuggestion'
 import { printerConfigRouter } from '@/api/printerConfig'
 import { Server as SocketIOServer } from 'socket.io'
+import { createAdapter } from '@socket.io/redis-adapter'
+import { createClient } from 'redis'
 import http from 'http'
 import { GiroSocketManager, setGiroSocketManager } from '@/websocket'
 
@@ -119,11 +121,25 @@ export const startExpressServer = async () => {
   // Crear servidor HTTP que será usado por Express y Socket.IO
   const httpServer = http.createServer(app)
 
-  // Configurar Socket.IO
+  // Configurar Socket.IO con Redis adapter para clustering
   const io = new SocketIOServer(httpServer, {
     cors: corsOptions,
     transports: ['websocket', 'polling'],
   })
+
+  // Configurar Redis adapter para sincronizar WebSockets entre procesos PM2
+  try {
+    const pubClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' })
+    const subClient = pubClient.duplicate()
+
+    await Promise.all([pubClient.connect(), subClient.connect()])
+
+    io.adapter(createAdapter(pubClient, subClient))
+    logger.info('[REDIS] ✅ Redis adapter configurado para Socket.IO clustering')
+  } catch (error) {
+    logger.error({ error }, '[REDIS] ❌ Error configurando Redis adapter, WebSockets funcionarán solo en proceso único')
+    // Continuar sin Redis adapter si falla (funcionará en desarrollo local)
+  }
 
   // Log para verificar que Socket.IO está funcionando
   io.on('connection', (socket) => {
