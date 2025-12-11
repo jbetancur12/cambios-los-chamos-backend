@@ -837,10 +837,16 @@ giroRouter.get('/:giroId/payment-proof/download', requireAuth(), async (req: Req
     const bucketName = process.env.MINIO_BUCKET_NAME || 'ultrathink'
     const fileBuffer = await minioService.getFileAsBuffer(bucketName, giro.paymentProofKey)
 
+    // Detemine mime type from extension
+    const ext = giro.paymentProofKey.split('.').pop()?.toLowerCase()
+    let mimeType = 'application/octet-stream'
+    if (ext === 'png') mimeType = 'image/png'
+    else if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg'
+    else if (ext === 'gif') mimeType = 'image/gif'
+
     // Set response headers for file download
-    res.set('Content-Type', 'application/octet-stream')
-    res.set('Content-Disposition', `attachment; filename="${giro.paymentProofKey}"`)
-    console.log('🚀 ~ giro.paymentProofKey:', giro.paymentProofKey)
+    res.set('Content-Type', mimeType)
+    res.set('Content-Disposition', `inline; filename="${giro.paymentProofKey}"`)
     res.set('Content-Length', fileBuffer.length.toString())
 
     res.end(fileBuffer)
