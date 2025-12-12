@@ -8,6 +8,10 @@ export interface SystemProfitReport {
   totalGiros: number
   completedGiros: number
   averageProfitPerGiro: number
+  totalMinoristaProfit: number
+  totalAmountCOP: number
+  totalAmountVES: number
+  totalBankFees: number
   profitByStatus: {
     status: string
     count: number
@@ -113,14 +117,29 @@ export class ReportService {
   async getSystemProfitReport(dateFrom: Date, dateTo: Date): Promise<SystemProfitReport> {
     const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
     console.log('Generating system profit report from', adjustedFrom, 'to', adjustedTo)
+
+    // Fetch Giros
     const giros = await DI.giros.find({
       createdAt: { $gte: adjustedFrom, $lte: adjustedTo },
     })
 
+    // Fetch Bank Transactions for fees
+    const bankTransactions = await DI.bankAccountTransactions.find({
+      createdAt: { $gte: adjustedFrom, $lte: adjustedTo },
+    })
+
+    // Calculate Giro Metrics
     const totalProfit = giros.reduce((sum, g) => sum + (g.systemProfit || 0), 0)
+    const totalMinoristaProfit = giros.reduce((sum, g) => sum + (g.minoristaProfit || 0), 0)
+    const totalAmountCOP = giros.reduce((sum, g) => sum + (g.amountInput || 0), 0)
+    const totalAmountVES = giros.reduce((sum, g) => sum + (g.amountBs || 0), 0)
+
     const completedGiros = giros.filter((g) => g.status === GiroStatus.COMPLETADO).length
     const totalGiros = giros.length
     const averageProfitPerGiro = completedGiros > 0 ? totalProfit / completedGiros : 0
+
+    // Calculate Bank Fees
+    const totalBankFees = bankTransactions.reduce((sum, t) => sum + (t.fee || 0), 0)
 
     // Group by status
     const statusMap = new Map<string, { count: number; profit: number }>()
@@ -143,6 +162,10 @@ export class ReportService {
       totalGiros,
       completedGiros,
       averageProfitPerGiro,
+      totalMinoristaProfit,
+      totalAmountCOP,
+      totalAmountVES,
+      totalBankFees,
       profitByStatus,
     }
   }
