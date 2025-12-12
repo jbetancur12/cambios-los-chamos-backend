@@ -175,6 +175,8 @@ giroRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
     }
   }
 
+  const showAllTraffic = req.query.showAllTraffic === 'true'
+
   const result = await giroService.listGiros({
     userId: user.id,
     userRole: user.role,
@@ -183,6 +185,7 @@ giroRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
     dateTo,
     page,
     limit,
+    showAllTraffic,
   })
 
   res.json(
