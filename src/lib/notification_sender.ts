@@ -70,15 +70,20 @@ export async function sendGiroAssignedNotification(userId: string, giroId: strin
 
     response.responses.forEach((r, i) => {
       if (r.error) {
-        console.error(`[FCM-ERROR] Token ${fcmTokens[i].substring(0, 10)}... falló:`, r.error.code, r.error.message)
         const code = r.error.code
+        const msg = r.error.message
 
+        // Errores esperados (tokens inválidos), logging nivel WARN o INFO
         if (
           code === 'messaging/invalid-argument' ||
           code === 'messaging/registration-token-not-registered' ||
           code === 'messaging/unregistered'
         ) {
+          console.warn(`[FCM-CLEANUP] Token inválido detectado (${code}). Se eliminará.`)
           toDelete.push(fcmTokens[i])
+        } else {
+          // Otros errores reales
+          console.error(`[FCM-ERROR] Error enviando a token ${fcmTokens[i].substring(0, 10)}...:`, code, msg)
         }
       }
     })

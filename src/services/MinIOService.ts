@@ -88,7 +88,7 @@ class MinIOService {
           fit: 'inside',
           withoutEnlargement: true,
         })
-        .jpeg({ quality: 80, progressive: true })
+        .jpeg({ quality: 80, progressive: true, mozjpeg: true }) // mozjpeg suele ser más tolerante
         .toBuffer()
     } catch (error) {
       console.error('Error compressing image:', error)
