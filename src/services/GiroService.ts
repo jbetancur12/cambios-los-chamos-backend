@@ -745,6 +745,16 @@ export class GiroService {
     // Filtros opcionales
     if (options.status) {
       where.status = options.status
+
+      // Si el usuario es ADMIN/SUPER_ADMIN y está filtrando por COMPLETADO,
+      // Solo mostrar giros creados por el sistema (sin minorista vinculado),
+      // es decir, excluir los de minoristas.
+      if (
+        (options.userRole === UserRole.ADMIN || options.userRole === UserRole.SUPER_ADMIN) &&
+        options.status === GiroStatus.COMPLETADO
+      ) {
+        where.minorista = null
+      }
     }
 
     if (options.dateFrom || options.dateTo) {
