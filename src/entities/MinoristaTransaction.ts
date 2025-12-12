@@ -19,49 +19,49 @@ export class MinoristaTransaction {
   @ManyToOne(() => Minorista, { deleteRule: 'cascade', updateRule: 'cascade' })
   minorista!: Minorista
 
-  @Property({ type: 'decimal' })
+  @Property({ type: 'decimal', precision: 18, scale: 2 })
   amount!: number
 
   @Enum(() => MinoristaTransactionType)
   type!: MinoristaTransactionType
 
-  @Property({ type: 'decimal' })
+  @Property({ type: 'decimal', precision: 18, scale: 2 })
   previousAvailableCredit!: number
 
-  @Property({ type: 'decimal' })
+  @Property({ type: 'decimal', precision: 18, scale: 2 })
   availableCredit!: number
 
-  @Property({ type: 'decimal', nullable: true })
+  @Property({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   previousBalanceInFavor?: number // Saldo a favor antes de esta transacción
 
-  @Property({ type: 'decimal', nullable: true })
+  @Property({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   currentBalanceInFavor?: number // Saldo a favor después de esta transacción
 
   @ManyToOne(() => Giro, { nullable: true, deleteRule: 'cascade', updateRule: 'cascade' })
   giro?: Giro
 
-  @Property({ type: 'decimal', nullable: true })
+  @Property({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   creditConsumed?: number // Cupo consumido en este giro
 
-  @Property({ type: 'decimal', nullable: true })
+  @Property({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   profitEarned?: number // Ganancia generada por este giro
 
-  @Property({ type: 'decimal', nullable: true })
+  @Property({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   accumulatedDebt?: number // Deuda acumulada después de esta transacción
 
-  @Property({ type: 'decimal', nullable: true })
+  @Property({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   accumulatedProfit?: number // Ganancia Acumulada depues de esta tranasaccion
 
-  @Property({ type: 'decimal', nullable: true })
+  @Property({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   balanceInFavorUsed?: number // Saldo a favor usado en este descuento
 
-  @Property({ type: 'decimal', nullable: true })
+  @Property({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   creditUsed?: number // Crédito disponible usado en este descuento
 
-  @Property({ type: 'decimal', nullable: true })
+  @Property({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   remainingBalance?: number // Saldo a favor restante después de esta transacción
 
-  @Property({ type: 'decimal', nullable: true })
+  @Property({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   externalDebt?: number // Deuda externa cuando se excede el crédito disponible
 
   @Property({ nullable: true })

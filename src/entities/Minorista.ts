@@ -15,13 +15,13 @@ export class Minorista {
   // @Property({ type: 'decimal', default: 0 })
   // balance: number = 0
 
-  @Property({ type: 'decimal', default: 0 })
+  @Property({ type: 'decimal', precision: 18, scale: 2, default: 0 })
   creditLimit: number = 0
 
-  @Property({ type: 'decimal', default: 0 })
+  @Property({ type: 'decimal', precision: 18, scale: 2, default: 0 })
   availableCredit: number = 0
 
-  @Property({ type: 'decimal', default: 0 })
+  @Property({ type: 'decimal', precision: 18, scale: 2, default: 0 })
   creditBalance: number = 0
 
   @Property({ type: 'decimal', precision: 5, scale: 4, default: 0.05 })

@@ -42,7 +42,7 @@ export class BankAccount {
   @Property({ nullable: true })
   accountType?: AccountType
 
-  @Property({ type: 'decimal', default: 0 })
+  @Property({ type: 'decimal', precision: 18, scale: 2, default: 0 })
   balance: number = 0
 
   @Property({ onCreate: () => new Date() })

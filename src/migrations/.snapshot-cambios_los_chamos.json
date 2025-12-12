@@ -659,13 +659,13 @@
         },
         "balance": {
           "name": "balance",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "default": "0",
           "mappedType": "decimal"
         },
@@ -980,154 +980,39 @@
           "length": 255,
           "mappedType": "string"
         },
-        "name": {
-          "name": "name",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "length": 255,
-          "mappedType": "string"
-        },
-        "type": {
-          "name": "type",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "length": 255,
-          "mappedType": "string"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "length": 6,
-          "mappedType": "datetime"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "length": 6,
-          "mappedType": "datetime"
-        }
-      },
-      "name": "printer_configs",
-      "schema": "public",
-      "indexes": [
-        {
-          "columnNames": [
-            "user_id"
-          ],
-          "composite": false,
-          "keyName": "printer_configs_user_id_index",
-          "constraint": false,
-          "primary": false,
-          "unique": false
-        },
-        {
-          "keyName": "printer_configs_user_id_unique",
-          "columnNames": [
-            "user_id"
-          ],
-          "composite": false,
-          "constraint": true,
-          "primary": false,
-          "unique": true
-        },
-        {
-          "keyName": "printer_configs_pkey",
-          "columnNames": [
-            "id"
-          ],
-          "composite": false,
-          "constraint": true,
-          "primary": true,
-          "unique": true
-        }
-      ],
-      "checks": [],
-      "foreignKeys": {
-        "printer_configs_user_id_foreign": {
-          "constraintName": "printer_configs_user_id_foreign",
-          "columnNames": [
-            "user_id"
-          ],
-          "localTableName": "public.printer_configs",
-          "referencedColumnNames": [
-            "id"
-          ],
-          "referencedTableName": "public.users",
-          "deleteRule": "cascade",
-          "updateRule": "cascade"
-        }
-      },
-      "nativeEnums": {}
-    },
-    {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "length": 255,
-          "mappedType": "string"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "varchar(255)",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "length": 255,
-          "mappedType": "string"
-        },
         "credit_limit": {
           "name": "credit_limit",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "default": "0",
           "mappedType": "decimal"
         },
         "available_credit": {
           "name": "available_credit",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "default": "0",
           "mappedType": "decimal"
         },
         "credit_balance": {
           "name": "credit_balance",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "default": "0",
           "mappedType": "decimal"
         },
@@ -1745,13 +1630,13 @@
         },
         "amount": {
           "name": "amount",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "type": {
@@ -1771,46 +1656,46 @@
         },
         "previous_available_credit": {
           "name": "previous_available_credit",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "available_credit": {
           "name": "available_credit",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "previous_balance_in_favor": {
           "name": "previous_balance_in_favor",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "current_balance_in_favor": {
           "name": "current_balance_in_favor",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "giro_id": {
@@ -1825,90 +1710,90 @@
         },
         "credit_consumed": {
           "name": "credit_consumed",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "profit_earned": {
           "name": "profit_earned",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "accumulated_debt": {
           "name": "accumulated_debt",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "accumulated_profit": {
           "name": "accumulated_profit",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "balance_in_favor_used": {
           "name": "balance_in_favor_used",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "credit_used": {
           "name": "credit_used",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "remaining_balance": {
           "name": "remaining_balance",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "external_debt": {
           "name": "external_debt",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "description": {
@@ -2329,13 +2214,13 @@
         },
         "amount": {
           "name": "amount",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "fee": {
@@ -2366,24 +2251,24 @@
         },
         "previous_balance": {
           "name": "previous_balance",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "current_balance": {
           "name": "current_balance",
-          "type": "numeric(10,0)",
+          "type": "numeric(18,2)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "precision": 10,
-          "scale": 0,
+          "precision": 18,
+          "scale": 2,
           "mappedType": "decimal"
         },
         "reference": {

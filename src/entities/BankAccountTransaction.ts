@@ -17,7 +17,7 @@ export class BankAccountTransaction {
   @ManyToOne(() => BankAccount, { deleteRule: 'cascade', updateRule: 'cascade' })
   bankAccount!: BankAccount
 
-  @Property({ type: 'decimal' })
+  @Property({ type: 'decimal', precision: 18, scale: 2 })
   amount!: number
 
   @Property({ type: 'decimal', precision: 10, scale: 2, default: 0 })
@@ -26,10 +26,10 @@ export class BankAccountTransaction {
   @Enum(() => BankAccountTransactionType)
   type!: BankAccountTransactionType
 
-  @Property({ type: 'decimal' })
+  @Property({ type: 'decimal', precision: 18, scale: 2 })
   previousBalance!: number
 
-  @Property({ type: 'decimal' })
+  @Property({ type: 'decimal', precision: 18, scale: 2 })
   currentBalance!: number
 
   @Property({ nullable: true })
