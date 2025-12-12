@@ -241,7 +241,7 @@ export class GiroService {
         console.log(
           `[GIRO-SERVICE] Intentando enviar notificación al transferencista ${assigned.user.id} para giro ${giro.id}`
         )
-        await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs)
+        await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs, giro.executionType)
         console.log(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
 
         // Enviar correo electrónico al transferencista
@@ -1082,7 +1082,7 @@ export class GiroService {
         console.log(
           `[GIRO-SERVICE] Intentando enviar notificación al transferencista ${assigned.user.id} para giro ${giro.id}`
         )
-        await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs)
+        await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs, giro.executionType)
         console.log(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
 
         // Enviar correo electrónico al transferencista
@@ -1240,7 +1240,7 @@ export class GiroService {
         console.log(
           `[GIRO-SERVICE] Intentando enviar notificación al transferencista ${assigned.user.id} para giro ${giro.id}`
         )
-        await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs)
+        await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs, giro.executionType)
         console.log(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
 
         // Enviar correo electrónico al transferencista

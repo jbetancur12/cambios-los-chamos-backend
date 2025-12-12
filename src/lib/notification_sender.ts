@@ -29,7 +29,12 @@ async function getFcmTokensByUserId(userId: string): Promise<string[]> {
   }
 }
 
-export async function sendGiroAssignedNotification(userId: string, giroId: string, amountBs: number): Promise<void> {
+export async function sendGiroAssignedNotification(
+  userId: string,
+  giroId: string,
+  amountBs: number,
+  executionType: string = 'Giro'
+): Promise<void> {
   console.log(`[FCM-SENDER] Iniciando envío de notificación a usuario ${userId}`)
   const fcmTokens = await getFcmTokensByUserId(userId)
 
@@ -39,15 +44,24 @@ export async function sendGiroAssignedNotification(userId: string, giroId: strin
   }
   console.log(`[FCM-SENDER] Se enviará a ${fcmTokens.length} tokens.`)
 
+  const title = executionType === 'PAGO_MOVIL' ? '💸 Nuevo Pago Móvil' : `💸 Nuevo ${executionType} Asignado`
+
+  // Clean up execution type for display if needed
+  let displayType = 'giro'
+  if (executionType === 'PAGO_MOVIL') displayType = 'pago móvil'
+  else if (executionType === 'RECARGA') displayType = 'recarga'
+  else if (executionType === 'TRANSFERENCIA') displayType = 'giro'
+
   const message: admin.messaging.MulticastMessage = {
     notification: {
-      title: '💸 Nuevo Giro Asignado',
-      body: `Se te ha asignado un nuevo giro por ${formatCurrency(amountBs)}. ¡Procésalo ahora!`,
+      title: title,
+      body: `Se te ha asignado un nuevo ${displayType} por ${formatCurrency(amountBs)}. ¡Procésalo ahora!`,
     },
     data: {
       giro_id: giroId,
       amount_bs: amountBs.toString(),
       tipo: 'giro_asignado',
+      execution_type: executionType
     },
 
     tokens: fcmTokens, // Array de tokens a los que se enviará el mensaje
