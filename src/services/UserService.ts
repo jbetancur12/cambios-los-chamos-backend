@@ -27,6 +27,10 @@ export class UserService {
       )
     }
 
+    if (!user.isActive) {
+      throw new Error('Tu cuenta ha sido desactivada. Por favor contacta al administrador.')
+    }
+
     const token = generateAccessToken({
       email: user.email,
       id: user.id,

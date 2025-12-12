@@ -50,6 +50,11 @@ export const userMiddleware = () => {
         return next()
       }
 
+      if (!user.isActive) {
+        console.log('[AUTH] Token valid but user is inactive:', user.email)
+        return next()
+      }
+
       // 4️⃣ Construir objeto requestUser
       req.context.requestUser = new RequestUser(user, 'authenticatedUser', null)
 

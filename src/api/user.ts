@@ -66,6 +66,10 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
     if (error instanceof Error && error.message.includes('no ha sido verificado')) {
       return res.status(403).json(ApiResponse.error(error.message, ErrorCode.EMAIL_NOT_VERIFIED))
     }
+
+    if (error instanceof Error && error.message.includes('desactivada')) {
+      return res.status(403).json(ApiResponse.accountInactive())
+    }
     // Cualquier otro error
     console.error('Error en login:', error)
     return res.status(500).json(ApiResponse.serverError())
