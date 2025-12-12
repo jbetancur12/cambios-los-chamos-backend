@@ -1078,6 +1078,46 @@ export class GiroService {
 
         await em.persistAndFlush(giro)
 
+        // Enviar notificación (WebSocket)
+        console.log(
+          `[GIRO-SERVICE] Intentando enviar notificación al transferencista ${assigned.user.id} para giro ${giro.id}`
+        )
+        await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs)
+        console.log(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
+
+        // Enviar correo electrónico al transferencista
+        try {
+          const emailSubject = `Nuevo Giro Asignado (${giro.executionType}) - ${giro.amountBs.toFixed(2)} Bs`
+          const emailBody = `
+            <h1>Nuevo Giro Asignado</h1>
+            <p>Se te ha asignado un nuevo giro (${giro.executionType}) para procesar.</p>
+            <ul>
+              <li><strong>Monto:</strong> ${giro.amountBs.toFixed(2)} Bs</li>
+              <li><strong>Operador:</strong> ${operator.name}</li>
+              <li><strong>Teléfono:</strong> ${giro.accountNumber}</li>
+              <li><strong>Generado por:</strong> ${createdBy.fullName || createdBy.email}</li>
+              <li><strong>ID Giro:</strong> ${giro.id}</li>
+              <li><strong>Tipo:</strong> ${giro.executionType}</li>
+            </ul>
+            <p>Por favor, ingresa a la plataforma para procesarlo.</p>
+          `
+
+          // Asumimos que el usuario del transferencista tiene email
+          if (assigned.user.email) {
+            const { error } = await sendEmail(assigned.user.email, emailSubject, emailBody)
+            if (error) {
+              console.error(`[EMAIL] Falló envío a ${assigned.user.email}:`, error)
+            } else {
+              console.info(`[EMAIL] Enviado correctamente a ${assigned.user.email} (Giro: ${giro.id})`)
+            }
+          } else {
+            console.warn(`[EMAIL] Transferencista ${assigned.id} no tiene email configurado.`)
+          }
+        } catch (emailError) {
+          console.error('[EMAIL] Error al enviar correo de notificación:', emailError)
+          // No lanzamos error para no revertir la transacción del giro
+        }
+
         return giro
       })
       .catch((error) => {
@@ -1195,6 +1235,47 @@ export class GiroService {
         })
 
         await em.persistAndFlush(giro)
+
+        // Enviar notificación (WebSocket)
+        console.log(
+          `[GIRO-SERVICE] Intentando enviar notificación al transferencista ${assigned.user.id} para giro ${giro.id}`
+        )
+        await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs)
+        console.log(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
+
+        // Enviar correo electrónico al transferencista
+        try {
+          const emailSubject = `Nuevo Giro Asignado (${giro.executionType}) - ${giro.amountBs.toFixed(2)} Bs`
+          const emailBody = `
+            <h1>Nuevo Giro Asignado</h1>
+            <p>Se te ha asignado un nuevo giro (${giro.executionType}) para procesar.</p>
+            <ul>
+              <li><strong>Monto:</strong> ${giro.amountBs.toFixed(2)} Bs</li>
+              <li><strong>Banco:</strong> ${bank.name}</li>
+              <li><strong>Cuenta:</strong> ${giro.accountNumber}</li>
+              <li><strong>Beneficiario:</strong> ${giro.beneficiaryName}</li>
+              <li><strong>Generado por:</strong> ${createdBy.fullName || createdBy.email}</li>
+              <li><strong>ID Giro:</strong> ${giro.id}</li>
+              <li><strong>Tipo:</strong> ${giro.executionType}</li>
+            </ul>
+            <p>Por favor, ingresa a la plataforma para procesarlo.</p>
+          `
+
+          // Asumimos que el usuario del transferencista tiene email
+          if (assigned.user.email) {
+            const { error } = await sendEmail(assigned.user.email, emailSubject, emailBody)
+            if (error) {
+              console.error(`[EMAIL] Falló envío a ${assigned.user.email}:`, error)
+            } else {
+              console.info(`[EMAIL] Enviado correctamente a ${assigned.user.email} (Giro: ${giro.id})`)
+            }
+          } else {
+            console.warn(`[EMAIL] Transferencista ${assigned.id} no tiene email configurado.`)
+          }
+        } catch (emailError) {
+          console.error('[EMAIL] Error al enviar correo de notificación:', emailError)
+          // No lanzamos error para no revertir la transacción del giro
+        }
 
         // Guardar sugerencia de beneficiario después de la transacción exitosa
         // Nota: Esto es un side-effect dentro de la transacción, pero es aceptable.
