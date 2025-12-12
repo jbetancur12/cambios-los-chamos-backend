@@ -2,7 +2,11 @@ import 'dotenv/config'
 import { MikroORM } from '@mikro-orm/core'
 import { Minorista } from '../entities/Minorista'
 import { User, UserRole } from '../entities/User'
-import { MinoristaTransaction, MinoristaTransactionType } from '../entities/MinoristaTransaction'
+import {
+  MinoristaTransaction,
+  MinoristaTransactionStatus,
+  MinoristaTransactionType,
+} from '../entities/MinoristaTransaction'
 import config from '../mikro-orm.config'
 
 async function reconcileBalances() {
@@ -50,6 +54,7 @@ async function reconcileBalances() {
 
         // Create Transaction
         const transaction = em.create(MinoristaTransaction, {
+          status: MinoristaTransactionStatus.COMPLETED,
           minorista: m,
           type: MinoristaTransactionType.ADJUSTMENT,
           amount: 0,

@@ -5,7 +5,11 @@ import { CreateGiroInput } from '@/types/giro'
 import { User, UserRole } from '@/entities/User'
 import { Transferencista } from '@/entities/Transferencista'
 import { minoristaTransactionService } from '@/services/MinoristaTransactionService'
-import { MinoristaTransaction, MinoristaTransactionType } from '@/entities/MinoristaTransaction'
+import {
+  MinoristaTransaction,
+  MinoristaTransactionType,
+  MinoristaTransactionStatus,
+} from '@/entities/MinoristaTransaction'
 import { bankAccountTransactionService } from '@/services/BankAccountTransactionService'
 import { BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 import { sendGiroAssignedNotification } from '@/lib/notification_sender'
@@ -145,6 +149,7 @@ export class GiroService {
               minoristaId: minorista.id,
               amount: data.amountInput,
               type: MinoristaTransactionType.DISCOUNT,
+              status: MinoristaTransactionStatus.PENDING, // Transacción en 'Hold' hasta que se complete el giro
               createdBy,
             },
             em
@@ -223,7 +228,7 @@ export class GiroService {
 
           // Vincular las transacciones a este giro
           for (const transaction of minoristaTransactions) {
-            ; (transaction as MinoristaTransaction).giro = giro
+            ;(transaction as MinoristaTransaction).giro = giro
             em.persist(transaction)
           }
           await em.flush()
@@ -316,14 +321,14 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error:
-      | 'GIRO_NOT_FOUND'
-      | 'INVALID_STATUS'
-      | 'BANK_ACCOUNT_NOT_FOUND'
-      | 'INSUFFICIENT_BALANCE'
-      | 'UNAUTHORIZED_ACCOUNT'
-      | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
-    }
+        error:
+          | 'GIRO_NOT_FOUND'
+          | 'INVALID_STATUS'
+          | 'BANK_ACCOUNT_NOT_FOUND'
+          | 'INSUFFICIENT_BALANCE'
+          | 'UNAUTHORIZED_ACCOUNT'
+          | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+      }
   > {
     const giro = await DI.giros.findOne(
       { id: giroId },
@@ -425,6 +430,26 @@ export class GiroService {
 
     await DI.em.persistAndFlush(giro)
 
+    // ✨ ACTUALIZAR TRANSACCIÓN DE MINORISTA A COMPLETADO (COMMIT)
+    if (giro.minorista) {
+      const transactionRepo = DI.em.getRepository(MinoristaTransaction)
+      // Buscar la transacción asociada al giro
+      // Nota: En createGiro vinculamos la transacción al giro.
+      const transaction = await transactionRepo.findOne({ giro: giro.id })
+
+      if (transaction && transaction.status === MinoristaTransactionStatus.PENDING) {
+        // Actualizar a completado para que sea visible en el historial
+        // No afecta el balance (ya se descontó en createGiro)
+        // Actualizar a completado para que sea visible en el historial
+        // Usamos el servicio para asegurar que se emita el evento de WebSocket
+        await minoristaTransactionService.updateTransactionStatus(
+          transaction.id,
+          MinoristaTransactionStatus.COMPLETED,
+          DI.em
+        )
+      }
+    }
+
     // Enviar correo al creador del giro - DESHABILITADO POR SOLICITUD DEL USUARIO
     /*
     try {
@@ -502,12 +527,41 @@ export class GiroService {
             `[GIRO] Processing refund for minorista (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`
           )
 
-          const refundResult = await minoristaTransactionService.createTransaction({
-            minoristaId: giro.minorista.id,
-            amount: giro.amountInput,
-            type: MinoristaTransactionType.REFUND,
-            createdBy: createdBy,
-          })
+          const transactionRepo = em.getRepository(MinoristaTransaction)
+          const originalTransaction = await transactionRepo.findOne({ giro: giro.id })
+
+          let refundResult
+
+          if (originalTransaction && originalTransaction.status === MinoristaTransactionStatus.PENDING) {
+            // Si estaba PENDING (no visible), refund invisible (CANCELLED)
+            refundResult = await minoristaTransactionService.createTransaction(
+              {
+                minoristaId: giro.minorista.id,
+                amount: giro.amountInput,
+                type: MinoristaTransactionType.REFUND,
+                status: MinoristaTransactionStatus.CANCELLED,
+                createdBy,
+              },
+              em
+            )
+
+            if ('error' in refundResult) throw new Error('Error al reembolsar minorista')
+
+            originalTransaction.status = MinoristaTransactionStatus.CANCELLED
+            em.persist(originalTransaction)
+          } else {
+            // Si ya estaba COMPLETED, refund visible
+            refundResult = await minoristaTransactionService.createTransaction(
+              {
+                minoristaId: giro.minorista.id,
+                amount: giro.amountInput,
+                type: MinoristaTransactionType.REFUND,
+                status: MinoristaTransactionStatus.COMPLETED,
+                createdBy,
+              },
+              em
+            )
+          }
 
           if ('error' in refundResult) {
             console.error(
@@ -580,14 +634,62 @@ export class GiroService {
             `[GIRO] Processing refund before deletion (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`
           )
 
-          const refundResult = await minoristaTransactionService.createTransaction({
-            minoristaId: giro.minorista.id,
-            amount: giro.amountInput,
-            type: MinoristaTransactionType.REFUND,
-            createdBy: user,
-          })
+          // Buscar la transacción original para ver si está PENDING
+          const transactionRepo = em.getRepository(MinoristaTransaction)
+          const originalTransaction = await transactionRepo.findOne({ giro: giro.id })
 
-          if ('error' in refundResult) {
+          let refundResult
+
+          if (originalTransaction && originalTransaction.status === MinoristaTransactionStatus.PENDING) {
+            // Si estaba PENDING (no visible), la cancelamos y devolvemos el dinero "silenciosamente"
+            // O mejor, marcamos como CANCELLED y creamos un refund interno?
+            // Simplificación: Marcamos como CANCELLED. Y devolvemos el dinero usando createTransaction con REFUND pero status CANCELLED?
+            // No, la función createTransaction asume que si es REFUND suma dinero.
+            // Si marcamos la original como CANCELLED, NO recuperamos el dinero automágicamente en la lógica actual de createTransaction.
+            // Debemos hacer un REFUND explícito para recuperar el saldo.
+            // Pero queremos que NO se vea en el historial.
+            // Así que creamos un REFUND con status CANCELLED también? O invisible?
+            // Mejor opción: Update status a CANCELLED y sumar manualmente al minorista?
+            // RIESGOSO. Mejor usar el servicio establecido.
+
+            // Estrategia:
+            // 1. Crear REFUND normal para devolver la plata.
+            // 2. Marcar AMBAS transacciones (la original DISCOUNT y la nueva REFUND) como CANCELLED.
+            // Así ambas quedan ocultas (o marcadas) y el saldo queda bien.
+
+            refundResult = await minoristaTransactionService.createTransaction(
+              {
+                minoristaId: giro.minorista.id,
+                amount: giro.amountInput,
+                type: MinoristaTransactionType.REFUND,
+                status: MinoristaTransactionStatus.CANCELLED, // Para que el refund tampoco se vea (ya que la original no se vio)
+                createdBy: user,
+              },
+              em
+            )
+
+            if ('error' in refundResult) throw new Error('Error al reembolsar minorista')
+
+            // Marcar original como CANCELLED
+            originalTransaction.status = MinoristaTransactionStatus.CANCELLED
+            em.persist(originalTransaction)
+          } else {
+            // Si ya estaba COMPLETED (o no se encontró, fallback), hacemos refund normal visible COMPLETED
+            refundResult = await minoristaTransactionService.createTransaction(
+              {
+                minoristaId: giro.minorista.id,
+                amount: giro.amountInput,
+                type: MinoristaTransactionType.REFUND,
+                status: MinoristaTransactionStatus.COMPLETED,
+                createdBy: user,
+              },
+              em
+            )
+
+            if ('error' in refundResult) throw new Error('Error al reembolsar minorista')
+          }
+
+          if (refundResult && 'error' in refundResult) {
             console.error(
               `[GIRO] Delete refund failed (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, error: ${refundResult.error})`
             )
@@ -873,13 +975,13 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error:
-      | 'MINORISTA_NOT_FOUND'
-      | 'NO_TRANSFERENCISTA_ASSIGNED'
-      | 'INSUFFICIENT_BALANCE'
-      | 'OPERATOR_NOT_FOUND'
-      | 'AMOUNT_NOT_FOUND'
-    }
+        error:
+          | 'MINORISTA_NOT_FOUND'
+          | 'NO_TRANSFERENCISTA_ASSIGNED'
+          | 'INSUFFICIENT_BALANCE'
+          | 'OPERATOR_NOT_FOUND'
+          | 'AMOUNT_NOT_FOUND'
+      }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
@@ -1001,8 +1103,8 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
-    }
+        error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
+      }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null

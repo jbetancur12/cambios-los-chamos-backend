@@ -162,6 +162,8 @@ userRouter.get('/me', requireAuth(), async (req: Request, res: Response) => {
         email: user.email,
         role: user.role,
         isActive: user.isActive,
+        minoristaId: user.minorista?.id,
+        transferencistaId: user.transferencista?.id,
       },
     })
   )

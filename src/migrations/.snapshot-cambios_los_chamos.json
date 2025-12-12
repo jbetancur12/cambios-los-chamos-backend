@@ -1654,6 +1654,21 @@
           ],
           "mappedType": "enum"
         },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "'COMPLETED'",
+          "enumItems": [
+            "PENDING",
+            "COMPLETED",
+            "CANCELLED"
+          ],
+          "mappedType": "enum"
+        },
         "previous_available_credit": {
           "name": "previous_available_credit",
           "type": "numeric(18,2)",

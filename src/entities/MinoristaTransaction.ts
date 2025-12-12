@@ -11,6 +11,12 @@ export enum MinoristaTransactionType {
   REFUND = 'REFUND', // Reembolso por devolución o eliminación de giro
 }
 
+export enum MinoristaTransactionStatus {
+  PENDING = 'PENDING', // Transacción creada pero no confirmada (giro asignado)
+  COMPLETED = 'COMPLETED', // Transacción confirmada (giro completado/ejecutado)
+  CANCELLED = 'CANCELLED', // Transacción cancelada (giro eliminado/devuelto antes de completarse)
+}
+
 @Entity({ tableName: 'minorista_transactions' })
 export class MinoristaTransaction {
   @PrimaryKey()
@@ -24,6 +30,9 @@ export class MinoristaTransaction {
 
   @Enum(() => MinoristaTransactionType)
   type!: MinoristaTransactionType
+
+  @Enum(() => MinoristaTransactionStatus)
+  status: MinoristaTransactionStatus = MinoristaTransactionStatus.COMPLETED
 
   @Property({ type: 'decimal', precision: 18, scale: 2 })
   previousAvailableCredit!: number

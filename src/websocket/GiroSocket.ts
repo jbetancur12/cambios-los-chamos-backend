@@ -1,6 +1,7 @@
 import { Server as SocketIOServer, Socket } from 'socket.io'
 import { Giro } from '@/entities/Giro'
 import { UserRole } from '@/entities/User'
+import { MinoristaTransaction } from '@/entities/MinoristaTransaction'
 
 interface ConnectedUser {
   socketId: string
@@ -227,6 +228,61 @@ export class GiroSocketManager {
    */
   getConnectedUsers(): ConnectedUser[] {
     return Array.from(this.connectedUsers.values())
+  }
+  /**
+   * Emitir evento cuando se actualiza el balance de un minorista
+   */
+  broadcastMinoristaBalanceUpdate(minoristaId: string, availableCredit: number, creditBalance: number) {
+    const payload = {
+      minoristaId,
+      availableCredit,
+      creditBalance,
+      timestamp: new Date().toISOString(),
+    }
+
+    // Enviar al minorista y a los admins
+    this.broadcastToMinorista(minoristaId, 'minorista:balance_updated', payload)
+    this.broadcastToAdmins('minorista:balance_updated', payload)
+  }
+
+  /**
+   * Emitir evento cuando se crea o actualiza una transacción de minorista
+   */
+  broadcastMinoristaTransactionUpdate(transaction: MinoristaTransaction) {
+    const payload = {
+      transaction: this.serializeMinoristaTransaction(transaction),
+      timestamp: new Date().toISOString(),
+    }
+
+    // Enviar al minorista y a los admins
+    this.broadcastToMinorista(transaction.minorista.id, 'minorista:transaction_updated', payload)
+    this.broadcastToAdmins('minorista:transaction_updated', payload)
+  }
+
+  private serializeMinoristaTransaction(t: MinoristaTransaction) {
+    return {
+      id: t.id,
+      amount: t.amount,
+      type: t.type,
+      status: t.status,
+      previousBalance: t.previousAvailableCredit,
+      currentBalance: t.availableCredit,
+      previousBalanceInFavor: t.previousBalanceInFavor ?? 0,
+      currentBalanceInFavor: t.currentBalanceInFavor ?? 0,
+      balanceInFavorUsed: t.balanceInFavorUsed,
+      creditUsed: t.creditUsed,
+      externalDebt: t.externalDebt,
+      profitEarned: t.profitEarned,
+      createdBy: t.createdBy
+        ? {
+            id: t.createdBy.id,
+            fullName: t.createdBy.fullName,
+            email: t.createdBy.email,
+          }
+        : undefined,
+      minorista: t.minorista ? { id: t.minorista.id } : undefined,
+      createdAt: t.createdAt,
+    }
   }
 }
 
