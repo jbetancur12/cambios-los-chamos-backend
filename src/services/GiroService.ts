@@ -712,6 +712,7 @@ export class GiroService {
     dateTo?: Date
     page?: number
     limit?: number
+    showAllTraffic?: boolean
   }): Promise<{
     giros: Giro[]
     total: number
@@ -749,9 +750,11 @@ export class GiroService {
       // Si el usuario es ADMIN/SUPER_ADMIN y está filtrando por COMPLETADO,
       // Solo mostrar giros creados por el sistema (sin minorista vinculado),
       // es decir, excluir los de minoristas.
+      // EXCEPTO si se especifica explicitamente que se quiere ver todo el tráfico (showAllTraffic)
       if (
         (options.userRole === UserRole.ADMIN || options.userRole === UserRole.SUPER_ADMIN) &&
-        options.status === GiroStatus.COMPLETADO
+        options.status === GiroStatus.COMPLETADO &&
+        !options.showAllTraffic
       ) {
         where.minorista = null
       }
