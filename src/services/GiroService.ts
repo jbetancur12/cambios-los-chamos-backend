@@ -223,7 +223,7 @@ export class GiroService {
 
           // Vincular las transacciones a este giro
           for (const transaction of minoristaTransactions) {
-            ;(transaction as MinoristaTransaction).giro = giro
+            ; (transaction as MinoristaTransaction).giro = giro
             em.persist(transaction)
           }
           await em.flush()
@@ -316,14 +316,14 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error:
-          | 'GIRO_NOT_FOUND'
-          | 'INVALID_STATUS'
-          | 'BANK_ACCOUNT_NOT_FOUND'
-          | 'INSUFFICIENT_BALANCE'
-          | 'UNAUTHORIZED_ACCOUNT'
-          | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
-      }
+      error:
+      | 'GIRO_NOT_FOUND'
+      | 'INVALID_STATUS'
+      | 'BANK_ACCOUNT_NOT_FOUND'
+      | 'INSUFFICIENT_BALANCE'
+      | 'UNAUTHORIZED_ACCOUNT'
+      | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+    }
   > {
     const giro = await DI.giros.findOne(
       { id: giroId },
@@ -873,13 +873,13 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error:
-          | 'MINORISTA_NOT_FOUND'
-          | 'NO_TRANSFERENCISTA_ASSIGNED'
-          | 'INSUFFICIENT_BALANCE'
-          | 'OPERATOR_NOT_FOUND'
-          | 'AMOUNT_NOT_FOUND'
-      }
+      error:
+      | 'MINORISTA_NOT_FOUND'
+      | 'NO_TRANSFERENCISTA_ASSIGNED'
+      | 'INSUFFICIENT_BALANCE'
+      | 'OPERATOR_NOT_FOUND'
+      | 'AMOUNT_NOT_FOUND'
+    }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
@@ -938,8 +938,8 @@ export class GiroService {
         // Calcular ganancias: ((monto / sellRate) * buyRate) - monto
         const totalProfit = amountCop - (amountCop / exchangeRate.sellRate) * exchangeRate.buyRate
 
-        // Calcular ganancias: 5% para minorista (si existe), resto para el sistema
-        const minoristaProfit = minorista ? amountCop * 0.05 : 0
+        // Calcular ganancias: Porcentaje configurado para minorista (si existe), resto para el sistema
+        const minoristaProfit = minorista ? amountCop * minorista.profitPercentage : 0
         const systemProfit = totalProfit - minoristaProfit
 
         const giroRepo = em.getRepository(Giro)
@@ -1001,8 +1001,8 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
-      }
+      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
+    }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
@@ -1056,8 +1056,8 @@ export class GiroService {
         // Based on createGiro: data.amountInput - (data.amountInput / data.rateApplied.sellRate) * data.rateApplied.buyRate
         const totalProfit = data.amountCop - (data.amountCop / exchangeRate.sellRate) * exchangeRate.buyRate
 
-        // Calcular ganancias: 5% para minorista (si existe), resto para el sistema
-        const minoristaProfit = minorista ? data.amountCop * 0.05 : 0
+        // Calcular ganancias: Porcentaje configurado para minorista (si existe), resto para el sistema
+        const minoristaProfit = minorista ? data.amountCop * minorista.profitPercentage : 0
         const systemProfit = totalProfit - minoristaProfit
 
         const giroRepo = em.getRepository(Giro)
@@ -1266,8 +1266,8 @@ export class GiroService {
     let newMinoristaProfit = 0
 
     if (giro.minorista) {
-      // Minorista: 5% para él, resto para el sistema
-      newMinoristaProfit = giro.amountInput * 0.05
+      // Minorista: Porcentaje configurado para él, resto para el sistema
+      newMinoristaProfit = giro.amountInput * giro.minorista.profitPercentage
       newSystemProfit = newTotalProfit - newMinoristaProfit
     } else {
       // Admin/SuperAdmin: 100% para el sistema
