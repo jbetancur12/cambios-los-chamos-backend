@@ -228,7 +228,7 @@ export class GiroService {
 
           // Vincular las transacciones a este giro
           for (const transaction of minoristaTransactions) {
-            ;(transaction as MinoristaTransaction).giro = giro
+            ; (transaction as MinoristaTransaction).giro = giro
             em.persist(transaction)
           }
           await em.flush()
@@ -246,10 +246,10 @@ export class GiroService {
 
         // Enviar correo electrónico al transferencista
         try {
-          const emailSubject = `Nuevo Giro Asignado - ${giro.amountBs.toFixed(2)} Bs`
+          const emailSubject = `Nuevo Giro Asignado (${giro.executionType}) - ${giro.amountBs.toFixed(2)} Bs`
           const emailBody = `
             <h1>Nuevo Giro Asignado</h1>
-            <p>Se te ha asignado un nuevo giro para procesar.</p>
+            <p>Se te ha asignado un nuevo giro (${giro.executionType}) para procesar.</p>
             <ul>
               <li><strong>Monto:</strong> ${giro.amountBs.toFixed(2)} Bs</li>
               <li><strong>Banco:</strong> ${bank.name}</li>
@@ -257,13 +257,19 @@ export class GiroService {
               <li><strong>Beneficiario:</strong> ${giro.beneficiaryName}</li>
               <li><strong>Generado por:</strong> ${createdBy.fullName || createdBy.email}</li>
               <li><strong>ID Giro:</strong> ${giro.id}</li>
+              <li><strong>Tipo:</strong> ${giro.executionType}</li>
             </ul>
             <p>Por favor, ingresa a la plataforma para procesarlo.</p>
           `
 
           // Asumimos que el usuario del transferencista tiene email
           if (assigned.user.email) {
-            await sendEmail(assigned.user.email, emailSubject, emailBody)
+            const { error } = await sendEmail(assigned.user.email, emailSubject, emailBody)
+            if (error) {
+              console.error(`[EMAIL] Falló envío a ${assigned.user.email}:`, error)
+            } else {
+              console.info(`[EMAIL] Enviado correctamente a ${assigned.user.email} (Giro: ${giro.id})`)
+            }
           } else {
             console.warn(`[EMAIL] Transferencista ${assigned.id} no tiene email configurado.`)
           }
@@ -321,14 +327,14 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error:
-          | 'GIRO_NOT_FOUND'
-          | 'INVALID_STATUS'
-          | 'BANK_ACCOUNT_NOT_FOUND'
-          | 'INSUFFICIENT_BALANCE'
-          | 'UNAUTHORIZED_ACCOUNT'
-          | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
-      }
+      error:
+      | 'GIRO_NOT_FOUND'
+      | 'INVALID_STATUS'
+      | 'BANK_ACCOUNT_NOT_FOUND'
+      | 'INSUFFICIENT_BALANCE'
+      | 'UNAUTHORIZED_ACCOUNT'
+      | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+    }
   > {
     const giro = await DI.giros.findOne(
       { id: giroId },
@@ -975,13 +981,13 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error:
-          | 'MINORISTA_NOT_FOUND'
-          | 'NO_TRANSFERENCISTA_ASSIGNED'
-          | 'INSUFFICIENT_BALANCE'
-          | 'OPERATOR_NOT_FOUND'
-          | 'AMOUNT_NOT_FOUND'
-      }
+      error:
+      | 'MINORISTA_NOT_FOUND'
+      | 'NO_TRANSFERENCISTA_ASSIGNED'
+      | 'INSUFFICIENT_BALANCE'
+      | 'OPERATOR_NOT_FOUND'
+      | 'AMOUNT_NOT_FOUND'
+    }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
@@ -1103,8 +1109,8 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
-      }
+      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
+    }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
