@@ -784,7 +784,17 @@ export class GiroService {
       limit,
       offset,
       orderBy: { createdAt: 'DESC' },
-      populate: ['minorista', 'minorista.user', 'transferencista', 'transferencista.user', 'rateApplied', 'createdBy'],
+      populate: [
+        'minorista',
+        'minorista.user',
+        'transferencista',
+        'transferencista.user',
+        'rateApplied',
+        'createdBy',
+        'executedBy',
+        'bankAccountUsed',
+        'bankAccountUsed.bank',
+      ],
     })
 
     return {
@@ -817,6 +827,7 @@ export class GiroService {
           'createdBy',
           'bankAccountUsed',
           'bankAccountUsed.bank',
+          'executedBy',
         ],
       }
     )
