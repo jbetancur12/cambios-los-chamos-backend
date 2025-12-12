@@ -910,9 +910,12 @@ export class GiroService {
           await em.refresh(minorista)
         }
 
-        // Calcular ganancias: 5% para minorista (si existe)
+        // Calcular ganancias: ((monto / sellRate) * buyRate) - monto
+        const totalProfit = amountCop - (amountCop / exchangeRate.sellRate) * exchangeRate.buyRate
+
+        // Calcular ganancias: 5% para minorista (si existe), resto para el sistema
         const minoristaProfit = minorista ? amountCop * 0.05 : 0
-        const systemProfit = amountCop * 0.05 // 5% para el sistema
+        const systemProfit = totalProfit - minoristaProfit
 
         const giroRepo = em.getRepository(Giro)
 
@@ -1022,9 +1025,14 @@ export class GiroService {
           await em.refresh(minorista)
         }
 
-        // Calcular ganancias: 5% para minorista (si existe)
+        // Calcular ganancias: ((monto / sellRate) * buyRate) - monto
+        // Note: formula assumes buyRate is "how much COP we pay per VES" logic or similar.
+        // Based on createGiro: data.amountInput - (data.amountInput / data.rateApplied.sellRate) * data.rateApplied.buyRate
+        const totalProfit = data.amountCop - (data.amountCop / exchangeRate.sellRate) * exchangeRate.buyRate
+
+        // Calcular ganancias: 5% para minorista (si existe), resto para el sistema
         const minoristaProfit = minorista ? data.amountCop * 0.05 : 0
-        const systemProfit = data.amountCop * 0.05 // 5% para el sistema
+        const systemProfit = totalProfit - minoristaProfit
 
         const giroRepo = em.getRepository(Giro)
 
