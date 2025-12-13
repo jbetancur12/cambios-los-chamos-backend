@@ -34,26 +34,52 @@ async function main() {
 
             console.log(`Found ${transactions.length} completed transactions.`)
 
-            // --- CLEANUP STEP: CANCEL MATCHING GIRO/REFUND PAIRS ---
+            // --- CLEANUP STEP 1: CANCEL MATCHING GIRO/REFUND PAIRS (Classic logic) ---
             const refunds = transactions.filter(t => t.type === MinoristaTransactionType.REFUND && t.status === MinoristaTransactionStatus.COMPLETED)
 
-            for (const refund of refunds) {
-                const refundIndex = transactions.indexOf(refund)
-                let foundMatch = false
+            // Buscar devoluciones de giros que nunca debieron ser visibles (es decir, el giro original debía estar PENDING)
+            // Problema: Si el giro original se creó como COMPLETED por error (el bug que arreglamos), y luego se devolvio...
+            // La devolución también es COMPLETED.
+            // Queremos que AMBOS sean CANCANCELLED (o invisibles).
 
-                // Search backwards for the original DISCOUNT
-                for (let i = refundIndex - 1; i >= 0; i--) {
-                    const candidate = transactions[i]
-                    if (
-                        candidate.type === MinoristaTransactionType.DISCOUNT &&
-                        candidate.status === MinoristaTransactionStatus.COMPLETED &&
-                        Math.abs(Number(candidate.amount) - Number(refund.amount)) < 0.01 // Match amount
-                    ) {
-                        console.log(`[CLEANUP] Cancelling Pair: Refund ${refund.id} & Giro ${candidate.id}`)
-                        refund.status = MinoristaTransactionStatus.CANCELLED
-                        candidate.status = MinoristaTransactionStatus.CANCELLED
-                        foundMatch = true
-                        break
+            for (const refund of refunds) {
+                // Check linked giro
+                if (refund.giro) {
+                    await em.populate(refund, ['giro'])
+                    const giro = refund.giro
+
+                    // Si el giro asociado está DEVUELTO, y la transacción original era de tipo DISCOUNT...
+                    // Deberíamos ocultar AMBAS (refund y original).
+                    // Pero necesitamos encontrar la original.
+
+                    // Buscar la transacción original vinculada al mismo giro
+                    const originalTx = transactions.find(t => t.id !== refund.id && t.giro?.id === giro.id && t.type === MinoristaTransactionType.DISCOUNT)
+
+                    if (originalTx) {
+                        console.log(`[CLEANUP] Found Refund ${refund.id} linked to Giro ${giro.id}. checking status...`)
+                        // Si el giro fue devuelto, significa que "no pasó".
+                        // Si el fix ya fue aplicado, las nuevas devoluciones de pendientes son invisibles.
+                        // Pero las antiguas son visibles.
+                        // Ocultamos AMBAS si el giro está DEVUELTO.
+                        if (giro.status === 'DEVUELTO' || giro.status === 'ASIGNADO' || giro.status === 'PROCESANDO') {
+                            // Wait, if it's ASIGNADO/PROCESANDO, the DISCOUNT should be PENDING (invisible).
+                            // If it is COMPLETED (visible), it's the bug.
+
+                            if (originalTx.status === MinoristaTransactionStatus.COMPLETED) {
+                                console.log(`[FIX] Hiding erroneously visible transaction ${originalTx.id} for Giro ${giro.id} (${giro.status})`)
+                                originalTx.status = MinoristaTransactionStatus.PENDING // or CANCELLED if returned?
+
+                                if (giro.status === 'DEVUELTO') {
+                                    originalTx.status = MinoristaTransactionStatus.CANCELLED
+                                    refund.status = MinoristaTransactionStatus.CANCELLED
+                                    console.log(`[FIX] Also cancelling refund ${refund.id}`)
+                                } else {
+                                    // If still active (ASIGNADO/PROCESANDO), just make it PENDING (Hold)
+                                    originalTx.status = MinoristaTransactionStatus.PENDING
+                                    // Refund shouldn't exist for active giro, but if it does...
+                                }
+                            }
+                        }
                     }
                 }
             }
