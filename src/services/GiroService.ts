@@ -1044,6 +1044,7 @@ export class GiroService {
               minoristaId: minorista.id,
               amount: amountCop,
               type: MinoristaTransactionType.DISCOUNT,
+              status: MinoristaTransactionStatus.PENDING,
               createdBy,
             },
             em
@@ -1211,6 +1212,7 @@ export class GiroService {
               minoristaId: minorista.id,
               amount: data.amountCop,
               type: MinoristaTransactionType.DISCOUNT,
+              status: MinoristaTransactionStatus.PENDING,
               createdBy,
             },
             em
