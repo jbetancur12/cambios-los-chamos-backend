@@ -280,7 +280,7 @@ minoristaRouter.get(
         { id: { $in: transactions.map((t) => t.id) } },
         {
           populate: ['minorista'],
-          orderBy: { createdAt: 'DESC', id: 'DESC' }
+          orderBy: { createdAt: 'DESC', id: 'DESC' },
         }
       )
 

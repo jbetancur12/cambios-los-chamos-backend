@@ -61,7 +61,7 @@ export async function sendGiroAssignedNotification(
       giro_id: giroId,
       amount_bs: amountBs.toString(),
       tipo: 'giro_asignado',
-      execution_type: executionType
+      execution_type: executionType,
     },
 
     tokens: fcmTokens, // Array de tokens a los que se enviará el mensaje

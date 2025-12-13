@@ -154,7 +154,7 @@ export class MinoristaTransactionService {
                 // Si queremos normalizar: newAvailableCredit = limit? No, mejor no tocar si ya estaba pasado.
                 newBalanceInFavor = previousBalanceInFavorValue + data.amount
               }
-              // Normalizar: Si newAvailableCredit > limit y tenemos deuda externa? 
+              // Normalizar: Si newAvailableCredit > limit y tenemos deuda externa?
               // Por ahora, lógica simple: Llenar available hasta limit, resto a balance.
               // Corrección de lógica para cubrir casos borde:
 
@@ -167,7 +167,6 @@ export class MinoristaTransactionService {
                 newAvailableCredit = totalFunds
                 newBalanceInFavor = previousBalanceInFavorValue
               }
-
             } else {
               // Si es negativo (Pago de deuda que se resta?) No, RECHARGE negativo es raro aquí, usualmente handled above.
               // Mantener lógica simple para negativo: Resetear math min
@@ -220,7 +219,7 @@ export class MinoristaTransactionService {
 
         if (currentFunds > limit) {
           newAvailableCredit = limit
-          newBalanceInFavor += (currentFunds - limit) // Sumar al saldo a favor (que podría haber quedado > 0 o 0)
+          newBalanceInFavor += currentFunds - limit // Sumar al saldo a favor (que podría haber quedado > 0 o 0)
         } else {
           newAvailableCredit = currentFunds
         }
@@ -232,8 +231,6 @@ export class MinoristaTransactionService {
             return { error: 'INSUFFICIENT_BALANCE' }
           }
         }
-
-
 
         minorista.creditBalance = newBalanceInFavor
         break
@@ -350,23 +347,23 @@ export class MinoristaTransactionService {
     options?: { page?: number; limit?: number; startDate?: string; endDate?: string }
   ): Promise<
     | {
-      total: number
-      page: number
-      limit: number
-      transactions: Array<{
-        id: string
-        amount: number
-        type: MinoristaTransactionType
-        previousBalance: number
-        currentBalance: number
-        createdBy: {
+        total: number
+        page: number
+        limit: number
+        transactions: Array<{
           id: string
-          fullName: string
-          email: string
-        }
-        createdAt: Date
-      }>
-    }
+          amount: number
+          type: MinoristaTransactionType
+          previousBalance: number
+          currentBalance: number
+          createdBy: {
+            id: string
+            fullName: string
+            email: string
+          }
+          createdAt: Date
+        }>
+      }
     | { error: 'MINORISTA_NOT_FOUND' }
   > {
     const minoristaRepo = DI.em.getRepository(Minorista)
@@ -438,27 +435,27 @@ export class MinoristaTransactionService {
    */
   async getTransactionById(transactionId: string): Promise<
     | {
-      id: string
-      amount: number
-      type: MinoristaTransactionType
-      previousBalance: number
-      currentBalance: number
-      minorista: {
         id: string
-        availableCredit: number
-        user: {
+        amount: number
+        type: MinoristaTransactionType
+        previousBalance: number
+        currentBalance: number
+        minorista: {
+          id: string
+          availableCredit: number
+          user: {
+            id: string
+            fullName: string
+            email: string
+          }
+        }
+        createdBy: {
           id: string
           fullName: string
           email: string
         }
+        createdAt: Date
       }
-      createdBy: {
-        id: string
-        fullName: string
-        email: string
-      }
-      createdAt: Date
-    }
     | { error: 'TRANSACTION_NOT_FOUND' }
   > {
     const transactionRepo = DI.em.getRepository(MinoristaTransaction)

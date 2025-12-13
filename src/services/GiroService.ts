@@ -228,7 +228,7 @@ export class GiroService {
 
           // Vincular las transacciones a este giro
           for (const transaction of minoristaTransactions) {
-            ; (transaction as MinoristaTransaction).giro = giro
+            ;(transaction as MinoristaTransaction).giro = giro
             em.persist(transaction)
           }
           await em.flush()
@@ -327,14 +327,14 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error:
-      | 'GIRO_NOT_FOUND'
-      | 'INVALID_STATUS'
-      | 'BANK_ACCOUNT_NOT_FOUND'
-      | 'INSUFFICIENT_BALANCE'
-      | 'UNAUTHORIZED_ACCOUNT'
-      | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
-    }
+        error:
+          | 'GIRO_NOT_FOUND'
+          | 'INVALID_STATUS'
+          | 'BANK_ACCOUNT_NOT_FOUND'
+          | 'INSUFFICIENT_BALANCE'
+          | 'UNAUTHORIZED_ACCOUNT'
+          | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+      }
   > {
     const giro = await DI.giros.findOne(
       { id: giroId },
@@ -567,6 +567,12 @@ export class GiroService {
               },
               em
             )
+
+            // Vincular transacción al giro
+            if (!('error' in refundResult)) {
+              refundResult.giro = giro
+              em.persist(refundResult)
+            }
           }
 
           if ('error' in refundResult) {
@@ -972,13 +978,13 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error:
-      | 'MINORISTA_NOT_FOUND'
-      | 'NO_TRANSFERENCISTA_ASSIGNED'
-      | 'INSUFFICIENT_BALANCE'
-      | 'OPERATOR_NOT_FOUND'
-      | 'AMOUNT_NOT_FOUND'
-    }
+        error:
+          | 'MINORISTA_NOT_FOUND'
+          | 'NO_TRANSFERENCISTA_ASSIGNED'
+          | 'INSUFFICIENT_BALANCE'
+          | 'OPERATOR_NOT_FOUND'
+          | 'AMOUNT_NOT_FOUND'
+      }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
@@ -1013,6 +1019,8 @@ export class GiroService {
         const amountBs = amount.amountBs
         const amountCop = amountBs * Number(exchangeRate.sellRate)
 
+        let minoristaTransaction: MinoristaTransaction | null = null
+
         // Crear transacción de descuento del balance del minorista solo si hay minorista
         if (minorista) {
           const transactionResult = await minoristaTransactionService.createTransaction(
@@ -1029,7 +1037,8 @@ export class GiroService {
             throw new Error('INSUFFICIENT_BALANCE')
           }
 
-          // Recargar minorista para obtener balance actualizado
+          minoristaTransaction = transactionResult
+
           // Recargar minorista para obtener balance actualizado
           // await em.refresh(minorista) // REMOVED: Reverts uncommited changes
         }
@@ -1068,6 +1077,14 @@ export class GiroService {
         })
 
         await em.persistAndFlush(giro)
+
+        // Vincular transacción al giro
+        if (minoristaTransaction) {
+          minoristaTransaction.giro = giro
+          em.persist(minoristaTransaction)
+          // No need to flush again immediately if using transactional, but secure it
+          await em.flush()
+        }
 
         // Enviar notificación (WebSocket)
         console.log(
@@ -1140,8 +1157,8 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
-    }
+        error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
+      }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
@@ -1169,6 +1186,8 @@ export class GiroService {
         // Calcular conversión COP a Bs
         const amountBs = data.amountCop / Number(exchangeRate.sellRate)
 
+        let minoristaTransaction: MinoristaTransaction | null = null
+
         // Crear transacción de descuento del balance del minorista solo si hay minorista
         if (minorista) {
           const transactionResult = await minoristaTransactionService.createTransaction(
@@ -1184,6 +1203,8 @@ export class GiroService {
           if ('error' in transactionResult) {
             throw new Error('INSUFFICIENT_BALANCE')
           }
+
+          minoristaTransaction = transactionResult
 
           // Recargar minorista para obtener balance actualizado
           // Recargar minorista para obtener balance actualizado
@@ -1226,6 +1247,13 @@ export class GiroService {
         })
 
         await em.persistAndFlush(giro)
+
+        // Vincular transacción al giro
+        if (minoristaTransaction) {
+          minoristaTransaction.giro = giro
+          em.persist(minoristaTransaction)
+          await em.flush()
+        }
 
         // Enviar notificación (WebSocket)
         console.log(
@@ -1365,6 +1393,11 @@ export class GiroService {
             )
             throw new Error('INSUFFICIENT_BALANCE') // O el error específico
           }
+
+          // Vincular nueva transacción (Re-deduction) al giro
+          transactionResult.giro = giro
+          em.persist(transactionResult)
+
           console.info(`[GIRO] Re-deduction successful (giroId: ${giroId})`)
         }
       }
