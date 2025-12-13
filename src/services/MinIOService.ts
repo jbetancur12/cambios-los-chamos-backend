@@ -82,7 +82,7 @@ class MinIOService {
     }
 
     try {
-      return await sharp(buffer)
+      return await sharp(buffer, { failOnError: false })
         .rotate() // Auto-rotate based on EXIF
         .resize(2000, 2000, {
           fit: 'inside',
@@ -91,7 +91,7 @@ class MinIOService {
         .jpeg({ quality: 80, progressive: true, mozjpeg: true }) // mozjpeg suele ser más tolerante
         .toBuffer()
     } catch (error) {
-      console.error('Error compressing image:', error)
+      console.warn('Warning: Could not compress image, using original file. Error:', error)
       return buffer
     }
   }
