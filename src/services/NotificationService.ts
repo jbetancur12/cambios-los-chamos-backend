@@ -80,7 +80,10 @@ export class NotificationService {
       return
     }
 
-    const registrationTokens = tokens.map(t => t.fcmToken)
+
+    // Deduplicate tokens using a Set
+    const uniqueTokens = new Set(tokens.map(t => t.fcmToken))
+    const registrationTokens = Array.from(uniqueTokens)
 
     // Importamos firebase-admin dinámicamente o usamos el que ya se usa en el proyecto si existe
     // Asumiendo que 'firebase-admin' está configurado globalmente o necesitamos inicializarlo
