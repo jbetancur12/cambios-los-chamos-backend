@@ -80,9 +80,8 @@ export class NotificationService {
       return
     }
 
-
     // Deduplicate tokens using a Set
-    const uniqueTokens = new Set(tokens.map(t => t.fcmToken))
+    const uniqueTokens = new Set(tokens.map((t) => t.fcmToken))
     const registrationTokens = Array.from(uniqueTokens)
 
     // Importamos firebase-admin dinámicamente o usamos el que ya se usa en el proyecto si existe
@@ -95,14 +94,14 @@ export class NotificationService {
     if (admin.apps.length === 0) {
       // Intentar inicializar (esto debería estar en un archivo de configuración global, pero por seguridad...)
       // Por ahora asumimos que la configuración está, o usamos default creds
-      // Ojo: Si no está inicializado, fallará. 
+      // Ojo: Si no está inicializado, fallará.
       // TODO: Verificar dónde se inicializa firebase-admin.
       console.warn('[FCM] Firebase Admin no parece estar inicializado. Intentando inicializar...')
       try {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const serviceAccount = require('../../lib/firebase-admin-key.json')
         admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount)
+          credential: admin.credential.cert(serviceAccount),
         })
       } catch (e) {
         // Fallback a default application login si existe variable de entorno
@@ -118,7 +117,7 @@ export class NotificationService {
     const message = {
       notification: {
         title,
-        body
+        body,
       },
       data: data || {},
       tokens: registrationTokens,
@@ -126,7 +125,9 @@ export class NotificationService {
 
     try {
       const response = await admin.messaging().sendEachForMulticast(message)
-      console.log(`[FCM] Notificación enviada a usuario ${userId}: ${response.successCount} éxitos, ${response.failureCount} fallos.`)
+      console.log(
+        `[FCM] Notificación enviada a usuario ${userId}: ${response.successCount} éxitos, ${response.failureCount} fallos.`
+      )
 
       if (response.failureCount > 0) {
         const failedTokens: string[] = []
@@ -157,4 +158,3 @@ export class NotificationService {
 
 // Exportamos una instancia del servicio para que sea un singleton en el proyecto
 export const notificationService = new NotificationService()
-

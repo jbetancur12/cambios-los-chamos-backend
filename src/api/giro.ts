@@ -596,7 +596,7 @@ giroRouter.post(
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
-    const { cedula, bankId, phone, contactoEnvia, amountCop, customRate } = req.body
+    const { cedula, bankId, phone, contactoEnvia = 'NA', amountCop, customRate } = req.body
 
     // Validar customRate
     if (customRate && user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.ADMIN) {
