@@ -34,31 +34,36 @@ async function main() {
 
             console.log(`Found ${transactions.length} completed transactions.`)
 
+            // --- CLEANUP STEP: CANCEL MATCHING GIRO/REFUND PAIRS ---
+            const refunds = transactions.filter(t => t.type === MinoristaTransactionType.REFUND && t.status === MinoristaTransactionStatus.COMPLETED)
+
+            for (const refund of refunds) {
+                const refundIndex = transactions.indexOf(refund)
+                let foundMatch = false
+
+                // Search backwards for the original DISCOUNT
+                for (let i = refundIndex - 1; i >= 0; i--) {
+                    const candidate = transactions[i]
+                    if (
+                        candidate.type === MinoristaTransactionType.DISCOUNT &&
+                        candidate.status === MinoristaTransactionStatus.COMPLETED &&
+                        Math.abs(Number(candidate.amount) - Number(refund.amount)) < 0.01 // Match amount
+                    ) {
+                        console.log(`[CLEANUP] Cancelling Pair: Refund ${refund.id} & Giro ${candidate.id}`)
+                        refund.status = MinoristaTransactionStatus.CANCELLED
+                        candidate.status = MinoristaTransactionStatus.CANCELLED
+                        foundMatch = true
+                        break
+                    }
+                }
+            }
+
+            // Only process ACTIVE (non-cancelled) transactions for balance
+            const activeTransactions = transactions.filter(t => t.status === MinoristaTransactionStatus.COMPLETED)
+            console.log(`Processing ${activeTransactions.length} active transactions (after cleanup).`)
+            // --- END CLEANUP STEP ---
+
             // 3. Replay History
-            // Reset state to "Zero" or initial state logic?
-            // Usually starts with availableCredit = 0 (or some initial state), and balanceInFavor = 0.
-            // However, minorista.creditLimit is a constant setting (unless it changed over time, which we don't track easily).
-            // We will assume creditLimit has been constant or at least is the target for "full".
-
-            // Initial State:
-            // When a user starts, availableCredit is usually 0? Or do they start with full credit?
-            // Usually they start with 0 used, meaning available = creditLimit?
-            // Wait, "Available Credit" means "How much I can spend". so it starts at Credit Limit?
-            // Or does it start at 0 and they have to recharge?
-            // Based on the app logic: 
-            // "Cupo Asignado" is the limit.
-            // "Crédito Disponible" is what they have.
-            // If I assign 1.2M, do they instantly have 1.2M to spend? 
-            // Usually "Cupo" implies a debt limit. 
-            // BUT current logic in the app seems to treat 'AvailableCredit' as funds.
-            // If I have 1.2M limit, and 0 debt, my Available Credit is 1.2M?
-            // Let's check a specialized detail:
-            // In `MinoristaTransactionService`:
-            // `realDebt = newBalanceInFavor > 0 ? 0 : creditLimit - newAvailableCredit`
-            // This implies: AvailableCredit + Debt = Limit.
-            // So if Debt is 0, AvailableCredit = Limit.
-            // Let's assume initial state: AvailableCredit = CreditLimit. BalanceInFavor = 0.
-
             let currentAvailableCredit = minorista.creditLimit
             let currentBalanceInFavor = 0
             let currentAccumulatedProfit = 0
