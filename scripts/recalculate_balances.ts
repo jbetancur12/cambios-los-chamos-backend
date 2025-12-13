@@ -27,7 +27,7 @@ async function main() {
                 MinoristaTransaction,
                 {
                     minorista: minorista.id,
-                    status: MinoristaTransactionStatus.COMPLETED
+                    status: { $in: [MinoristaTransactionStatus.COMPLETED, MinoristaTransactionStatus.PENDING] }
                 },
                 { orderBy: { createdAt: 'ASC' } }
             )
@@ -59,7 +59,7 @@ async function main() {
             }
 
             // Only process ACTIVE (non-cancelled) transactions for balance
-            const activeTransactions = transactions.filter(t => t.status === MinoristaTransactionStatus.COMPLETED)
+            const activeTransactions = transactions.filter(t => t.status === MinoristaTransactionStatus.COMPLETED || t.status === MinoristaTransactionStatus.PENDING)
             console.log(`Processing ${activeTransactions.length} active transactions (after cleanup).`)
             // --- END CLEANUP STEP ---
 
