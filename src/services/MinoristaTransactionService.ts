@@ -398,67 +398,68 @@ export class MinoristaTransactionService {
     // We want to hide PENDING (Hold) and CANCELLED transactions from the history
     where.status = MinoristaTransactionStatus.COMPLETED
 
-    limit,
+    const [transactions, total] = await transactionRepo.findAndCount(where, {
+      limit,
       offset,
       populate: ['createdBy'],
-        orderBy: [{ createdAt: 'DESC' }, { id: 'DESC' }], // Más recientes primero, deterministic tie-breaker
+      orderBy: { createdAt: 'DESC', id: 'DESC' }, // Más recientes primero, deterministic tie-breaker
     })
 
-  const data = transactions.map((t) => ({
-    id: t.id,
-    amount: t.amount,
-    type: t.type,
-    previousBalance: t.previousAvailableCredit,
-    currentBalance: t.availableCredit,
-    previousBalanceInFavor: t.previousBalanceInFavor ?? 0,
-    currentBalanceInFavor: t.currentBalanceInFavor ?? 0,
-    balanceInFavorUsed: t.balanceInFavorUsed,
-    creditUsed: t.creditUsed,
-    externalDebt: t.externalDebt,
-    profitEarned: t.profitEarned,
-    createdBy: {
-      id: t.createdBy.id,
-      fullName: t.createdBy.fullName,
-      email: t.createdBy.email,
-    },
-    createdAt: t.createdAt,
-  }))
+    const data = transactions.map((t) => ({
+      id: t.id,
+      amount: t.amount,
+      type: t.type,
+      previousBalance: t.previousAvailableCredit,
+      currentBalance: t.availableCredit,
+      previousBalanceInFavor: t.previousBalanceInFavor ?? 0,
+      currentBalanceInFavor: t.currentBalanceInFavor ?? 0,
+      balanceInFavorUsed: t.balanceInFavorUsed,
+      creditUsed: t.creditUsed,
+      externalDebt: t.externalDebt,
+      profitEarned: t.profitEarned,
+      createdBy: {
+        id: t.createdBy.id,
+        fullName: t.createdBy.fullName,
+        email: t.createdBy.email,
+      },
+      createdAt: t.createdAt,
+    }))
 
     return {
-  total,
-  page,
-  limit,
-  transactions: data,
-}
+      total,
+      page,
+      limit,
+      transactions: data,
+    }
   }
 
   /**
    * Obtiene una transacción por ID
    */
-  async getTransactionById(transactionId: string): Promise <
+  async getTransactionById(transactionId: string): Promise<
     | {
-  id: string
+      id: string
       amount: number
       type: MinoristaTransactionType
       previousBalance: number
       currentBalance: number
       minorista: {
-    id: string
+        id: string
         availableCredit: number
         user: {
-      id: string
+          id: string
           fullName: string
           email: string
-    }
-  }
+        }
+      }
       createdBy: {
-    id: string
+        id: string
         fullName: string
         email: string
-  }
+      }
       createdAt: Date
-}
-  | { error: 'TRANSACTION_NOT_FOUND' }
+    }
+    | { error: 'TRANSACTION_NOT_FOUND' }
   > {
     const transactionRepo = DI.em.getRepository(MinoristaTransaction)
 
@@ -467,7 +468,7 @@ export class MinoristaTransactionService {
       { populate: ['minorista', 'minorista.user', 'createdBy'] }
     )
 
-    if(!transaction) {
+    if (!transaction) {
       return { error: 'TRANSACTION_NOT_FOUND' }
     }
 
