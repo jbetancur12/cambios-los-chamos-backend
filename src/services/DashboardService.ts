@@ -41,14 +41,54 @@ export class DashboardService {
     const role = user.role
 
     // Get today's date range (midnight to midnight)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    // Get "Now"
+    const now = new Date()
 
-    // Get current month range
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999)
+    // Colombia (Bogotá) is UTC-5
+    // We want to know "What day is it in Colombia?"
+    // Shift current UTC time by -5 hours to simulate CO wall clock in a UTC date object
+    const CO_OFFSET_MS = -5 * 60 * 60 * 1000
+    const coNow = new Date(now.getTime() + CO_OFFSET_MS)
+
+    // Calculate Start of Day in CO time (00:00:00.000)
+    // We use UTC methods because coNow "pretends" to be UTC for the sake of extracting YYYY-MM-DD
+    const coStartOfDay = new Date(coNow)
+    coStartOfDay.setUTCHours(0, 0, 0, 0)
+
+    // Calculate End of Day in CO time (Next day 00:00:00.000)
+    const coEndOfDay = new Date(coStartOfDay)
+    coEndOfDay.setUTCDate(coEndOfDay.getUTCDate() + 1)
+
+    // Convert back to real UTC for Database Query
+    // We add +5 hours to get the real UTC timestamp that corresponds to CO 00:00
+    const dbStartToday = new Date(coStartOfDay.getTime() - CO_OFFSET_MS)
+    const dbEndToday = new Date(coEndOfDay.getTime() - CO_OFFSET_MS)
+
+    // Log for debugging
+    console.log(`[DashboardService] Server Time (UTC): ${now.toISOString()}`)
+    console.log(`[DashboardService] Colombia Time: ${coNow.toISOString().replace('Z', ' (CO)')}`)
+    console.log(`[DashboardService] Query Start (UTC): ${dbStartToday.toISOString()} (= CO 00:00)`)
+    console.log(`[DashboardService] Query End (UTC): ${dbEndToday.toISOString()} (= CO 24:00)`)
+
+    // Use these for queries instead of local 'today'/'tomorrow'
+    const today = dbStartToday
+    const tomorrow = dbEndToday
+
+    // Get current month range (Based on CO time)
+    // Start of month in CO
+    const coMonthStart = new Date(coNow)
+    coMonthStart.setUTCDate(1)
+    coMonthStart.setUTCHours(0, 0, 0, 0)
+
+    // End of month in CO
+    const coMonthEnd = new Date(coMonthStart)
+    coMonthEnd.setUTCMonth(coMonthEnd.getUTCMonth() + 1)
+    coMonthEnd.setUTCDate(0) // Last day of month
+    coMonthEnd.setUTCHours(23, 59, 59, 999)
+
+    // Convert month range to real UTC
+    const monthStart = new Date(coMonthStart.getTime() - CO_OFFSET_MS)
+    const monthEnd = new Date(coMonthEnd.getTime() - CO_OFFSET_MS)
 
     if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
       // Super Admin stats
@@ -109,11 +149,9 @@ export class DashboardService {
         transferencista: transferencista.id,
       })
 
-      // Get today's date range
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
+      // Use calculated dates from above
+      // const today = ...
+      // const tomorrow = ...
 
       // Count giros in PROCESANDO status for today
       const processingToday = await DI.giros.count({
