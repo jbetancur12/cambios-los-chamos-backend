@@ -275,10 +275,13 @@ minoristaRouter.get(
         )
       }
 
-      // Obtener transacciones completas del repositorio para tener todos los campos
+      // Obtener transacciones completas del repositorio para tener todos los campos, manteniendo el orden
       const fullTransactions = await transactionRepo.find(
         { id: { $in: transactions.map((t) => t.id) } },
-        { populate: ['minorista'] }
+        {
+          populate: ['minorista'],
+          orderBy: { createdAt: 'DESC', id: 'DESC' }
+        }
       )
 
       console.log(`[API] Refetched ${fullTransactions.length} full transactions`)
