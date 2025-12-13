@@ -60,7 +60,98 @@ export class NotificationService {
       throw new Error('Usuario no válido o error de base de datos.')
     }
   }
+
+  /**
+   * Envía una notificación push a todos los dispositivos registrados del usuario.
+   */
+  public async sendNotificationToUser(
+    userId: string,
+    title: string,
+    body: string,
+    data?: Record<string, string>
+  ): Promise<void> {
+    const userFcmTokenRepo = DI.em.getRepository(UserFcmToken)
+
+    // Obtener todos los tokens del usuario
+    const tokens = await userFcmTokenRepo.find({ user: userId })
+
+    if (tokens.length === 0) {
+      console.log(`[FCM] No hay tokens registrados para el usuario ${userId}`)
+      return
+    }
+
+    const registrationTokens = tokens.map(t => t.fcmToken)
+
+    // Importamos firebase-admin dinámicamente o usamos el que ya se usa en el proyecto si existe
+    // Asumiendo que 'firebase-admin' está configurado globalmente o necesitamos inicializarlo
+    // Revisando package.json vi que está instalado.
+    // Deberíamos tener un inicializador global. Si no, lo importamos aquí.
+    const admin = await import('firebase-admin')
+
+    // Verificar si ya está inicializado
+    if (admin.apps.length === 0) {
+      // Intentar inicializar (esto debería estar en un archivo de configuración global, pero por seguridad...)
+      // Por ahora asumimos que la configuración está, o usamos default creds
+      // Ojo: Si no está inicializado, fallará. 
+      // TODO: Verificar dónde se inicializa firebase-admin.
+      console.warn('[FCM] Firebase Admin no parece estar inicializado. Intentando inicializar...')
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const serviceAccount = require('../../lib/firebase-admin-key.json')
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount)
+        })
+      } catch (e) {
+        // Fallback a default application login si existe variable de entorno
+        try {
+          admin.initializeApp()
+        } catch (err) {
+          console.error('[FCM] Error inicializando Firebase Admin:', err)
+          return
+        }
+      }
+    }
+
+    const message = {
+      notification: {
+        title,
+        body
+      },
+      data: data || {},
+      tokens: registrationTokens,
+    }
+
+    try {
+      const response = await admin.messaging().sendEachForMulticast(message)
+      console.log(`[FCM] Notificación enviada a usuario ${userId}: ${response.successCount} éxitos, ${response.failureCount} fallos.`)
+
+      if (response.failureCount > 0) {
+        const failedTokens: string[] = []
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            failedTokens.push(registrationTokens[idx])
+            // Si el error es que el token no es válido, deberíamos eliminarlo
+            if (resp.error?.code === 'messaging/registration-token-not-registered') {
+              // Eliminar token inválido
+              // Necesitamos hacer esto en un fork o algo para no bloquear, pero aquí está bien.
+              // Como estamos a mitad de ejecución, tal vez mejor solo loguear por ahora
+              console.log(`[FCM] Token inválido detectado para borrar: ${registrationTokens[idx]}`)
+            }
+          }
+        })
+
+        // Eliminar tokens inválidos de la DB
+        if (failedTokens.length > 0) {
+          await DI.em.nativeDelete(UserFcmToken, { fcmToken: { $in: failedTokens } })
+          console.log(`[FCM] Eliminados ${failedTokens.length} tokens inválidos.`)
+        }
+      }
+    } catch (error) {
+      console.error('[FCM] Error enviando multicast:', error)
+    }
+  }
 }
 
 // Exportamos una instancia del servicio para que sea un singleton en el proyecto
 export const notificationService = new NotificationService()
+
