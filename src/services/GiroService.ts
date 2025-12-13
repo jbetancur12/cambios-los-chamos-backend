@@ -1166,7 +1166,7 @@ export class GiroService {
       cedula: string
       bankId: string
       phone: string
-      contactoEnvia: string
+      contactoEnvia?: string // Made optional
       amountCop: number
     },
     createdBy: User,
@@ -1240,11 +1240,16 @@ export class GiroService {
 
         const giroRepo = em.getRepository(Giro)
 
+        // Fallback for beneficiaryName if kontaktEnvia is missing
+        // Since 'beneficiaryName' is NOT NULL, we must provide a value.
+        // If contactEnvia is removed, we use 'Pago Movil' or similar placeholder.
+        const beneficiaryNameFallback = data.contactoEnvia?.trim() || `Pago Móvil - ${data.phone}`
+
         // Crear giro
         const giro = giroRepo.create({
           minorista,
           transferencista: assigned,
-          beneficiaryName: data.contactoEnvia,
+          beneficiaryName: beneficiaryNameFallback,
           beneficiaryId: data.cedula,
           bankName: bank.name,
           bankCode: bank.code,
