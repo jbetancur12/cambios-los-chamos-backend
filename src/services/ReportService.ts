@@ -317,7 +317,7 @@ export class ReportService {
       createdAt: { $gte: adjustedFrom, $lte: adjustedTo },
     })
 
-    const totalMoneyTransferred = giros.reduce((sum, g) => sum + (g.amountBs || 0), 0)
+    const totalMoneyTransferred = giros.reduce((sum, g) => sum + (g.amountInput || 0), 0)
     const totalProfit = giros.reduce((sum, g) => sum + (g.minoristaProfit || 0), 0)
     const completedGiros = giros.filter((g) => g.status === GiroStatus.COMPLETADO).length
     const totalGiros = giros.length
@@ -329,7 +329,7 @@ export class ReportService {
       const existing = statusMap.get(g.status) || { count: 0, totalAmount: 0, totalProfit: 0 }
       statusMap.set(g.status, {
         count: existing.count + 1,
-        totalAmount: existing.totalAmount + (g.amountBs || 0),
+        totalAmount: existing.totalAmount + (g.amountInput || 0),
         totalProfit: existing.totalProfit + (g.minoristaProfit || 0),
       })
     })
@@ -371,7 +371,7 @@ export class ReportService {
       const dateStr = g.createdAt.toISOString().split('T')[0]
       const existing = dateMap.get(dateStr) || { moneyTransferred: 0, profit: 0 }
       dateMap.set(dateStr, {
-        moneyTransferred: existing.moneyTransferred + (g.amountBs || 0),
+        moneyTransferred: existing.moneyTransferred + (g.amountInput || 0),
         profit: existing.profit + (g.minoristaProfit || 0),
       })
     })
@@ -385,7 +385,7 @@ export class ReportService {
       }))
       .sort((a, b) => a.date.localeCompare(b.date))
 
-    const totalMoneyTransferred = giros.reduce((sum, g) => sum + (g.amountBs || 0), 0)
+    const totalMoneyTransferred = giros.reduce((sum, g) => sum + (g.amountInput || 0), 0)
     const totalProfit = giros.reduce((sum, g) => sum + (g.minoristaProfit || 0), 0)
     const completedGiros = giros.filter((g) => g.status === GiroStatus.COMPLETADO).length
     const totalGiros = giros.length
