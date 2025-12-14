@@ -1,9 +1,6 @@
 const users = [
-    { email: 'mayerlinrocam@gmail.com', password: '12345678' },
-    { email: 'odalisg024@gmail.com', password: '12345678' },
-    { email: 'rosyerazo.51@gmail.com', password: '12345678' },
-    { email: 'toledostefanny65@gmail.com', password: '12345678' },
-    { email: 'fredyrobotina@hotmail.com', password: '12345678' }
+    { email: 'minsa_delfin@hotmail.com', password: '12345678' },
+    { email: 'auroraisabelzambrano@gmail.com', password: '12345678' }
 ];
 
 async function verifyLogins() {
