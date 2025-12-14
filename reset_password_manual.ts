@@ -17,8 +17,13 @@ async function resetPassword() {
     const em = orm.em.fork()
 
     try {
-        console.log(`Searching for user with name like "${searchTerm}"...`)
-        const users = await em.find(User, { fullName: { $like: `%${searchTerm}%` } })
+        console.log(`Searching for user with name or email like "${searchTerm}"...`)
+        const users = await em.find(User, {
+            $or: [
+                { fullName: { $like: `%${searchTerm}%` } },
+                { email: { $like: `%${searchTerm}%` } }
+            ]
+        })
 
         if (users.length === 0) {
             console.error('No users found.')
