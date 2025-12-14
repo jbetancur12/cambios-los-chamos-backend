@@ -62,6 +62,7 @@ minoristaRouter.get('/me', requireRole(UserRole.MINORISTA), async (req: Request,
       minorista: result,
       balance: result.availableCredit,
       credit: result.creditBalance,
+      creditLimit: result.creditLimit,
     })
   )
 })
