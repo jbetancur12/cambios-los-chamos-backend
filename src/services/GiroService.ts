@@ -837,7 +837,8 @@ export class GiroService {
   async listGiros(options: {
     userId: string
     userRole: UserRole
-    status?: GiroStatus
+    minoristaId?: string
+    status?: GiroStatus | GiroStatus[]
     dateFrom?: Date
     dateTo?: Date
     page?: number
@@ -855,6 +856,18 @@ export class GiroService {
 
     // Construir filtros base según rol
     const where: FilterQuery<Giro> = {}
+
+    if (options.minoristaId) {
+      where.minorista = options.minoristaId
+    }
+
+    if (options.status) {
+      if (Array.isArray(options.status)) {
+        where.status = { $in: options.status }
+      } else {
+        where.status = options.status
+      }
+    }
 
     if (options.userRole === UserRole.TRANSFERENCISTA) {
       // Transferencista: solo giros asignados a él

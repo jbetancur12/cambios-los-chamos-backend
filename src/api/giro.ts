@@ -151,7 +151,21 @@ giroRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
     return res.status(401).json(ApiResponse.unauthorized())
   }
 
-  const status = req.query.status as GiroStatus | undefined
+  // Parse status (support single, array, or comma-separated)
+  const statusQuery = req.query.status as string | string[] | undefined
+  let status: GiroStatus | GiroStatus[] | undefined
+
+  if (statusQuery) {
+    if (Array.isArray(statusQuery)) {
+      status = statusQuery as GiroStatus[]
+    } else if (typeof statusQuery === 'string' && statusQuery.includes(',')) {
+      status = statusQuery.split(',') as GiroStatus[]
+    } else {
+      status = statusQuery as GiroStatus
+    }
+  }
+
+  const minoristaId = req.query.minoristaId as string | undefined
   const page = parseInt(req.query.page as string) || 1
   const limit = parseInt(req.query.limit as string) || 100
 
@@ -180,6 +194,7 @@ giroRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
   const result = await giroService.listGiros({
     userId: user.id,
     userRole: user.role,
+    minoristaId,
     status,
     dateFrom,
     dateTo,
