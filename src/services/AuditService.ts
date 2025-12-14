@@ -127,7 +127,9 @@ export class AuditService {
                     currentAvailable += amount
                 }
 
-                trace.push(`[${t.type}] ${amount} | Avail: ${prevAvail.toFixed(0)} -> ${currentAvailable.toFixed(0)} | Surp: ${prevSurplus.toFixed(0)} -> ${currentSurplus.toFixed(0)}`)
+                const dateStr = t.createdAt instanceof Date ? t.createdAt.toISOString() : t.createdAt
+                const profitStr = profit > 0 ? ` | Gain: ${profit}` : ''
+                trace.push(`[${t.type}] ${amount}${profitStr} | ${dateStr} | Avail: ${prevAvail.toFixed(0)} -> ${currentAvailable.toFixed(0)} | Surp: ${prevSurplus.toFixed(0)} -> ${currentSurplus.toFixed(0)}`)
             }
 
             // Check results
