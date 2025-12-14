@@ -127,9 +127,18 @@ export class AuditService {
                     currentAvailable += amount
                 }
 
-                const dateStr = t.createdAt instanceof Date ? t.createdAt.toISOString().substring(0, 16) : t.createdAt
+                const dateStr = t.createdAt instanceof Date ?
+                    new Intl.DateTimeFormat('sv-SE', {
+                        timeZone: 'America/Bogota',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }).format(t.createdAt).replace(' ', 'T')
+                    : t.createdAt
                 const profitStr = profit > 0 ? ` | Gain: ${profit}` : ''
-                trace.push(`${dateStr}[${t.type}] ${amount}${profitStr}| Avail: ${prevAvail.toFixed(0)} -> ${currentAvailable.toFixed(0)} | Surp: ${prevSurplus.toFixed(0)} -> ${currentSurplus.toFixed(0)}`)
+                trace.push(`${dateStr} [${t.type}] ${amount}${profitStr}| Avail: ${prevAvail.toFixed(0)} -> ${currentAvailable.toFixed(0)} | Surp: ${prevSurplus.toFixed(0)} -> ${currentSurplus.toFixed(0)}`)
             }
 
             // Check results
