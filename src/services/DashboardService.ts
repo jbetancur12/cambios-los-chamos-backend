@@ -182,6 +182,7 @@ export class DashboardService {
 
       const myGiros = await DI.giros.count({
         minorista: minorista.id,
+        status: { $in: [GiroStatus.PENDIENTE, GiroStatus.ASIGNADO, GiroStatus.PROCESANDO] },
       })
 
       const girosThisMonth = await DI.giros.find({
