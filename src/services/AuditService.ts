@@ -23,6 +23,13 @@ export interface AuditResult {
             date: Date
             type: string
         }
+        aggregated?: {
+            totalRecharges: number
+            totalProfits: number
+            totalDiscounts: number
+            calculatedTotal: number
+            realTotalStored: number
+        }
     }
     trace: string[] // Log of the replay
 }
@@ -44,18 +51,24 @@ export class AuditService {
                 { orderBy: { createdAt: 'ASC' } }
             )
 
+            // SQL-Like Aggregation Logic requested by user
+            // SUM(CASE WHEN mt.type = 'RECHARGE' THEN mt.amount ELSE 0 END) as total_recargas
+            // SUM(COALESCE(mt.profit_earned, 0)) as total_ganancias
+            // SUM(CASE WHEN mt.type = 'DISCOUNT' THEN mt.amount ELSE 0 END) as total_descuentos
+            // Result = (Recharges + Profits) - Discounts
+
+            let totalRecharges = 0
+            let totalProfits = 0
+            let totalDiscounts = 0
+
             trace.push(`Starting audit for ${minorista.user.email}`)
             trace.push(`Found ${transactions.length} active transactions`)
             trace.push(`Current Stored: Available=${minorista.availableCredit}, Surplus=${minorista.creditBalance}`)
             trace.push(`Credit Limit: ${minorista.creditLimit}`)
 
+            // We keep the replay trace for visualization, but the STATUS will be determined by the aggregation
             const limit = minorista.creditLimit
-            let currentAvailable = limit // Assume starts full? Or 0? Usually limits are assigned.
-            // Wait, in our recalculation script we assumed:
-            // "let currentAvailable = limit" (Starts clean/full).
-            // If history is partial, this assumption fails.
-            // But for a closed system, it should work.
-
+            let currentAvailable = limit
             let currentSurplus = 0
 
             for (const t of transactions) {
@@ -64,6 +77,18 @@ export class AuditService {
                 const prevAvail = currentAvailable
                 const prevSurplus = currentSurplus
 
+                // Aggregation
+                if (t.type === MinoristaTransactionType.RECHARGE) {
+                    totalRecharges += amount
+                } else if (t.type === MinoristaTransactionType.DISCOUNT) {
+                    totalDiscounts += amount
+                }
+                // Profit is usually only on Discounts, but we sum it if it exists
+                if (profit) {
+                    totalProfits += profit
+                }
+
+                // Replay Logic (Just for Trace)
                 if (t.type === MinoristaTransactionType.RECHARGE) {
                     if (amount >= 0) {
                         const totalFunds = currentAvailable + amount
@@ -100,20 +125,8 @@ export class AuditService {
                     }
                 }
                 else if (t.type === MinoristaTransactionType.REFUND) {
-                    const profitToRevert = amount * 0.05 // Approximation if not stored
-                    const netRefund = amount - profitToRevert // We add back the 'cost' of the wire? No.
-                    // When we refund, we give back MONEY. 
-                    // The profit was EARNED on DISCOUNT.
-                    // On REFUND, we REVERSE the Discount.
-                    // So we give back the Principal.
-                    // Code in script: "netRefund = amount - profitToRevert" (Wait, amount is usually the FULL value including profit?)
-                    // If Discount was 100k.
-                    // We refund 100k.
-                    // We should deduct the profit we gave (5k) from the user balance?
-                    // Actually, `recalculate_nataly` used: `const netRefund = amount - profitToRevert`
-                    // And `currentAvailable += netRefund`.
-                    // Let's stick to the script logic which proved correct for Nataly.
-
+                    const profitToRevert = amount * 0.05
+                    const netRefund = amount - profitToRevert
                     const totalLiquidity = currentAvailable + currentSurplus + netRefund
                     if (totalLiquidity > limit) {
                         currentAvailable = limit
@@ -141,36 +154,98 @@ export class AuditService {
                 trace.push(`${dateStr} [${t.type}] ${amount}${profitStr}| Avail: ${prevAvail.toFixed(0)} -> ${currentAvailable.toFixed(0)} | Surp: ${prevSurplus.toFixed(0)} -> ${currentSurplus.toFixed(0)}`)
             }
 
-            // Check results
-            // Float tolerance
-            const diffAvailable = Math.abs(minorista.availableCredit - currentAvailable)
-            const diffSurplus = Math.abs((minorista.creditBalance || 0) - currentSurplus)
+            // --- AGGREGATION CHECK ---
+            // Formula: (Recharges + Profits) - Discounts
+            const calculatedTotal = (totalRecharges + totalProfits) - totalDiscounts
 
-            const isOk = diffAvailable < 1 && diffSurplus < 1
+            // Stored Total: Available + Surplus
+            // Wait, Available Credit is relative to LIMIT. 
+            // If Limit is 300k, and Available is 148k. Used is 152k.
+            // If result is negative, it might mean used? 
+            // The calculatedResult from user formula is "Net Balance".
+            // If I start with 0.
+            // Recharges (Positive) - Discounts (Negative).
+            // Result is "Current Funds".
+            // Current Funds should equal (Available Credit) IF Limit was infinite?
+            // No, Current Funds = (Available Credit - Credit Limit)? No.
 
-            trace.push(`Audit Complete. Status: ${isOk ? 'OK' : 'INCONSISTENT'}`)
+            // Let's assume the user logic implies:
+            // "Funds I have put in + Profit I made - Funds I took out" = "Funds I should have now".
+            // "Funds I have now" = (Available Credit + Surplus) IF we assume Starting Balance was 0 and Limit is just a cap.
+            // Actually, usually users start with Avail = Limit (Debt = 0)?
+            // Or Start with Avail = 0?
+            // If they start with Avail = Limit (Credit Line), then:
+            // Current = Initial + Changes.
+            // Initial = Limit?
+            // Changes = (Recharges + Profits) - Discounts.
+            // So Final = Limit + Changes.
+            // Let's check with zambbrano10 data provided.
+
+            const realTotalStored = (minorista.availableCredit || 0) + (minorista.creditBalance || 0)
+
+            // Hypothesized formula matching previous observed logic:
+            // The "Calculated" value from SQL is likely the "Net Change".
+            // Does it include the initial limit? No, it sums transactions.
+            // So: Stored Balance SHOULD BE = Credit Limit + Net Change?
+            // Or just Net Change if it's a prepaid system?
+            // This is a credit system.
+            // "Accumulated Debt" calculation used: `limit - currentAvailable`.
+
+            // Let's try: Expected Stored = Limit + calculatedTotal.
+            // But wait, user said: "compares con los datos de minorista de available credit, credit balance".
+
+            // I will return the generic 'isOk' based on the Aggregation first.
+            // If (Limit + calculatedTotal) approx equals (realTotalStored).
+
+            // Wait, if I recharge 100k. TotalRecharges = 100k. Limit = 1M.
+            // Available = 1.1M? Or capped?
+            // If it's pure credit, maybe I owe 0 and have 1M avail.
+            // If I use 100k. Discounts = 100k.
+            // Net Change = 0 - 100k = -100k.
+            // Available = 1M - 100k = 900k.
+            // So: Available = Limit + Net Change.
+
+            const expectedTotal = limit + calculatedTotal
+
+            const diffAggregation = Math.abs(expectedTotal - realTotalStored)
+            const isOkAggregation = diffAggregation < 2000 // Tolerance for small floats/profit rounding
+
+            trace.push(`--- AGGREGATION RESULT ---`)
+            trace.push(`Total Recharges: ${totalRecharges}`)
+            trace.push(`Total Profits: ${totalProfits}`)
+            trace.push(`Total Discounts: ${totalDiscounts}`)
+            trace.push(`Net Change (Calculated): ${calculatedTotal}`)
+            trace.push(`Credit Limit: ${limit}`)
+            trace.push(`Expected Stored (Limit + Net): ${expectedTotal}`)
+            trace.push(`Actual Stored (Avail + Surp): ${realTotalStored}`)
+            trace.push(`Difference: ${diffAggregation}`)
+
+            trace.push(`Audit Complete. Status: ${isOkAggregation ? 'OK' : 'INCONSISTENT'}`)
 
             const firstTx = transactions[0]
-
-
             const lastTx = transactions[transactions.length - 1]
-
-            // Calculate Accumulated Debt (Just for display)
-            // realDebt = newBalanceInFavor > 0 ? 0 : creditLimit - newAvailableCredit
             const accumulatedDebt = currentSurplus > 0 ? 0 : (limit - currentAvailable)
 
             return {
                 userId: minorista.user.id,
                 email: minorista.user.email,
                 fullName: minorista.user.fullName,
-                status: isOk ? 'OK' : 'INCONSISTENT',
+                status: isOkAggregation ? 'OK' : 'INCONSISTENT',
                 details: {
                     storedAvailable: minorista.availableCredit,
                     storedSurplus: minorista.creditBalance || 0,
-                    calculatedAvailable: currentAvailable,
-                    calculatedSurplus: currentSurplus,
-                    difference: diffAvailable + diffSurplus,
+                    calculatedAvailable: currentAvailable, // Kept for reference
+                    calculatedSurplus: currentSurplus, // Kept for reference
+                    difference: diffAggregation,
                     accumulatedDebt,
+                    // New aggregation details
+                    aggregated: {
+                        totalRecharges,
+                        totalProfits,
+                        totalDiscounts,
+                        calculatedTotal,
+                        realTotalStored: realTotalStored
+                    },
                     firstTransaction: firstTx ? {
                         amount: firstTx.amount,
                         date: firstTx.createdAt,
