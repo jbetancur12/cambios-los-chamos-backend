@@ -206,6 +206,7 @@ giroRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
   res.json(
     ApiResponse.success({
       giros: result.giros,
+      totals: result.totals,
       pagination: {
         total: result.total,
         page: result.page,

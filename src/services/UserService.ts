@@ -15,9 +15,10 @@ export class UserService {
    */
   async login(email: string, password: string): Promise<{ user: User; token: string } | null> {
     const userRepo = DI.em.getRepository(User)
-    const user = await userRepo.findOne({ email }, { populate: ['minorista', 'transferencista'] })
+    const user = await userRepo.findOne({ email: { $ilike: email } }, { populate: ['minorista', 'transferencista'] })
 
-    if (!user || !checkPassword(password, user.password)) {
+    // Check if user exists and password matches
+    if (!user || !checkPassword(password, user.password || '')) {
       return null
     }
 
@@ -50,7 +51,8 @@ export class UserService {
     role?: UserRole
   }): Promise<{ user: User; token: string } | { error: 'USER_EXISTS' }> {
     const userRepo = DI.em.getRepository(User)
-    const existing = await userRepo.findOne({ email: data.email })
+    const normalizedEmail = data.email.toLowerCase()
+    const existing = await userRepo.findOne({ email: { $ilike: normalizedEmail } })
 
     if (existing) {
       return { error: 'USER_EXISTS' }
@@ -60,7 +62,7 @@ export class UserService {
     const role = data.role || UserRole.MINORISTA
 
     const user = userRepo.create({
-      email: data.email,
+      email: normalizedEmail,
       fullName: data.fullName,
       password: hashedPassword,
       role,
@@ -141,7 +143,7 @@ export class UserService {
    */
   async sendResetPasswordEmail(email: string): Promise<boolean> {
     const userRepo = DI.em.getRepository(User)
-    const user = await userRepo.findOne({ email })
+    const user = await userRepo.findOne({ email: { $ilike: email.trim() } })
 
     if (!user) {
       // Retornar true para no revelar si el email existe
@@ -203,7 +205,7 @@ export class UserService {
    */
   async findByEmail(email: string): Promise<User | null> {
     const userRepo = DI.em.getRepository(User)
-    return userRepo.findOne({ email })
+    return userRepo.findOne({ email: { $ilike: email.trim() } })
   }
 
   /**

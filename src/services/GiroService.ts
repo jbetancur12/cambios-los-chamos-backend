@@ -229,7 +229,7 @@ export class GiroService {
 
           // Vincular las transacciones a este giro
           for (const transaction of minoristaTransactions) {
-            ;(transaction as MinoristaTransaction).giro = giro
+            ; (transaction as MinoristaTransaction).giro = giro
             em.persist(transaction)
           }
           await em.flush()
@@ -328,14 +328,14 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error:
-          | 'GIRO_NOT_FOUND'
-          | 'INVALID_STATUS'
-          | 'BANK_ACCOUNT_NOT_FOUND'
-          | 'INSUFFICIENT_BALANCE'
-          | 'UNAUTHORIZED_ACCOUNT'
-          | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
-      }
+      error:
+      | 'GIRO_NOT_FOUND'
+      | 'INVALID_STATUS'
+      | 'BANK_ACCOUNT_NOT_FOUND'
+      | 'INSUFFICIENT_BALANCE'
+      | 'UNAUTHORIZED_ACCOUNT'
+      | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+    }
   > {
     const giro = await DI.giros.findOne(
       { id: giroId },
@@ -849,6 +849,14 @@ export class GiroService {
     total: number
     page: number
     limit: number
+    totals: {
+      count: number
+      cop: number
+      bs: number
+      minoristaProfit: number
+      systemProfit: number
+      bankCommission: number
+    }
   }> {
     const page = options.page ?? 1
     const limit = options.limit ?? 50
@@ -873,14 +881,40 @@ export class GiroService {
       // Transferencista: solo giros asignados a él
       const transferencista = await DI.transferencistas.findOne({ user: options.userId })
       if (!transferencista) {
-        return { giros: [], total: 0, page, limit }
+        return {
+          giros: [],
+          total: 0,
+          page,
+          limit,
+          totals: {
+            count: 0,
+            cop: 0,
+            bs: 0,
+            minoristaProfit: 0,
+            systemProfit: 0,
+            bankCommission: 0,
+          },
+        }
       }
       where.transferencista = transferencista.id
     } else if (options.userRole === UserRole.MINORISTA) {
       // Minorista: solo sus giros
       const minorista = await DI.minoristas.findOne({ user: options.userId })
       if (!minorista) {
-        return { giros: [], total: 0, page, limit }
+        return {
+          giros: [],
+          total: 0,
+          page,
+          limit,
+          totals: {
+            count: 0,
+            cop: 0,
+            bs: 0,
+            minoristaProfit: 0,
+            systemProfit: 0,
+            bankCommission: 0,
+          },
+        }
       }
       where.minorista = minorista.id
     }
@@ -931,11 +965,38 @@ export class GiroService {
       ],
     })
 
+    // Calcular totales globales usando Knex query builder subyacente para evitar problemas de quoting de MikroORM
+    const qb = DI.em.createQueryBuilder(Giro, 'g')
+    qb.where(where)
+
+    const knex = DI.em.getConnection().getKnex()
+    const totalsQuery = qb.getKnexQuery()
+      .clearSelect()
+      .select([
+        knex.raw('count(*) as "count"'),
+        knex.raw('coalesce(sum(amount_bs), 0) as "total_bs"'),
+        knex.raw('coalesce(sum(commission), 0) as "total_commission"'),
+        knex.raw('coalesce(sum(system_profit), 0) as "total_system_profit"'),
+        knex.raw('coalesce(sum(minorista_profit), 0) as "total_minorista_profit"'),
+        knex.raw("coalesce(sum(case when currency_input = 'COP' then amount_input else 0 end), 0) as \"total_cop\""),
+      ])
+
+    const totalsResult = await DI.em.getConnection().execute(totalsQuery)
+    const t = totalsResult[0] as any
+
     return {
       giros,
       total,
       page,
       limit,
+      totals: {
+        count: total,
+        cop: parseFloat(t.total_cop || '0'),
+        bs: parseFloat(t.total_bs || '0'),
+        minoristaProfit: parseFloat(t.total_minorista_profit || '0'),
+        systemProfit: parseFloat(t.total_system_profit || '0'),
+        bankCommission: parseFloat(t.total_commission || '0'),
+      },
     }
   }
 
@@ -1007,13 +1068,13 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error:
-          | 'MINORISTA_NOT_FOUND'
-          | 'NO_TRANSFERENCISTA_ASSIGNED'
-          | 'INSUFFICIENT_BALANCE'
-          | 'OPERATOR_NOT_FOUND'
-          | 'AMOUNT_NOT_FOUND'
-      }
+      error:
+      | 'MINORISTA_NOT_FOUND'
+      | 'NO_TRANSFERENCISTA_ASSIGNED'
+      | 'INSUFFICIENT_BALANCE'
+      | 'OPERATOR_NOT_FOUND'
+      | 'AMOUNT_NOT_FOUND'
+    }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
@@ -1187,8 +1248,8 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
-      }
+      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
+    }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
