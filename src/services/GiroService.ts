@@ -844,6 +844,7 @@ export class GiroService {
     page?: number
     limit?: number
     showAllTraffic?: boolean
+    search?: string
   }): Promise<{
     giros: Giro[]
     total: number
@@ -854,82 +855,85 @@ export class GiroService {
     const limit = options.limit ?? 50
     const offset = (page - 1) * limit
 
-    // Construir filtros base según rol
-    const where: FilterQuery<Giro> = {}
+    const qb = DI.em
+      .createQueryBuilder(Giro, 'g')
+      .leftJoinAndSelect('g.minorista', 'm')
+      .leftJoinAndSelect('m.user', 'mu')
+      .leftJoinAndSelect('g.transferencista', 't')
+      .leftJoinAndSelect('t.user', 'tu')
+      .leftJoinAndSelect('g.rateApplied', 'r')
+      .leftJoinAndSelect('g.createdBy', 'cb')
+      .leftJoinAndSelect('g.executedBy', 'eb')
+      .leftJoinAndSelect('g.bankAccountUsed', 'bau')
+      .leftJoinAndSelect('bau.bank', 'baub')
 
+    // Filtros base según rol
     if (options.minoristaId) {
-      where.minorista = options.minoristaId
+      qb.andWhere({ minorista: options.minoristaId })
     }
 
     if (options.status) {
       if (Array.isArray(options.status)) {
-        where.status = { $in: options.status }
+        qb.andWhere({ status: { $in: options.status } })
       } else {
-        where.status = options.status
+        qb.andWhere({ status: options.status })
       }
     }
 
     if (options.userRole === UserRole.TRANSFERENCISTA) {
-      // Transferencista: solo giros asignados a él
       const transferencista = await DI.transferencistas.findOne({ user: options.userId })
       if (!transferencista) {
         return { giros: [], total: 0, page, limit }
       }
-      where.transferencista = transferencista.id
+      qb.andWhere({ transferencista: transferencista.id })
     } else if (options.userRole === UserRole.MINORISTA) {
-      // Minorista: solo sus giros
       const minorista = await DI.minoristas.findOne({ user: options.userId })
       if (!minorista) {
         return { giros: [], total: 0, page, limit }
       }
-      where.minorista = minorista.id
+      qb.andWhere({ minorista: minorista.id })
     }
-    // SUPER_ADMIN/ADMIN: ven todos los giros (sin filtro adicional)
 
     // Filtros opcionales
     if (options.status) {
-      where.status = options.status
-
-      // Si el usuario es ADMIN/SUPER_ADMIN y está filtrando por COMPLETADO,
-      // Solo mostrar giros creados por el sistema (sin minorista vinculado),
-      // es decir, excluir los de minoristas.
-      // EXCEPTO si se especifica explicitamente que se quiere ver todo el tráfico (showAllTraffic)
       if (
         (options.userRole === UserRole.ADMIN || options.userRole === UserRole.SUPER_ADMIN) &&
         options.status === GiroStatus.COMPLETADO &&
         !options.showAllTraffic
       ) {
-        where.minorista = null
+        qb.andWhere({ minorista: null })
       }
     }
 
-    if (options.dateFrom || options.dateTo) {
-      where.createdAt = {}
-
-      if (options.dateFrom) {
-        where.createdAt.$gte = options.dateFrom
-      }
-      if (options.dateTo) {
-        where.createdAt.$lte = options.dateTo
-      }
+    if (options.dateFrom) {
+      qb.andWhere({ createdAt: { $gte: options.dateFrom } })
+    }
+    if (options.dateTo) {
+      qb.andWhere({ createdAt: { $lte: options.dateTo } })
     }
 
-    const [giros, total] = await DI.giros.findAndCount(where, {
-      limit,
-      offset,
-      orderBy: { createdAt: 'DESC' },
-      populate: [
-        'minorista',
-        'minorista.user',
-        'transferencista',
-        'transferencista.user',
-        'rateApplied',
-        'createdBy',
-        'executedBy',
-        'bankAccountUsed',
-        'bankAccountUsed.bank',
-      ],
-    })
+    // 🔍 SEARCH IMPLEMENTATION
+    if (options.search) {
+      const term = `%${options.search}%`
+      qb.andWhere({
+        $or: [
+          { beneficiaryName: { $ilike: term } },
+          { beneficiaryId: { $ilike: term } },
+          { bankName: { $ilike: term } },
+          { accountNumber: { $ilike: term } },
+          // Relaciones
+          { 'mu.fullName': { $ilike: term } }, // Minorista Name
+          { 'tu.fullName': { $ilike: term } }, // Transferencista Name
+          { 'cb.fullName': { $ilike: term } }, // Created By Name
+        ],
+      })
+    }
+
+    qb.orderBy({ createdAt: 'DESC' })
+    qb.limit(limit)
+    qb.offset(offset)
+
+    const [giros, total] = await qb.getResultAndCount()
 
     return {
       giros,
