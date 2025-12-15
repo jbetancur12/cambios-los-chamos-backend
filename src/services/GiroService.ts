@@ -665,7 +665,7 @@ export class GiroService {
               minoristaId: giro.minorista.id,
               amount: giro.amountInput,
               type: MinoristaTransactionType.REFUND,
-              status: MinoristaTransactionStatus.COMPLETED,
+              status: MinoristaTransactionStatus.CANCELLED, // Oculto en el listado, pero afecta balance
               createdBy: user,
               description: `Reembolso por cancelación de giro ${giro.id}`,
               giro: giro, // Vincular al giro cancelado
@@ -681,6 +681,17 @@ export class GiroService {
           }
 
           console.info(`[GIRO] Cancel refund successful (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`)
+
+          // --- Ocultar la transacción original también ---
+          const transactionRepo = em.getRepository(MinoristaTransaction)
+          const originalTransaction = await transactionRepo.findOne({ giro: giro.id, type: MinoristaTransactionType.DISCOUNT })
+
+          if (originalTransaction) {
+            console.info(`[GIRO] Hiding original transaction for cancelled giro (txId: ${originalTransaction.id})`)
+            originalTransaction.status = MinoristaTransactionStatus.CANCELLED
+            em.persist(originalTransaction)
+          }
+
         } else if (giro.minorista && giro.status === GiroStatus.DEVUELTO) {
           console.info(`[GIRO] Skipping refund for cancelled giro because it is already RETURNED (giroId: ${giroId})`)
         }
