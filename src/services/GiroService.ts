@@ -654,86 +654,45 @@ export class GiroService {
       return await DI.em.transactional(async (em) => {
         console.info(`[GIRO] Starting delete process (giroId: ${giroId}, minoristaId: ${giro.minorista?.id})`)
 
-        // Reembolsar balance si hay minorista
-        // Reembolsar balance si hay minorista Y el giro no está ya devuelto
-        // Si está DEVUELTO, el reembolso ya se hizo al momento de la devolución
         if (giro.minorista && giro.status !== GiroStatus.DEVUELTO) {
           console.info(
-            `[GIRO] Processing refund before deletion (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`
+            `[GIRO] Processing refund for cancelled giro (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`
           )
 
-          // Buscar la transacción original para ver si está PENDING
-          const transactionRepo = em.getRepository(MinoristaTransaction)
-          const originalTransaction = await transactionRepo.findOne({ giro: giro.id })
+          // Crear REFUND visible siempre, para mantener trazabilidad
+          const refundResult = await minoristaTransactionService.createTransaction(
+            {
+              minoristaId: giro.minorista.id,
+              amount: giro.amountInput,
+              type: MinoristaTransactionType.REFUND,
+              status: MinoristaTransactionStatus.COMPLETED,
+              createdBy: user,
+              description: `Reembolso por cancelación de giro ${giro.id}`,
+              giro: giro, // Vincular al giro cancelado
+            },
+            em
+          )
 
-          let refundResult
-
-          if (originalTransaction && originalTransaction.status === MinoristaTransactionStatus.PENDING) {
-            // Si estaba PENDING (no visible), la cancelamos y devolvemos el dinero "silenciosamente"
-            // O mejor, marcamos como CANCELLED y creamos un refund interno?
-            // Simplificación: Marcamos como CANCELLED. Y devolvemos el dinero usando createTransaction con REFUND pero status CANCELLED?
-            // No, la función createTransaction asume que si es REFUND suma dinero.
-            // Si marcamos la original como CANCELLED, NO recuperamos el dinero automágicamente en la lógica actual de createTransaction.
-            // Debemos hacer un REFUND explícito para recuperar el saldo.
-            // Pero queremos que NO se vea en el historial.
-            // Así que creamos un REFUND con status CANCELLED también? O invisible?
-            // Mejor opción: Update status a CANCELLED y sumar manualmente al minorista?
-            // RIESGOSO. Mejor usar el servicio establecido.
-
-            // Estrategia:
-            // 1. Crear REFUND normal para devolver la plata.
-            // 2. Marcar AMBAS transacciones (la original DISCOUNT y la nueva REFUND) como CANCELLED.
-            // Así ambas quedan ocultas (o marcadas) y el saldo queda bien.
-
-            refundResult = await minoristaTransactionService.createTransaction(
-              {
-                minoristaId: giro.minorista.id,
-                amount: giro.amountInput,
-                type: MinoristaTransactionType.REFUND,
-                status: MinoristaTransactionStatus.CANCELLED, // Para que el refund tampoco se vea (ya que la original no se vio)
-                createdBy: user,
-              },
-              em
-            )
-
-            if ('error' in refundResult) throw new Error('Error al reembolsar minorista')
-
-            // Marcar original como CANCELLED
-            originalTransaction.status = MinoristaTransactionStatus.CANCELLED
-            em.persist(originalTransaction)
-          } else {
-            // Si ya estaba COMPLETED (o no se encontró, fallback), hacemos refund normal visible COMPLETED
-            refundResult = await minoristaTransactionService.createTransaction(
-              {
-                minoristaId: giro.minorista.id,
-                amount: giro.amountInput,
-                type: MinoristaTransactionType.REFUND,
-                status: MinoristaTransactionStatus.COMPLETED,
-                createdBy: user,
-              },
-              em
-            )
-
-            if ('error' in refundResult) throw new Error('Error al reembolsar minorista')
-          }
-
-          if (refundResult && 'error' in refundResult) {
+          if ('error' in refundResult) {
             console.error(
-              `[GIRO] Delete refund failed (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, error: ${refundResult.error})`
+              `[GIRO] Cancel refund failed (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, error: ${refundResult.error})`
             )
             throw new Error('Error al reembolsar minorista')
           }
-          console.info(`[GIRO] Delete refund successful (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`)
+
+          console.info(`[GIRO] Cancel refund successful (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`)
         } else if (giro.minorista && giro.status === GiroStatus.DEVUELTO) {
-          console.info(`[GIRO] Skipping refund for deleted giro because it is already RETURNED (giroId: ${giroId})`)
+          console.info(`[GIRO] Skipping refund for cancelled giro because it is already RETURNED (giroId: ${giroId})`)
         }
 
-        // Eliminar giro
-        console.info(`[GIRO] Removing giro from database (giroId: ${giroId})`)
-        em.remove(giro)
+        // Soft Delete: Marcar como CANCELADO en lugar de eliminar
+        console.info(`[GIRO] Marking giro as CANCELLED (giroId: ${giroId})`)
+        giro.status = GiroStatus.CANCELADO
+
+        em.persist(giro)
         await em.flush()
 
-        console.info(`[GIRO] Delete completed successfully (giroId: ${giroId})`)
+        console.info(`[GIRO] Cancel completed successfully (giroId: ${giroId})`)
         return giro
       })
     } catch (error) {

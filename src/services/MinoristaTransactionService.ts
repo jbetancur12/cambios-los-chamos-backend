@@ -16,6 +16,9 @@ export interface CreateTransactionInput {
   status?: MinoristaTransactionStatus // Estado de la transacción (Default: COMPLETED)
   createdBy: User
   updateBalanceInFavor?: boolean
+  description?: string
+  giro?: any // Using any to avoid circular dependency import if Giro is not imported, or import it.
+  // Actually, I can import Giro type or just use concrete type. Giro is not imported here yet?
 }
 
 export class MinoristaTransactionService {
@@ -309,6 +312,8 @@ export class MinoristaTransactionService {
       externalDebt: externalDebt > 0 ? externalDebt : undefined,
       status: data.status || MinoristaTransactionStatus.COMPLETED,
       createdBy: data.createdBy,
+      description: data.description,
+      giro: data.giro,
       createdAt: new Date(),
     })
 
@@ -347,23 +352,23 @@ export class MinoristaTransactionService {
     options?: { page?: number; limit?: number; startDate?: string; endDate?: string }
   ): Promise<
     | {
-        total: number
-        page: number
-        limit: number
-        transactions: Array<{
+      total: number
+      page: number
+      limit: number
+      transactions: Array<{
+        id: string
+        amount: number
+        type: MinoristaTransactionType
+        previousBalance: number
+        currentBalance: number
+        createdBy: {
           id: string
-          amount: number
-          type: MinoristaTransactionType
-          previousBalance: number
-          currentBalance: number
-          createdBy: {
-            id: string
-            fullName: string
-            email: string
-          }
-          createdAt: Date
-        }>
-      }
+          fullName: string
+          email: string
+        }
+        createdAt: Date
+      }>
+    }
     | { error: 'MINORISTA_NOT_FOUND' }
   > {
     const minoristaRepo = DI.em.getRepository(Minorista)
@@ -435,27 +440,27 @@ export class MinoristaTransactionService {
    */
   async getTransactionById(transactionId: string): Promise<
     | {
+      id: string
+      amount: number
+      type: MinoristaTransactionType
+      previousBalance: number
+      currentBalance: number
+      minorista: {
         id: string
-        amount: number
-        type: MinoristaTransactionType
-        previousBalance: number
-        currentBalance: number
-        minorista: {
-          id: string
-          availableCredit: number
-          user: {
-            id: string
-            fullName: string
-            email: string
-          }
-        }
-        createdBy: {
+        availableCredit: number
+        user: {
           id: string
           fullName: string
           email: string
         }
-        createdAt: Date
       }
+      createdBy: {
+        id: string
+        fullName: string
+        email: string
+      }
+      createdAt: Date
+    }
     | { error: 'TRANSACTION_NOT_FOUND' }
   > {
     const transactionRepo = DI.em.getRepository(MinoristaTransaction)
