@@ -144,6 +144,66 @@ giroRouter.post(
   }
 )
 
+// ------------------ OBTENER TOTALES DE GIROS ------------------
+giroRouter.get('/totals', requireAuth(), async (req: Request, res: Response) => {
+  const user = req.context?.requestUser?.user
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
+  }
+
+  // Parse status (support single, array, or comma-separated)
+  const statusQuery = req.query.status as string | string[] | undefined
+  let status: GiroStatus | GiroStatus[] | undefined
+
+  if (statusQuery) {
+    if (Array.isArray(statusQuery)) {
+      status = statusQuery as GiroStatus[]
+    } else if (typeof statusQuery === 'string' && statusQuery.includes(',')) {
+      status = statusQuery.split(',') as GiroStatus[]
+    } else {
+      status = statusQuery as GiroStatus
+    }
+  }
+
+  const minoristaId = req.query.minoristaId as string | undefined
+
+  // Parse dates from ISO strings
+  let dateFrom: Date | undefined = undefined
+  let dateTo: Date | undefined = undefined
+
+  if (req.query.dateFrom) {
+    const fromStr = req.query.dateFrom as string
+    dateFrom = new Date(fromStr)
+    if (isNaN(dateFrom.getTime())) {
+      return res.status(400).json(ApiResponse.badRequest('Invalid dateFrom format'))
+    }
+  }
+
+  if (req.query.dateTo) {
+    const toStr = req.query.dateTo as string
+    dateTo = new Date(toStr)
+    if (isNaN(dateTo.getTime())) {
+      return res.status(400).json(ApiResponse.badRequest('Invalid dateTo format'))
+    }
+  }
+
+  const showAllTraffic = req.query.showAllTraffic === 'true'
+  const search = req.query.search as string | undefined
+
+  const totals = await giroService.getGiroTotals({
+    userId: user.id,
+    userRole: user.role,
+    minoristaId,
+    status,
+    dateFrom,
+    dateTo,
+    search,
+    showAllTraffic,
+  })
+
+  res.json(ApiResponse.success(totals))
+})
+
 // ------------------ LISTAR GIROS ------------------
 giroRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
   const user = req.context?.requestUser?.user

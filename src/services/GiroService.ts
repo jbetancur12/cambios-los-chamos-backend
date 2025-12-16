@@ -229,7 +229,7 @@ export class GiroService {
 
           // Vincular las transacciones a este giro
           for (const transaction of minoristaTransactions) {
-            ;(transaction as MinoristaTransaction).giro = giro
+            ; (transaction as MinoristaTransaction).giro = giro
             em.persist(transaction)
           }
           await em.flush()
@@ -328,14 +328,14 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error:
-          | 'GIRO_NOT_FOUND'
-          | 'INVALID_STATUS'
-          | 'BANK_ACCOUNT_NOT_FOUND'
-          | 'INSUFFICIENT_BALANCE'
-          | 'UNAUTHORIZED_ACCOUNT'
-          | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
-      }
+      error:
+      | 'GIRO_NOT_FOUND'
+      | 'INVALID_STATUS'
+      | 'BANK_ACCOUNT_NOT_FOUND'
+      | 'INSUFFICIENT_BALANCE'
+      | 'UNAUTHORIZED_ACCOUNT'
+      | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+    }
   > {
     const giro = await DI.giros.findOne(
       { id: giroId },
@@ -962,9 +962,100 @@ export class GiroService {
       ],
     })
 
-    // Calcular totales globales usando Knex query builder subyacente para evitar problemas de quoting de MikroORM
+    return {
+      giros,
+      total,
+      page,
+      limit,
+      totals: {
+        count: total,
+        cop: 0,
+        bs: 0,
+        minoristaProfit: 0,
+        systemProfit: 0,
+        bankCommission: 0,
+      },
+    }
+  }
+
+  async getGiroTotals(
+    options: {
+      userId: string
+      userRole: UserRole
+      status?: GiroStatus | GiroStatus[]
+      dateFrom?: Date
+      dateTo?: Date
+      search?: string
+      page?: number
+      limit?: number
+      minoristaId?: string // Deprecated, use userId for minorista context
+      showAllTraffic?: boolean // Admin flag to see all traffic including minoristas
+    }
+  ): Promise<{
+    count: number
+    cop: number
+    bs: number
+    minoristaProfit: number
+    systemProfit: number
+    bankCommission: number
+  }> {
+    const where: FilterQuery<Giro> = {}
+
+    // ... (Reusing logic for building 'where', ideally refactor 'where' building to a helper method)
+    // For now, I'll copy the logic to ensure identical filtering
+
+    // --- LOGIC DUPLICATION START (To be refactored later if strict DRY is needed, but safe here) ---
+    if (options.search) {
+      const search = options.search.toLowerCase()
+      const searchTerms = [
+        { beneficiaryName: { $ilike: `%${search}%` } },
+        { beneficiaryId: { $ilike: `%${search}%` } },
+        { bankName: { $ilike: `%${search}%` } },
+        {
+          transferencista: {
+            user: { fullName: { $ilike: `%${search}%` } },
+          },
+        },
+      ]
+      where.$or = searchTerms
+    }
+
+    if (options.userRole === UserRole.MINORISTA) {
+      // Find minorista linked to user
+      const minorista = await DI.em.findOne(Minorista, { user: options.userId })
+      if (!minorista) {
+        return { count: 0, cop: 0, bs: 0, minoristaProfit: 0, systemProfit: 0, bankCommission: 0 }
+      }
+      where.minorista = minorista.id
+    }
+
+    if (options.status) {
+      where.status = options.status
+      if (
+        (options.userRole === UserRole.ADMIN || options.userRole === UserRole.SUPER_ADMIN) &&
+        options.status === GiroStatus.COMPLETADO &&
+        !options.showAllTraffic
+      ) {
+        where.minorista = null
+      }
+    }
+
+    if (options.dateFrom || options.dateTo) {
+      where.createdAt = {}
+      if (options.dateFrom) where.createdAt.$gte = options.dateFrom
+      if (options.dateTo) where.createdAt.$lte = options.dateTo
+    }
+    // --- LOGIC DUPLICATION END ---
+
+    // Calcular totales globales usando Knex query builder
     const qb = DI.em.createQueryBuilder(Giro, 'g')
     qb.where(where)
+
+    // IMPORTANT: Join necessary tables if search involves relations
+    if (options.search) {
+      qb.leftJoin('g.transferencista', 't')
+        .leftJoin('t.user', 'tu')
+    }
 
     const knex = DI.em.getConnection().getKnex()
     const totalsQuery = qb
@@ -983,18 +1074,12 @@ export class GiroService {
     const t = totalsResult[0] as any
 
     return {
-      giros,
-      total,
-      page,
-      limit,
-      totals: {
-        count: total,
-        cop: parseFloat(t.total_cop || '0'),
-        bs: parseFloat(t.total_bs || '0'),
-        minoristaProfit: parseFloat(t.total_minorista_profit || '0'),
-        systemProfit: parseFloat(t.total_system_profit || '0'),
-        bankCommission: parseFloat(t.total_commission || '0'),
-      },
+      count: parseInt(t.count || '0'),
+      cop: parseFloat(t.total_cop || '0'),
+      bs: parseFloat(t.total_bs || '0'),
+      minoristaProfit: parseFloat(t.total_minorista_profit || '0'),
+      systemProfit: parseFloat(t.total_system_profit || '0'),
+      bankCommission: parseFloat(t.total_commission || '0'),
     }
   }
 
@@ -1066,13 +1151,13 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error:
-          | 'MINORISTA_NOT_FOUND'
-          | 'NO_TRANSFERENCISTA_ASSIGNED'
-          | 'INSUFFICIENT_BALANCE'
-          | 'OPERATOR_NOT_FOUND'
-          | 'AMOUNT_NOT_FOUND'
-      }
+      error:
+      | 'MINORISTA_NOT_FOUND'
+      | 'NO_TRANSFERENCISTA_ASSIGNED'
+      | 'INSUFFICIENT_BALANCE'
+      | 'OPERATOR_NOT_FOUND'
+      | 'AMOUNT_NOT_FOUND'
+    }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
@@ -1246,8 +1331,8 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-        error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
-      }
+      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
+    }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
