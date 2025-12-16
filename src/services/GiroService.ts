@@ -923,7 +923,7 @@ export class GiroService {
     const [giros, total] = await DI.giros.findAndCount(where, {
       limit,
       offset,
-      orderBy: { createdAt: 'DESC' },
+      orderBy: { createdAt: 'ASC' },
       populate: [
         'minorista',
         'minorista.user',
