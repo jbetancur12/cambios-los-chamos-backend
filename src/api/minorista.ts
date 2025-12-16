@@ -307,6 +307,8 @@ minoristaRouter.get(
             description: t.description,
             createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : t.createdAt,
           })),
+          startBalance: result.startBalance,
+          startBalanceInFavor: result.startBalanceInFavor,
           pagination: {
             total: total,
             page: page,

@@ -355,12 +355,20 @@ export class MinoristaTransactionService {
         total: number
         page: number
         limit: number
+        startBalance?: number
+        startBalanceInFavor?: number
         transactions: Array<{
           id: string
           amount: number
           type: MinoristaTransactionType
           previousBalance: number
           currentBalance: number
+          previousBalanceInFavor: number
+          currentBalanceInFavor: number
+          balanceInFavorUsed?: number
+          creditUsed?: number
+          externalDebt?: number
+          profitEarned?: number
           createdBy: {
             id: string
             fullName: string
@@ -400,6 +408,31 @@ export class MinoristaTransactionService {
     // We want to hide PENDING (Hold) and CANCELLED transactions from the history
     where.status = MinoristaTransactionStatus.COMPLETED
 
+    // Calculate Opening Balance (Saldo Inicial) if startDate is provided
+    let startBalance = minorista.creditLimit // Default: Initial state (Full credit limit available)
+    let startBalanceInFavor = 0
+
+    if (options?.startDate) {
+      const startDate = new Date(options.startDate)
+      // Find the LAST transaction BEFORE the startDate
+      const lastTransactionBeforeStart = await transactionRepo.findOne(
+        {
+          minorista: minoristaId,
+          createdAt: { $lt: startDate },
+          status: MinoristaTransactionStatus.COMPLETED,
+        },
+        {
+          orderBy: { createdAt: 'DESC', id: 'DESC' },
+        }
+      )
+
+      if (lastTransactionBeforeStart) {
+        // The opening balance for the period is the closing balance of the previous transaction
+        startBalance = lastTransactionBeforeStart.availableCredit
+        startBalanceInFavor = lastTransactionBeforeStart.currentBalanceInFavor ?? 0
+      }
+    }
+
     const [transactions, total] = await transactionRepo.findAndCount(where, {
       limit,
       offset,
@@ -432,6 +465,8 @@ export class MinoristaTransactionService {
       page,
       limit,
       transactions: data,
+      startBalance,
+      startBalanceInFavor,
     }
   }
 
