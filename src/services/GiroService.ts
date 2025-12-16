@@ -927,12 +927,18 @@ export class GiroService {
 
     // Check if we are filtering by a single active status or array containing only active statuses
     // This is a simplification; mostly we care if we are looking at the "To Do" list
-    const activeStatuses: unknown[] = [GiroStatus.ASIGNADO, GiroStatus.PROCESANDO]
+    // Include DEVUELTO because they appear in the "Asignados" tab and should be prioritized (Oldest/Urgent first)
+    const activeStatuses: unknown[] = [
+      GiroStatus.ASIGNADO,
+      GiroStatus.PROCESANDO,
+      GiroStatus.DEVUELTO,
+      GiroStatus.PENDIENTE,
+    ]
 
     if (options.status) {
       if (Array.isArray(options.status)) {
         // If all requested statuses are "active" statuses, use ASC
-        const allActive = options.status.every(s => activeStatuses.includes(s))
+        const allActive = options.status.every((s) => activeStatuses.includes(s))
         if (allActive) sortOrder = 'ASC'
       } else if (activeStatuses.includes(options.status)) {
         sortOrder = 'ASC'
