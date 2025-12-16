@@ -619,13 +619,12 @@ giroRouter.post(
       return res.status(403).json(ApiResponse.forbidden('Solo el SUPER_ADMIN o ADMIN puede cambiar la tasa del giro'))
     }
 
-    if (!cedula || !bankId || !phone || !contactoEnvia || !amountCop) {
+    if (!cedula || !bankId || !phone || !amountCop) {
       return res.status(400).json(
         ApiResponse.validationError([
           { field: 'cedula', message: 'La cédula es requerida' },
           { field: 'bankId', message: 'El banco es requerido' },
           { field: 'phone', message: 'El teléfono es requerido' },
-          { field: 'contactoEnvia', message: 'El contacto que envía es requerido' },
           { field: 'amountCop', message: 'El monto es requerido' },
         ])
       )

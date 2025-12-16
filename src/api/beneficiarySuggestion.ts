@@ -15,15 +15,17 @@ beneficiarySuggestionRouter.post('/save', requireAuth(), async (req: Request, re
 
   const { beneficiaryName, beneficiaryId, phone, bankId, accountNumber, executionType } = req.body
 
-  if (!beneficiaryName || !beneficiaryId || !bankId || !accountNumber) {
-    return res.status(400).json(
-      ApiResponse.validationError([
-        { field: 'beneficiaryName', message: 'Nombre es requerido' },
-        { field: 'beneficiaryId', message: 'Cédula es requerida' },
-        { field: 'bankId', message: 'Banco es requerido' },
-        { field: 'accountNumber', message: 'Cuenta es requerida' },
-      ])
-    )
+  const isMobilePayment = executionType === ExecutionType.PAGO_MOVIL
+  const missingAccountNumber = !isMobilePayment && !accountNumber
+
+  if (!beneficiaryName || !beneficiaryId || !bankId || missingAccountNumber) {
+    const errors = []
+    if (!beneficiaryName) errors.push({ field: 'beneficiaryName', message: 'Nombre es requerido' })
+    if (!beneficiaryId) errors.push({ field: 'beneficiaryId', message: 'Cédula es requerida' })
+    if (!bankId) errors.push({ field: 'bankId', message: 'Banco es requerido' })
+    if (missingAccountNumber) errors.push({ field: 'accountNumber', message: 'Cuenta es requerida' })
+
+    return res.status(400).json(ApiResponse.validationError(errors))
   }
 
   const type = (executionType as ExecutionType) || ExecutionType.TRANSFERENCIA
