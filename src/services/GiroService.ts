@@ -16,7 +16,7 @@ import { sendGiroAssignedNotification } from '@/lib/notification_sender'
 import { exchangeRateService } from '@/services/ExchangeRateService'
 import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionService'
 import { ExchangeRate } from '@/entities/ExchangeRate'
-import { Currency } from '@/entities/Bank'
+import { Currency, Bank } from '@/entities/Bank'
 import { EntityManager, LockMode, FilterQuery } from '@mikro-orm/core'
 import { TransferencistaAssignmentTracker } from '@/entities/TransferencistaAssignmentTracker'
 import { sendEmail } from '@/lib/emailUtils'
@@ -229,7 +229,7 @@ export class GiroService {
 
           // Vincular las transacciones a este giro
           for (const transaction of minoristaTransactions) {
-            ; (transaction as MinoristaTransaction).giro = giro
+            ;(transaction as MinoristaTransaction).giro = giro
             em.persist(transaction)
           }
           await em.flush()
@@ -328,14 +328,14 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error:
-      | 'GIRO_NOT_FOUND'
-      | 'INVALID_STATUS'
-      | 'BANK_ACCOUNT_NOT_FOUND'
-      | 'INSUFFICIENT_BALANCE'
-      | 'UNAUTHORIZED_ACCOUNT'
-      | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
-    }
+        error:
+          | 'GIRO_NOT_FOUND'
+          | 'INVALID_STATUS'
+          | 'BANK_ACCOUNT_NOT_FOUND'
+          | 'INSUFFICIENT_BALANCE'
+          | 'UNAUTHORIZED_ACCOUNT'
+          | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+      }
   > {
     const giro = await DI.giros.findOne(
       { id: giroId },
@@ -1066,13 +1066,13 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error:
-      | 'MINORISTA_NOT_FOUND'
-      | 'NO_TRANSFERENCISTA_ASSIGNED'
-      | 'INSUFFICIENT_BALANCE'
-      | 'OPERATOR_NOT_FOUND'
-      | 'AMOUNT_NOT_FOUND'
-    }
+        error:
+          | 'MINORISTA_NOT_FOUND'
+          | 'NO_TRANSFERENCISTA_ASSIGNED'
+          | 'INSUFFICIENT_BALANCE'
+          | 'OPERATOR_NOT_FOUND'
+          | 'AMOUNT_NOT_FOUND'
+      }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
@@ -1246,8 +1246,8 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
-    }
+        error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
+      }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
@@ -1424,13 +1424,14 @@ export class GiroService {
 
   async updateGiro(
     giroId: string,
-    data: {
+    data: Partial<{
       beneficiaryName: string
       beneficiaryId: string
       bankId: string
       accountNumber: string
       phone: string
-    },
+      status: GiroStatus
+    }>,
     user: User
   ): Promise<Giro> {
     const giroRepo = DI.em.getRepository(Giro)
@@ -1454,9 +1455,12 @@ export class GiroService {
       throw new Error('GIRO_NOT_FOUND')
     }
 
-    const bank = await DI.banks.findOne({ id: data.bankId })
-    if (!bank) {
-      throw new Error('BANCO_NO_ENCONTRADO')
+    let bank: Bank | null = null
+    if (data.bankId) {
+      bank = await DI.banks.findOne({ id: data.bankId })
+      if (!bank) {
+        throw new Error('BANCO_NO_ENCONTRADO')
+      }
     }
 
     return await DI.em.transactional(async (em) => {
@@ -1497,11 +1501,15 @@ export class GiroService {
         }
       }
 
-      giro.beneficiaryName = data.beneficiaryName
-      giro.beneficiaryId = data.beneficiaryId
-      giro.bankName = bank.name
-      giro.accountNumber = data.accountNumber
-      giro.phone = data.phone
+      if (data.beneficiaryName) giro.beneficiaryName = data.beneficiaryName
+      if (data.beneficiaryId) giro.beneficiaryId = data.beneficiaryId
+      if (bank) {
+        giro.bankName = bank.name
+        giro.bankCode = Number(bank.code)
+      }
+      if (data.accountNumber) giro.accountNumber = data.accountNumber
+      if (data.phone) giro.phone = data.phone
+      if (data.status) giro.status = data.status
       giro.updatedAt = new Date()
 
       em.persist(giro)
