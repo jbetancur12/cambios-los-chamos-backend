@@ -229,7 +229,7 @@ export class GiroService {
 
           // Vincular las transacciones a este giro
           for (const transaction of minoristaTransactions) {
-            ; (transaction as MinoristaTransaction).giro = giro
+            ;(transaction as MinoristaTransaction).giro = giro
             em.persist(transaction)
           }
           await em.flush()
@@ -328,14 +328,14 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error:
-      | 'GIRO_NOT_FOUND'
-      | 'INVALID_STATUS'
-      | 'BANK_ACCOUNT_NOT_FOUND'
-      | 'INSUFFICIENT_BALANCE'
-      | 'UNAUTHORIZED_ACCOUNT'
-      | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
-    }
+        error:
+          | 'GIRO_NOT_FOUND'
+          | 'INVALID_STATUS'
+          | 'BANK_ACCOUNT_NOT_FOUND'
+          | 'INSUFFICIENT_BALANCE'
+          | 'UNAUTHORIZED_ACCOUNT'
+          | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+      }
   > {
     const giro = await DI.giros.findOne(
       { id: giroId },
@@ -978,20 +978,18 @@ export class GiroService {
     }
   }
 
-  async getGiroTotals(
-    options: {
-      userId: string
-      userRole: UserRole
-      status?: GiroStatus | GiroStatus[]
-      dateFrom?: Date
-      dateTo?: Date
-      search?: string
-      page?: number
-      limit?: number
-      minoristaId?: string // Deprecated, use userId for minorista context
-      showAllTraffic?: boolean // Admin flag to see all traffic including minoristas
-    }
-  ): Promise<{
+  async getGiroTotals(options: {
+    userId: string
+    userRole: UserRole
+    status?: GiroStatus | GiroStatus[]
+    dateFrom?: Date
+    dateTo?: Date
+    search?: string
+    page?: number
+    limit?: number
+    minoristaId?: string // Deprecated, use userId for minorista context
+    showAllTraffic?: boolean // Admin flag to see all traffic including minoristas
+  }): Promise<{
     count: number
     cop: number
     bs: number
@@ -1053,8 +1051,7 @@ export class GiroService {
 
     // IMPORTANT: Join necessary tables if search involves relations
     if (options.search) {
-      qb.leftJoin('g.transferencista', 't')
-        .leftJoin('t.user', 'tu')
+      qb.leftJoin('g.transferencista', 't').leftJoin('t.user', 'tu')
     }
 
     const knex = DI.em.getConnection().getKnex()
@@ -1151,13 +1148,13 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error:
-      | 'MINORISTA_NOT_FOUND'
-      | 'NO_TRANSFERENCISTA_ASSIGNED'
-      | 'INSUFFICIENT_BALANCE'
-      | 'OPERATOR_NOT_FOUND'
-      | 'AMOUNT_NOT_FOUND'
-    }
+        error:
+          | 'MINORISTA_NOT_FOUND'
+          | 'NO_TRANSFERENCISTA_ASSIGNED'
+          | 'INSUFFICIENT_BALANCE'
+          | 'OPERATOR_NOT_FOUND'
+          | 'AMOUNT_NOT_FOUND'
+      }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
@@ -1331,8 +1328,8 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
-    }
+        error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
+      }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
