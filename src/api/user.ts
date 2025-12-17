@@ -15,6 +15,7 @@ import {
 import { userService } from '@/services/UserService'
 import { validateParams } from '@/lib/validateParams'
 import { IS_DEVELOPMENT } from '@/settings'
+import { posthogCapture } from '@/lib/posthogUtils'
 
 export const userRouter = express.Router({ mergeParams: true })
 
@@ -47,6 +48,15 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
       path: '/',
     })
 
+    // Track successful login (SUPER_ADMIN only)
+    if (user.role === UserRole.SUPER_ADMIN) {
+      posthogCapture('user_logged_in', user.id, {
+        email: user.email,
+        role: user.role,
+        method: 'password',
+      })
+    }
+
     res.json(
       ApiResponse.success({
         message: 'Inicio de sesión exitoso',
@@ -77,7 +87,12 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
 })
 
 // ------------------ LOGOUT ------------------
-userRouter.post('/logout', requireAuth(), async (_req: Request, res: Response) => {
+userRouter.post('/logout', requireAuth(), async (req: Request, res: Response) => {
+  const user = req.context?.requestUser?.user
+  if (user && user.role === UserRole.SUPER_ADMIN) {
+    posthogCapture('user_logged_out', user.id, { email: user.email, role: user.role })
+  }
+
   // Clear cookie with same settings as when it was created
   res.clearCookie('accessToken', {
     httpOnly: true,
@@ -152,6 +167,11 @@ userRouter.get('/me', requireAuth(), async (req: Request, res: Response) => {
   const user = req.context?.requestUser?.user
   if (!user) {
     return res.status(401).json(ApiResponse.unauthorized())
+  }
+
+  // Track session validation (SUPER_ADMIN only)
+  if (user.role === UserRole.SUPER_ADMIN) {
+    posthogCapture('user_session_validated', user.id, { role: user.role, email: user.email })
   }
 
   res.json(

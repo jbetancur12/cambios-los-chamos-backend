@@ -2,6 +2,7 @@ import 'reflect-metadata'
 import express from 'express'
 import cors from 'cors'
 import { RequestContext } from '@mikro-orm/postgresql'
+import { UserRole } from '@/entities/User'
 import { userMiddleware } from '@/middleware/userMiddleware'
 import { health } from '@/api/health'
 import { requireAuth } from '@/middleware/authMiddleware'
@@ -27,7 +28,7 @@ import { IS_DEVELOPMENT, ENABLE_SECURITY_SETTINGS, EXPRESS_SERVER_PORT, corsOpti
 import { emailVerificationRouter } from '@/api/emailVerification'
 import { generalRateLimiter } from '@/middleware/rateLimitMiddleware'
 import { logger } from '@/lib/logger'
-import { posthog } from '@/lib/posthogUtils'
+import { posthog, posthogCapture } from '@/lib/posthogUtils'
 import * as Sentry from '@sentry/node'
 import { ApiResponse } from '@/lib/apiResponse'
 import { notificationRouter } from './api/notification'
@@ -108,6 +109,23 @@ export const startExpressServer = async () => {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   app.use(function onError(err: unknown, req: Request, res: Response, next: NextFunction) {
+    // Track error in PostHog if user is SuperAdmin
+    // userMiddleware puts user in req.context.requestUser.user
+    // But we need to be careful about types or access it safely
+    // Casting to any to access context safely since Request type might not have it strictly defined here without augmentation import
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user = (req as any).context?.requestUser?.user
+
+    if (user && user.role === UserRole.SUPER_ADMIN) {
+      posthogCapture('server_error', user.id, {
+        error: String(err),
+        path: req.originalUrl || req.url,
+        method: req.method,
+        email: user.email,
+        requestId: (req as any).id,
+      })
+    }
+
     if (IS_DEVELOPMENT) {
       return res.status(500).json(ApiResponse.serverError(String(err)))
     }
