@@ -22,20 +22,21 @@ export class BeneficiarySuggestionService {
       throw new Error('User not found')
     }
 
-    // Check if this beneficiary already exists for this user and execution type
+    // Check if this beneficiary already exists for this user and execution type using CEDULA as unique key
     const whereClause: FilterQuery<BeneficiarySuggestion> = {
       user: userId,
-      beneficiaryName: data.beneficiaryName,
       beneficiaryId: data.beneficiaryId,
       executionType: data.executionType,
     }
-    if (data.phone) {
-      whereClause.phone = data.phone
-    }
+
     const existing = await DI.em.getRepository(BeneficiarySuggestion).findOne(whereClause)
 
     if (existing) {
-      // Update the existing record (move it to recent)
+      // Update the existing record with new details (name, phone, bank, etc) and move to recent
+      existing.beneficiaryName = data.beneficiaryName
+      existing.phone = data.phone
+      existing.bankId = data.bankId
+      existing.accountNumber = data.accountNumber
       existing.updatedAt = new Date()
       await DI.em.persistAndFlush(existing)
       return existing
@@ -90,10 +91,8 @@ export class BeneficiarySuggestionService {
       { beneficiaryName: { $ilike: searchLower } },
       { beneficiaryId: { $ilike: searchLower } },
     ]
-    // Only search by phone if it's not empty
-    if (searchTerm.trim()) {
-      orConditions.push({ phone: { $ilike: searchLower } })
-    }
+    // User requested explicitly NOT to search by phone
+
     const where: FilterQuery<BeneficiarySuggestion> = {
       user: userId,
       $or: orConditions,
