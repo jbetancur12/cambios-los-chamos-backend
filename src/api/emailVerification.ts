@@ -6,6 +6,7 @@ import { createUserToken, markTokenUsed, validateUserToken } from '@/lib/userTok
 import { TokenType } from '@/entities/UserToken'
 import { makePassword } from '@/lib/passwordUtils'
 import { ApiResponse } from '@/lib/apiResponse'
+import { logger } from '@/lib/logger'
 
 /**
  * Envía un correo de verificación con un enlace que incluye un token firmado.
@@ -30,11 +31,11 @@ export async function sendVerificationEmail(user: User): Promise<void> {
   )
 
   if (error) {
-    console.error('❌ Error enviando email de verificación:', error)
+    logger.error({ error }, '❌ Error enviando email de verificación')
     throw new Error(`Email sending failed: ${error.message}`)
   }
 
-  console.log('✅ Email de verificación enviado a', user.email)
+  logger.info(`✅ Email de verificación enviado a ${user.email}`)
 }
 
 /**
@@ -81,7 +82,7 @@ export async function confirmEmail(req: Request, res: Response) {
   await DI.em.persistAndFlush(record.user)
   await markTokenUsed(record)
 
-  console.log(`✅ Email verificado para usuario: ${record.user.email}`)
+  logger.info(`✅ Email verificado para usuario: ${record.user.email}`)
 
   return res.status(200).json(
     ApiResponse.success({

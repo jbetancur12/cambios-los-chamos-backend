@@ -4,6 +4,7 @@ import { UserRole } from '@/entities/User'
 import { DI } from '@/di'
 import { ApiResponse } from '@/lib/apiResponse'
 import { operatorAmountService } from '@/services/OperatorAmountService'
+import { logger } from '@/lib/logger'
 
 const router = Router()
 
@@ -26,7 +27,7 @@ router.get('/:operatorId', requireAuth(), async (req: Request, res: Response) =>
     const amounts = await operatorAmountService.getAmountsByOperator(operatorId)
     res.json(ApiResponse.success(amounts))
   } catch (error) {
-    console.error('Error fetching operator amounts:', error)
+    logger.error({ error }, 'Error fetching operator amounts')
     res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -53,7 +54,7 @@ router.get(
       const amounts = await operatorAmountService.getAllAmountsByOperator(operatorId)
       res.json(ApiResponse.success(amounts))
     } catch (error) {
-      console.error('Error fetching all operator amounts:', error)
+      logger.error({ error }, 'Error fetching all operator amounts')
       res.status(500).json(ApiResponse.serverError())
     }
   }
@@ -109,7 +110,7 @@ router.post(
       const operatorAmount = await operatorAmountService.createOperatorAmount(operatorId, amountId)
       res.status(201).json(ApiResponse.success(operatorAmount))
     } catch (error) {
-      console.error('Error creating operator-amount relation:', error)
+      logger.error({ error }, 'Error creating operator-amount relation')
       res.status(500).json(ApiResponse.serverError())
     }
   }
@@ -137,7 +138,7 @@ router.delete(
       await operatorAmountService.deleteOperatorAmount(id)
       res.json(ApiResponse.success({ message: 'Operator-amount relation deleted' }))
     } catch (error) {
-      console.error('Error deleting operator-amount relation:', error)
+      logger.error({ error }, 'Error deleting operator-amount relation')
       res.status(500).json(ApiResponse.serverError())
     }
   }

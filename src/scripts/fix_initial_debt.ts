@@ -1,6 +1,7 @@
 import { initDI, DI } from '@/di'
 import { User } from '@/entities/User'
 import { MinoristaTransaction, MinoristaTransactionType } from '@/entities/MinoristaTransaction'
+import { logger } from '@/lib/logger'
 
 async function fixInitialDebt() {
   await initDI()
@@ -9,7 +10,7 @@ async function fixInitialDebt() {
   try {
     const user = await em.findOne(User, { email: 'nathalypea@gmail.com' }, { populate: ['minorista'] })
     if (!user || !user.minorista) {
-      console.log('Minorista not found')
+      logger.warn('Minorista not found')
       return
     }
 
@@ -26,22 +27,22 @@ async function fixInitialDebt() {
     })
 
     if (initialTx) {
-      console.log(`Found initial transaction ${initialTx.id}. Updating amount...`)
+      logger.info(`Found initial transaction ${initialTx.id}. Updating amount...`)
       initialTx.amount = -432262
       await em.persistAndFlush(initialTx)
-      console.log('Amount updated to -432262. Please run recalculation.')
+      logger.info('Amount updated to -432262. Please run recalculation.')
     } else {
-      console.log('Initial transaction -232262 not found. Already fixed?')
+      logger.info('Initial transaction -232262 not found. Already fixed?')
       // Check if -432262 exists
       const fixedTx = await em.findOne(MinoristaTransaction, {
         minorista: minorista.id,
         type: MinoristaTransactionType.RECHARGE,
         amount: -432262,
       })
-      if (fixedTx) console.log('Transaction already -432262.')
+      if (fixedTx) logger.info('Transaction already -432262.')
     }
   } catch (error) {
-    console.error(error)
+    logger.error(error)
   } finally {
     await DI.orm.close()
   }

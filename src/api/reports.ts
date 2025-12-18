@@ -4,6 +4,7 @@ import { UserRole } from '@/entities/User'
 import { reportService } from '@/services/ReportService'
 import { ApiResponse } from '@/lib/apiResponse'
 import { DI } from '@/di'
+import { logger } from '@/lib/logger'
 
 const router = Router()
 
@@ -40,7 +41,7 @@ router.get('/system-profit', requireRole(UserRole.SUPER_ADMIN), async (req: Requ
     const report = await reportService.getSystemProfitReport(dateFrom, dateTo)
     res.json(ApiResponse.success(report))
   } catch (error) {
-    console.error('Error fetching system profit report:', error)
+    logger.error({ error }, 'Error fetching system profit report')
     res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -77,7 +78,7 @@ router.get('/system-profit-trend', requireRole(UserRole.SUPER_ADMIN), async (req
     const report = await reportService.getSystemProfitTrendReport(dateFrom, dateTo)
     res.json(ApiResponse.success(report))
   } catch (error) {
-    console.error('Error fetching system profit trend report:', error)
+    logger.error({ error }, 'Error fetching system profit trend report')
     res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -113,7 +114,7 @@ router.get('/minorista-profit', requireRole(UserRole.SUPER_ADMIN), async (req: R
     const report = await reportService.getMinoristaProfitReport(dateFrom, dateTo, limit)
     res.json(ApiResponse.success(report))
   } catch (error) {
-    console.error('Error fetching minorista profit report:', error)
+    logger.error({ error }, 'Error fetching minorista profit report')
     res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' })
   }
 })
@@ -149,7 +150,7 @@ router.get('/bank-transactions', requireRole(UserRole.SUPER_ADMIN), async (req: 
     const report = await reportService.getBankTransactionReport(dateFrom, dateTo)
     res.json(ApiResponse.success(report))
   } catch (error) {
-    console.error('Error fetching bank transaction report:', error)
+    logger.error({ error }, 'Error fetching bank transaction report')
     res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' })
   }
 })
@@ -185,7 +186,7 @@ router.get('/minorista-transactions', requireRole(UserRole.SUPER_ADMIN), async (
     const report = await reportService.getMinoristaTransactionReport(dateFrom, dateTo)
     res.json(ApiResponse.success(report))
   } catch (error) {
-    console.error('Error fetching minorista transaction report:', error)
+    logger.error({ error }, 'Error fetching minorista transaction report')
     res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' })
   }
 })
@@ -236,7 +237,7 @@ router.get('/minorista/giros', requireAuth(), async (req: Request, res: Response
     const report = await reportService.getMinoristaGiroReport(minorista.id, dateFrom, dateTo)
     res.json(ApiResponse.success(report))
   } catch (error) {
-    console.error('Error fetching minorista giro report:', error)
+    logger.error({ error }, 'Error fetching minorista giro report')
     res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -287,7 +288,7 @@ router.get('/minorista/giros-trend', requireAuth(), async (req: Request, res: Re
     const report = await reportService.getMinoristaGiroTrendReport(minorista.id, dateFrom, dateTo)
     res.json(ApiResponse.success(report))
   } catch (error) {
-    console.error('Error fetching minorista giro trend report:', error)
+    logger.error({ error }, 'Error fetching minorista giro trend report')
     res.status(500).json(ApiResponse.serverError())
   }
 })

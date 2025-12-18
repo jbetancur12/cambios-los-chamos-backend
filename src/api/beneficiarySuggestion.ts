@@ -3,6 +3,7 @@ import { requireAuth } from '@/middleware/authMiddleware'
 import { ApiResponse } from '@/lib/apiResponse'
 import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionService'
 import { ExecutionType } from '@/entities/Giro'
+import { logger } from '@/lib/logger'
 
 export const beneficiarySuggestionRouter = express.Router({ mergeParams: true })
 
@@ -45,7 +46,7 @@ beneficiarySuggestionRouter.post('/save', requireAuth(), async (req: Request, re
     if (error instanceof Error && error.message === 'User not found') {
       return res.status(404).json(ApiResponse.notFound('Usuario'))
     }
-    console.error('Error saving beneficiary suggestion:', error)
+    logger.error({ error }, 'Error saving beneficiary suggestion')
     res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -71,7 +72,7 @@ beneficiarySuggestionRouter.get('/search', requireAuth(), async (req: Request, r
 
     res.json(ApiResponse.success({ suggestions }))
   } catch (error) {
-    console.error('Error searching beneficiary suggestions:', error)
+    logger.error({ error }, 'Error searching beneficiary suggestions')
     res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -91,7 +92,7 @@ beneficiarySuggestionRouter.get('/list', requireAuth(), async (req: Request, res
 
     res.json(ApiResponse.success({ suggestions }))
   } catch (error) {
-    console.error('Error fetching beneficiary suggestions:', error)
+    logger.error({ error }, 'Error fetching beneficiary suggestions')
     res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -114,7 +115,7 @@ beneficiarySuggestionRouter.delete('/:suggestionId', requireAuth(), async (req: 
 
     res.json(ApiResponse.success({ message: 'Beneficiario eliminado exitosamente' }))
   } catch (error) {
-    console.error('Error deleting beneficiary suggestion:', error)
+    logger.error({ error }, 'Error deleting beneficiary suggestion')
     res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -131,7 +132,7 @@ beneficiarySuggestionRouter.delete('/', requireAuth(), async (req: Request, res:
 
     res.json(ApiResponse.success({ count, message: 'Todos los beneficiarios han sido eliminados' }))
   } catch (error) {
-    console.error('Error deleting all beneficiary suggestions:', error)
+    logger.error({ error }, 'Error deleting all beneficiary suggestions')
     res.status(500).json(ApiResponse.serverError())
   }
 })

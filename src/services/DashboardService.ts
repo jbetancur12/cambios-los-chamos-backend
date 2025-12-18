@@ -2,6 +2,7 @@ import { DI } from '@/di'
 import { RequestUser } from '@/middleware/requestUser'
 import { Giro, GiroStatus } from '@/entities/Giro'
 import { wrap } from '@mikro-orm/core'
+import { logger } from '@/lib/logger'
 
 export interface DashboardStats {
   girosCount: number
@@ -65,10 +66,15 @@ export class DashboardService {
     const dbEndToday = new Date(coEndOfDay.getTime() - CO_OFFSET_MS)
 
     // Log for debugging
-    console.log(`[DashboardService] Server Time (UTC): ${now.toISOString()}`)
-    console.log(`[DashboardService] Colombia Time: ${coNow.toISOString().replace('Z', ' (CO)')}`)
-    console.log(`[DashboardService] Query Start (UTC): ${dbStartToday.toISOString()} (= CO 00:00)`)
-    console.log(`[DashboardService] Query End (UTC): ${dbEndToday.toISOString()} (= CO 24:00)`)
+    logger.debug(
+      {
+        utc: now.toISOString(),
+        colombia: coNow.toISOString().replace('Z', ' (CO)'),
+        queryStart: dbStartToday.toISOString(),
+        queryEnd: dbEndToday.toISOString(),
+      },
+      '[DashboardService] Date calculations'
+    )
 
     // Use these for queries instead of local 'today'/'tomorrow'
     const today = dbStartToday

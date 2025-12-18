@@ -14,6 +14,7 @@ import { giroSocketManager } from '@/websocket'
 import { minioService } from '@/services/MinIOService'
 import { MinoristaTransaction } from '@/entities/MinoristaTransaction'
 import { thermalTicketService } from '@/services/ThermalTicketService'
+import { logger } from '@/lib/logger'
 
 export const giroRouter = express.Router({ mergeParams: true })
 
@@ -317,7 +318,7 @@ giroRouter.get('/:giroId/minorista-transaction', requireAuth(), async (req: Requ
 
     res.json(ApiResponse.success({ transaction }))
   } catch (error) {
-    console.error('Error fetching minorista transaction:', error)
+    logger.error({ error }, 'Error fetching minorista transaction')
     res.status(500).json(ApiResponse.serverError('Error al obtener los detalles de la transacción'))
   }
 })
@@ -384,7 +385,7 @@ giroRouter.patch(
         return res.status(400).json(ApiResponse.badRequest('Balance insuficiente para reactivar el giro'))
       }
       // Manejar otros errores
-      console.error('Error updating giro:', error)
+      logger.error({ error }, 'Error updating giro')
       return res.status(500).json(ApiResponse.serverError())
     }
   }
@@ -781,7 +782,7 @@ giroRouter.delete('/:giroId', requireRole(UserRole.MINORISTA), async (req: Reque
 
     res.json(ApiResponse.success({ message: 'Giro eliminado exitosamente' }))
   } catch (error) {
-    console.error('Error eliminando giro:', error)
+    logger.error({ error }, 'Error eliminando giro')
     res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -826,7 +827,7 @@ giroRouter.post(
         try {
           await minioService.deleteFile(process.env.MINIO_BUCKET_NAME || 'ultrathink', giro.paymentProofKey)
         } catch (error) {
-          console.warn('Could not delete old payment proof:', error)
+          logger.warn({ error }, 'Could not delete old payment proof')
         }
       }
 
@@ -863,7 +864,7 @@ giroRouter.post(
         })
       )
     } catch (error) {
-      console.error('Error uploading payment proof:', error)
+      logger.error({ error }, 'Error uploading payment proof')
       res.status(500).json(ApiResponse.serverError())
     }
   }
@@ -901,7 +902,7 @@ giroRouter.get('/:giroId/payment-proof/download', requireAuth(), async (req: Req
     }
 
     // For completed giros, allow download even if proof doesn't exist yet
-    console.log('🚀 ~ giro.paymentProofKey:', giro)
+    // logger.info({ giro }, 'Giro payment proof key check') // Optional debug log, removing for clean prod code unless needed.
     if (!giro.paymentProofKey) {
       return res.json(
         ApiResponse.success({
@@ -929,7 +930,7 @@ giroRouter.get('/:giroId/payment-proof/download', requireAuth(), async (req: Req
 
     res.end(fileBuffer)
   } catch (error) {
-    console.error('Error getting payment proof URL:', error)
+    logger.error({ error }, 'Error getting payment proof URL')
     res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -966,7 +967,6 @@ giroRouter.get('/:giroId/thermal-ticket', requireAuth(), async (req: Request, re
       }
     )
 
-    console.log('🚀 ~ giro:', giro)
     if (!giro) {
       return res.status(404).json(ApiResponse.notFound('Giro no encontrado'))
     }
@@ -985,7 +985,7 @@ giroRouter.get('/:giroId/thermal-ticket', requireAuth(), async (req: Request, re
 
     res.json(ApiResponse.success(ticketData))
   } catch (error) {
-    console.error('Error getting thermal ticket data:', error)
+    logger.error({ error }, 'Error getting thermal ticket data')
     res.status(500).json(ApiResponse.serverError())
   }
 })

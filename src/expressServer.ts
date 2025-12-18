@@ -34,6 +34,7 @@ import { ApiResponse } from '@/lib/apiResponse'
 import { notificationRouter } from './api/notification'
 import { beneficiarySuggestionRouter } from '@/api/beneficiarySuggestion'
 import { auditRouter } from '@/api/audit'
+import { logsRouter } from '@/api/logs'
 
 import { Server as SocketIOServer } from 'socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
@@ -99,6 +100,7 @@ export const startExpressServer = async () => {
   // Rutas privadas (requieren autenticación)
   privateRoutesRouter.use('/giro', giroRouter)
   privateRoutesRouter.use('/dashboard', dashboardRouter)
+  app.use('/logs', logsRouter)
 
   app.use('/', privateRoutesRouter)
 
@@ -161,7 +163,7 @@ export const startExpressServer = async () => {
 
   // Log para verificar que Socket.IO está funcionando
   io.on('connection', (socket) => {
-    console.log(`[SOCKET.IO] ✅ Nueva conexión de cliente - Socket ID: ${socket.id}`)
+    logger.info(`[SOCKET.IO] ✅ Nueva conexión de cliente - Socket ID: ${socket.id}`)
   })
 
   // Inicializar GiroSocketManager

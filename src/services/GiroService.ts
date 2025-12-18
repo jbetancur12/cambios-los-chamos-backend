@@ -21,6 +21,7 @@ import { EntityManager, LockMode, FilterQuery } from '@mikro-orm/core'
 import { TransferencistaAssignmentTracker } from '@/entities/TransferencistaAssignmentTracker'
 import { sendEmail } from '@/lib/emailUtils'
 import { notificationService } from '@/services/NotificationService'
+import { logger } from '@/lib/logger'
 
 export class GiroService {
   /**
@@ -239,11 +240,11 @@ export class GiroService {
         // NOTA: Esto es side-effect, idealmente debería estar fuera, pero necesitamos los datos del giro
         // Se ejecutará solo si el commit es exitoso si usamos afterCommit hooks, pero aquí es directo.
         // Si falla el commit, la notificación se envió (riesgo menor).
-        console.log(
+        logger.info(
           `[GIRO-SERVICE] Intentando enviar notificación al transferencista ${assigned.user.id} para giro ${giro.id}`
         )
         await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs, giro.executionType)
-        console.log(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
+        logger.info(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
 
         // Enviar correo electrónico al transferencista
         try {
@@ -267,15 +268,15 @@ export class GiroService {
           if (assigned.user.email) {
             const { error } = await sendEmail(assigned.user.email, emailSubject, emailBody)
             if (error) {
-              console.error(`[EMAIL] Falló envío a ${assigned.user.email}:`, error)
+              logger.error({ error }, `[EMAIL] Falló envío a ${assigned.user.email}`)
             } else {
-              console.info(`[EMAIL] Enviado correctamente a ${assigned.user.email} (Giro: ${giro.id})`)
+              logger.info(`[EMAIL] Enviado correctamente a ${assigned.user.email} (Giro: ${giro.id})`)
             }
           } else {
-            console.warn(`[EMAIL] Transferencista ${assigned.id} no tiene email configurado.`)
+            logger.warn(`[EMAIL] Transferencista ${assigned.id} no tiene email configurado.`)
           }
         } catch (emailError) {
-          console.error('[EMAIL] Error al enviar correo de notificación:', emailError)
+          logger.error({ emailError }, '[EMAIL] Error al enviar correo de notificación')
           // No lanzamos error para no revertir la transacción del giro
         }
 
@@ -298,7 +299,7 @@ export class GiroService {
           })
         } catch (error) {
           // No fallar si no se puede guardar la sugerencia
-          console.warn('Error al guardar sugerencia de beneficiario:', error)
+          logger.warn({ error }, 'Error al guardar sugerencia de beneficiario')
         }
 
         return giro
@@ -310,7 +311,7 @@ export class GiroService {
         if (error.message === 'NO_TRANSFERENCISTA_ASSIGNED') {
           return { error: 'NO_TRANSFERENCISTA_ASSIGNED' as const }
         }
-        console.error('Error al crear giro:', error)
+        logger.error({ error }, 'Error al crear giro')
         throw error
       })
   }
@@ -476,7 +477,7 @@ export class GiroService {
         await sendEmail(giro.createdBy.email, emailSubject, emailBody)
       }
     } catch (emailError) {
-      console.error('[EMAIL] Error al enviar correo de completado:', emailError)
+      logger.error({ emailError }, '[EMAIL] Error al enviar correo de completado')
     }
     */
 
@@ -508,13 +509,13 @@ export class GiroService {
       )
 
       if (!giro) {
-        console.warn(`[GIRO] Return failed: GIRO_NOT_FOUND (giroId: ${giroId}, user: ${createdBy.id})`)
+        logger.warn(`[GIRO] Return failed: GIRO_NOT_FOUND (giroId: ${giroId}, user: ${createdBy.id})`)
         return { error: 'GIRO_NOT_FOUND' }
       }
 
       // Solo giros ASIGNADOS o PROCESANDO pueden ser devueltos
       if (giro.status !== GiroStatus.ASIGNADO && giro.status !== GiroStatus.PROCESANDO) {
-        console.warn(
+        logger.warn(
           `[GIRO] Return failed: INVALID_STATUS (giroId: ${giroId}, status: ${giro.status}, user: ${createdBy.id})`
         )
         return { error: 'INVALID_STATUS' }
@@ -522,7 +523,7 @@ export class GiroService {
 
       // Procesar dentro de una transacción para asegurar consistencia
       return await DI.em.transactional(async (em) => {
-        console.info(`[GIRO] Starting return process (giroId: ${giroId}, reason: ${reason})`)
+        logger.info(`[GIRO] Starting return process (giroId: ${giroId}, reason: ${reason})`)
 
         giro.status = GiroStatus.DEVUELTO
         giro.returnReason = reason
@@ -530,7 +531,7 @@ export class GiroService {
 
         // Si el giro tiene minorista, reembolsar el monto
         if (giro.minorista) {
-          console.info(
+          logger.info(
             `[GIRO] Processing refund for minorista (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`
           )
 
@@ -577,18 +578,19 @@ export class GiroService {
           }
 
           if ('error' in refundResult) {
-            console.error(
-              `[GIRO] Refund failed (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, error: ${refundResult.error})`
+            logger.error(
+              { error: refundResult.error },
+              `[GIRO] Refund failed (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`
             )
             throw new Error('Error al reembolsar minorista')
           }
-          console.info(`[GIRO] Refund successful (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`)
+          logger.info(`[GIRO] Refund successful (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`)
         }
 
         em.persist(giro)
         await em.flush()
 
-        console.info(`[GIRO] Return completed successfully (giroId: ${giroId})`)
+        logger.info(`[GIRO] Return completed successfully (giroId: ${giroId})`)
 
         // ✨ Enviar notificación push al minorista (Side effect, errorsafe)
         if (giro.minorista && giro.minorista.user) {
@@ -600,14 +602,14 @@ export class GiroService {
               type: 'REFUND',
             })
           } catch (notifyError) {
-            console.error(`[GIRO] Error sending refund notification (giroId: ${giroId}):`, notifyError)
+            logger.error({ notifyError }, `[GIRO] Error sending refund notification (giroId: ${giroId})`)
           }
         }
 
         return giro
       })
     } catch (error) {
-      console.error(`[GIRO] Unexpected error during return (giroId: ${giroId}):`, error)
+      logger.error({ error }, `[GIRO] Unexpected error during return (giroId: ${giroId})`)
       throw error
     }
   }
@@ -626,7 +628,7 @@ export class GiroService {
       const giro = await DI.em.getRepository(Giro).findOne({ id: giroId }, { populate: ['minorista', 'createdBy'] })
 
       if (!giro) {
-        console.warn(`[GIRO] Delete failed: GIRO_NOT_FOUND (giroId: ${giroId}, user: ${user.id})`)
+        logger.warn(`[GIRO] Delete failed: GIRO_NOT_FOUND (giroId: ${giroId}, user: ${user.id})`)
         return { error: 'GIRO_NOT_FOUND' }
       }
 
@@ -638,7 +640,7 @@ export class GiroService {
         (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) && giro.status === GiroStatus.DEVUELTO
 
       if (!isCreator && !isAdminDeletingReturned) {
-        console.warn(
+        logger.warn(
           `[GIRO] Delete failed: FORBIDDEN (giroId: ${giroId}, user: ${user.id}, role: ${user.role}, status: ${giro.status})`
         )
         return { error: 'FORBIDDEN' }
@@ -646,16 +648,16 @@ export class GiroService {
 
       // Solo ciertos estados permitidos
       if (![GiroStatus.PENDIENTE, GiroStatus.ASIGNADO, GiroStatus.DEVUELTO].includes(giro.status)) {
-        console.warn(`[GIRO] Delete failed: INVALID_STATUS (giroId: ${giroId}, status: ${giro.status})`)
+        logger.warn(`[GIRO] Delete failed: INVALID_STATUS (giroId: ${giroId}, status: ${giro.status})`)
         return { error: 'INVALID_STATUS' }
       }
 
       // Procesar dentro de una transacción
       return await DI.em.transactional(async (em) => {
-        console.info(`[GIRO] Starting delete process (giroId: ${giroId}, minoristaId: ${giro.minorista?.id})`)
+        logger.info(`[GIRO] Starting delete process (giroId: ${giroId}, minoristaId: ${giro.minorista?.id})`)
 
         if (giro.minorista && giro.status !== GiroStatus.DEVUELTO) {
-          console.info(
+          logger.info(
             `[GIRO] Processing refund for cancelled giro (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`
           )
 
@@ -674,13 +676,14 @@ export class GiroService {
           )
 
           if ('error' in refundResult) {
-            console.error(
-              `[GIRO] Cancel refund failed (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, error: ${refundResult.error})`
+            logger.error(
+              { error: refundResult.error },
+              `[GIRO] Cancel refund failed (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`
             )
             throw new Error('Error al reembolsar minorista')
           }
 
-          console.info(`[GIRO] Cancel refund successful (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`)
+          logger.info(`[GIRO] Cancel refund successful (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`)
 
           // --- Ocultar la transacción original también ---
           const transactionRepo = em.getRepository(MinoristaTransaction)
@@ -690,26 +693,26 @@ export class GiroService {
           })
 
           if (originalTransaction) {
-            console.info(`[GIRO] Hiding original transaction for cancelled giro (txId: ${originalTransaction.id})`)
+            logger.info(`[GIRO] Hiding original transaction for cancelled giro (txId: ${originalTransaction.id})`)
             originalTransaction.status = MinoristaTransactionStatus.CANCELLED
             em.persist(originalTransaction)
           }
         } else if (giro.minorista && giro.status === GiroStatus.DEVUELTO) {
-          console.info(`[GIRO] Skipping refund for cancelled giro because it is already RETURNED (giroId: ${giroId})`)
+          logger.info(`[GIRO] Skipping refund for cancelled giro because it is already RETURNED (giroId: ${giroId})`)
         }
 
         // Soft Delete: Marcar como CANCELADO en lugar de eliminar
-        console.info(`[GIRO] Marking giro as CANCELLED (giroId: ${giroId})`)
+        logger.info(`[GIRO] Marking giro as CANCELLED (giroId: ${giroId})`)
         giro.status = GiroStatus.CANCELADO
 
         em.persist(giro)
         await em.flush()
 
-        console.info(`[GIRO] Cancel completed successfully (giroId: ${giroId})`)
+        logger.info(`[GIRO] Cancel completed successfully (giroId: ${giroId})`)
         return giro
       })
     } catch (error) {
-      console.error(`[GIRO] Unexpected error during delete (giroId: ${giroId}):`, error)
+      logger.error({ error }, `[GIRO] Unexpected error during delete (giroId: ${giroId})`)
       throw error
     }
   }
@@ -789,7 +792,7 @@ export class GiroService {
           em.persist(giro)
           redistributed++
         } catch (error) {
-          console.error(`Error redistribuyendo giro ${giro.id}:`, error)
+          logger.error({ error }, `Error redistribuyendo giro ${giro.id}`)
           errors++
         }
       }
@@ -1258,11 +1261,11 @@ export class GiroService {
         }
 
         // Enviar notificación (WebSocket)
-        console.log(
+        logger.info(
           `[GIRO-SERVICE] Intentando enviar notificación al transferencista ${assigned.user.id} para giro ${giro.id}`
         )
         await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs, giro.executionType)
-        console.log(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
+        logger.info(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
 
         // Enviar correo electrónico al transferencista
         try {
@@ -1285,15 +1288,15 @@ export class GiroService {
           if (assigned.user.email) {
             const { error } = await sendEmail(assigned.user.email, emailSubject, emailBody)
             if (error) {
-              console.error(`[EMAIL] Falló envío a ${assigned.user.email}:`, error)
+              logger.error({ error }, `[EMAIL] Falló envío a ${assigned.user.email}`)
             } else {
-              console.info(`[EMAIL] Enviado correctamente a ${assigned.user.email} (Giro: ${giro.id})`)
+              logger.info(`[EMAIL] Enviado correctamente a ${assigned.user.email} (Giro: ${giro.id})`)
             }
           } else {
-            console.warn(`[EMAIL] Transferencista ${assigned.id} no tiene email configurado.`)
+            logger.warn(`[EMAIL] Transferencista ${assigned.id} no tiene email configurado.`)
           }
         } catch (emailError) {
-          console.error('[EMAIL] Error al enviar correo de notificación:', emailError)
+          logger.error({ emailError }, '[EMAIL] Error al enviar correo de notificación')
           // No lanzamos error para no revertir la transacción del giro
         }
 
@@ -1306,7 +1309,7 @@ export class GiroService {
         if (error.message === 'NO_TRANSFERENCISTA_ASSIGNED') {
           return { error: 'NO_TRANSFERENCISTA_ASSIGNED' as const }
         }
-        console.error('Error al crear recarga:', error)
+        logger.error({ error }, 'Error al crear recarga')
         throw error
       })
   }
@@ -1433,11 +1436,11 @@ export class GiroService {
         }
 
         // Enviar notificación (WebSocket)
-        console.log(
+        logger.info(
           `[GIRO-SERVICE] Intentando enviar notificación al transferencista ${assigned.user.id} para giro ${giro.id}`
         )
         await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs, giro.executionType)
-        console.log(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
+        logger.info(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
 
         // Enviar correo electrónico al transferencista
         try {
@@ -1461,15 +1464,15 @@ export class GiroService {
           if (assigned.user.email) {
             const { error } = await sendEmail(assigned.user.email, emailSubject, emailBody)
             if (error) {
-              console.error(`[EMAIL] Falló envío a ${assigned.user.email}:`, error)
+              logger.error({ error }, `[EMAIL] Falló envío a ${assigned.user.email}`)
             } else {
-              console.info(`[EMAIL] Enviado correctamente a ${assigned.user.email} (Giro: ${giro.id})`)
+              logger.info(`[EMAIL] Enviado correctamente a ${assigned.user.email} (Giro: ${giro.id})`)
             }
           } else {
-            console.warn(`[EMAIL] Transferencista ${assigned.id} no tiene email configurado.`)
+            logger.warn(`[EMAIL] Transferencista ${assigned.id} no tiene email configurado.`)
           }
         } catch (emailError) {
-          console.error('[EMAIL] Error al enviar correo de notificación:', emailError)
+          logger.error({ emailError }, '[EMAIL] Error al enviar correo de notificación')
           // No lanzamos error para no revertir la transacción del giro
         }
 
@@ -1487,7 +1490,7 @@ export class GiroService {
           })
         } catch (error) {
           // No fallar si no se puede guardar la sugerencia
-          console.warn('Error al guardar sugerencia de beneficiario:', error)
+          logger.warn({ error }, 'Error al guardar sugerencia de beneficiario')
         }
 
         return giro
@@ -1499,7 +1502,7 @@ export class GiroService {
         if (error.message === 'NO_TRANSFERENCISTA_ASSIGNED') {
           return { error: 'NO_TRANSFERENCISTA_ASSIGNED' as const }
         }
-        console.error('Error al crear pago móvil:', error)
+        logger.error({ error }, 'Error al crear pago móvil')
         throw error
       })
   }
@@ -1548,13 +1551,13 @@ export class GiroService {
     return await DI.em.transactional(async (em) => {
       // Detectar reactivación: Estaba DEVUELTO y se va a actualizar (implica re-asignar)
       if (giro.status === GiroStatus.DEVUELTO) {
-        console.info(`[GIRO] Reactivating returned giro (giroId: ${giroId}, user: ${user.id})`)
+        logger.info(`[GIRO] Reactivating returned giro (giroId: ${giroId}, user: ${user.id})`)
         giro.status = GiroStatus.ASIGNADO
 
         // Si pertenece a un minorista, debemos volver a descontar el saldo
         // (Al devolverlo se le reembolsó, así que para activarlo debe pagar de nuevo)
         if (giro.minorista) {
-          console.info(
+          logger.info(
             `[GIRO] Processing re-deduction for minorista (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, amount: ${giro.amountInput})`
           )
 
@@ -1569,8 +1572,9 @@ export class GiroService {
           )
 
           if ('error' in transactionResult) {
-            console.error(
-              `[GIRO] Re-deduction failed (giroId: ${giroId}, minoristaId: ${giro.minorista.id}, error: ${transactionResult.error})`
+            logger.error(
+              { error: transactionResult.error },
+              `[GIRO] Re-deduction failed (giroId: ${giroId}, minoristaId: ${giro.minorista.id})`
             )
             throw new Error('INSUFFICIENT_BALANCE') // O el error específico
           }
@@ -1579,7 +1583,7 @@ export class GiroService {
           transactionResult.giro = giro
           em.persist(transactionResult)
 
-          console.info(`[GIRO] Re-deduction successful (giroId: ${giroId})`)
+          logger.info(`[GIRO] Re-deduction successful (giroId: ${giroId})`)
         }
       }
 

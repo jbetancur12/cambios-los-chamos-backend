@@ -1,6 +1,7 @@
 import { initDI, DI } from '@/di'
 import { Minorista } from '@/entities/Minorista'
 import { User } from '@/entities/User'
+import { logger } from '../lib/logger'
 
 async function applyAuditFix() {
   await initDI()
@@ -10,12 +11,12 @@ async function applyAuditFix() {
   const user = await em.findOne(User, { email }, { populate: ['minorista'] })
 
   if (!user || !user.minorista) {
-    console.log('User not found')
+    logger.warn('User not found')
     return
   }
 
   const minorista = user.minorista
-  console.log(`Before Update: Avail=${minorista.availableCredit}, Surplus=${minorista.creditBalance}`)
+  logger.info(`Before Update: Avail=${minorista.availableCredit}, Surplus=${minorista.creditBalance}`)
 
   // Values from Audit Calculation
   // Calculated Available: 98238
@@ -26,8 +27,8 @@ async function applyAuditFix() {
 
   await em.flush()
 
-  console.log(`After Update: Avail=${minorista.availableCredit}, Surplus=${minorista.creditBalance}`)
-  console.log('Balance synchronized with Audit.')
+  logger.info(`After Update: Avail=${minorista.availableCredit}, Surplus=${minorista.creditBalance}`)
+  logger.info('Balance synchronized with Audit.')
 
   await DI.orm.close()
 }

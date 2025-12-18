@@ -5,6 +5,7 @@ import {
   MinoristaTransactionType,
   MinoristaTransactionStatus,
 } from '@/entities/MinoristaTransaction'
+import { logger } from '@/lib/logger'
 
 async function recalculateNataly() {
   await initDI()
@@ -13,7 +14,7 @@ async function recalculateNataly() {
   try {
     const user = await em.findOne(User, { email: 'nathalypea@gmail.com' }, { populate: ['minorista'] })
     if (!user || !user.minorista) {
-      console.log('Minorista not found')
+      logger.info('Minorista not found')
       return
     }
 
@@ -32,7 +33,7 @@ async function recalculateNataly() {
     )
 
     if (latestAdj) {
-      console.log(`Deleting temporary adjustment transaction ${latestAdj.id}...`)
+      logger.info(`Deleting temporary adjustment transaction ${latestAdj.id}...`)
       em.remove(latestAdj)
       await em.flush() // flush delete first
     }
@@ -44,7 +45,7 @@ async function recalculateNataly() {
       { orderBy: { createdAt: 'ASC' } }
     )
 
-    console.log(`Found ${transactions.length} transactions. Recalculating...`)
+    logger.info(`Found ${transactions.length} transactions. Recalculating...`)
 
     // Initial State
     // Asumimos que empezó con el crédito completo y sin deuda.
@@ -160,19 +161,19 @@ async function recalculateNataly() {
       // realDebt = newBalanceInFavor > 0 ? 0 : creditLimit - newAvailableCredit
       t.accumulatedDebt = currentSurplus > 0 ? 0 : limit - currentAvailable
 
-      console.log(`TK ${t.id.substring(0, 4)} | ${t.type} ${amount} | NewAvail: ${currentAvailable}`)
+      logger.info(`TK ${t.id.substring(0, 4)} | ${t.type} ${amount} | NewAvail: ${currentAvailable}`)
     }
 
     // Update Minorista
     minorista.availableCredit = currentAvailable
     minorista.creditBalance = currentSurplus
 
-    console.log(`Final calculated: Available=${currentAvailable}, Surplus=${currentSurplus}`)
+    logger.info(`Final calculated: Available=${currentAvailable}, Surplus=${currentSurplus}`)
 
     await em.flush()
-    console.log('Recalculation complete saved.')
+    logger.info('Recalculation complete saved.')
   } catch (error) {
-    console.error(error)
+    logger.error(error)
   } finally {
     await DI.orm.close()
   }

@@ -69,19 +69,39 @@ const consoleLogger = {
 /**
  * Create the base Pino logger instance
  */
-export const logger = IS_DEVELOPMENT
-  ? consoleLogger
-  : pino({
-      level: LOG_LEVEL,
-      serializers,
-      redact: {
-        paths: redactPaths,
-        censor: '[REDACTED]',
-      },
-      formatters: {
-        level: (label) => {
-          return { level: label }
+export const logger = pino(
+  {
+    level: LOG_LEVEL,
+    serializers,
+    redact: {
+      paths: redactPaths,
+      censor: '[REDACTED]',
+    },
+    timestamp: pino.stdTimeFunctions.isoTime,
+  },
+  pino.transport({
+    targets: [
+      {
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          translateTime: 'SYS:standard',
+          ignore: 'pid,hostname',
         },
+        level: 'debug',
       },
-      timestamp: pino.stdTimeFunctions.isoTime,
-    })
+      {
+        target: 'pino-roll',
+        options: {
+          file: `${process.cwd()}/logs/app.log`,
+          frequency: 'daily',
+          limit: {
+            count: 14, // Keep logs for 14 days
+          },
+          mkdir: true,
+        },
+        level: 'debug', // Log everything to file
+      },
+    ],
+  })
+)

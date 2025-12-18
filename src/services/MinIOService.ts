@@ -3,6 +3,7 @@ import path from 'path'
 import sharp from 'sharp'
 import fs from 'fs'
 import { Readable } from 'stream'
+import { logger } from '@/lib/logger'
 
 interface UploadOptions {
   userId: string
@@ -91,7 +92,7 @@ class MinIOService {
         .jpeg({ quality: 80, progressive: true, mozjpeg: true }) // mozjpeg suele ser más tolerante
         .toBuffer()
     } catch (error) {
-      console.warn('Warning: Could not compress image, using original file. Error:', error)
+      logger.warn({ error }, 'Warning: Could not compress image, using original file.')
       return buffer
     }
   }
@@ -152,7 +153,7 @@ class MinIOService {
 
       return await sharp(buffer).rotate().composite(compositeArray).jpeg({ quality: 80, progressive: true }).toBuffer()
     } catch (error) {
-      console.error('Error adding watermark:', error)
+      logger.error({ error }, 'Error adding watermark')
       return buffer
     }
   }
@@ -176,10 +177,10 @@ class MinIOService {
       const exists = await this.internalMinioClient.bucketExists(bucketName)
       if (!exists) {
         await this.internalMinioClient.makeBucket(bucketName, 'us-east-1')
-        console.log(`Bucket ${bucketName} created successfully`)
+        logger.info(`Bucket ${bucketName} created successfully`)
       }
     } catch (error) {
-      console.error(`Error ensuring bucket ${bucketName}:`, error)
+      logger.error({ error }, `Error ensuring bucket ${bucketName}`)
       throw error
     }
   }
@@ -201,11 +202,11 @@ class MinIOService {
         'Content-Type': mimetype,
       })
 
-      console.log(`Uploaded payment proof: ${mainKey}`)
+      logger.info(`Uploaded payment proof: ${mainKey}`)
 
       return { key: mainKey }
     } catch (error) {
-      console.error(`Error uploading processed file to MinIO:`, error)
+      logger.error({ error }, `Error uploading processed file to MinIO`)
       throw error
     }
   }
@@ -214,7 +215,7 @@ class MinIOService {
     try {
       await this.internalMinioClient.removeObject(bucketName, filename)
     } catch (error) {
-      console.error(`Error deleting file from MinIO:`, error)
+      logger.error({ error }, `Error deleting file from MinIO`)
       throw error
     }
   }
@@ -224,7 +225,7 @@ class MinIOService {
       const url = await this.publicMinioClient.presignedGetObject(bucketName, filename, expiresIn)
       return url
     } catch (error) {
-      console.error(`Error generating presigned URL:`, error)
+      logger.error({ error }, `Error generating presigned URL`)
       throw error
     }
   }
@@ -248,7 +249,7 @@ class MinIOService {
         })
       })
     } catch (error) {
-      console.error(`Error retrieving file from MinIO:`, error)
+      logger.error({ error }, `Error retrieving file from MinIO`)
       throw error
     }
   }

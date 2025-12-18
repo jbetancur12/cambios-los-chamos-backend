@@ -1,28 +1,28 @@
-import { initDI, DI } from '../di'
-import { User } from '../entities/User'
-import { Minorista } from '../entities/Minorista'
+import { DI } from '../di'
+import { UserRole } from '../entities/User'
+import { logger } from '../lib/logger'
 
-async function run() {
+const EMAIL = 'andreinacampos0510@gmail.com'
+
+const main = async () => {
   try {
-    await initDI()
-    const em = DI.orm.em.fork()
+    const user = await DI.users.findOne({ email: EMAIL })
 
-    const user = await em.findOne(User, { fullName: { $ilike: '%Alejandra Campos%' } })
     if (user) {
-      const minorista = await em.findOne(Minorista, { user: user })
+      const minorista = await DI.minoristas.findOne({ user })
       if (minorista) {
-        console.log(`MINORISTA_ID: ${minorista.id}`)
+        logger.info(`MINORISTA_ID: ${minorista.id}`)
       } else {
-        console.log('Minorista profile not found')
+        logger.warn('Minorista profile not found')
       }
     } else {
-      console.log('User not found')
+      logger.warn('User not found')
     }
   } catch (error) {
-    console.error(error)
+    logger.error({ error }, 'Error in get_minorista_id')
   } finally {
     await DI.orm.close()
   }
 }
 
-run()
+main()

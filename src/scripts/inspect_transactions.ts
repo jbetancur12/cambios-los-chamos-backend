@@ -1,40 +1,42 @@
 import { initDI, DI } from '@/di'
-import { MinoristaTransaction } from '@/entities/MinoristaTransaction'
-import { User } from '@/entities/User'
+import { MinoristaTransaction } from '../entities/MinoristaTransaction'
+import { logger } from '../lib/logger'
 
-async function inspectTransactions() {
+const inspectTransactions = async () => {
   // Initialize DI first
   await initDI()
 
   const em = DI.orm.em.fork()
 
   try {
-    const user = await em.findOne(User, { email: 'nathalypea@gmail.com' }, { populate: ['minorista'] })
-    if (!user || !user.minorista) {
-      console.log('Minorista not found')
+    const minoristaId = 'ed045d65-4f3b-4866-963d-42526c8b9829' // Andreina
+    const minoristaRepo = DI.minoristas
+    const minorista = await minoristaRepo.findOne(minoristaId)
+
+    if (!minorista) {
+      logger.warn('Minorista not found')
       return
     }
 
     const transactions = await em.find(
       MinoristaTransaction,
-      { minorista: user.minorista.id },
+      { minorista: minorista.id },
       {
         orderBy: { createdAt: 'DESC' },
-        limit: 10,
-        populate: ['createdBy'],
+        limit: 20,
       }
     )
 
-    console.log('ID | Type | Amount | Profit | Prev Bal | Curr Bal | Prev BalInFavor | Curr BalInFavor | CreatedAt')
-    console.log('-'.repeat(120))
+    logger.info('ID | Type | Amount | Profit | Prev Bal | Curr Bal | Prev BalInFavor | Curr BalInFavor | CreatedAt')
+    logger.info('-'.repeat(120))
 
-    transactions.forEach((t) => {
-      console.log(
-        `${t.id.substring(0, 6)} | ${t.type.padEnd(8)} | ${t.amount.toFixed(2).padStart(10)} | ${(t.profitEarned || 0).toFixed(2).padStart(8)} | ${t.previousAvailableCredit.toFixed(2).padStart(10)} | ${t.availableCredit.toFixed(2).padStart(10)} | ${(t.previousBalanceInFavor || 0).toFixed(2).padStart(10)} | ${(t.currentBalanceInFavor || 0).toFixed(2).padStart(10)} | ${t.createdAt.toISOString()}`
+    for (const tx of transactions) {
+      logger.info(
+        `${tx.id} | ${tx.type} | ${tx.amount} | ${tx.profitEarned || 0} | ${tx.previousAvailableCredit || 0} | ${tx.availableCredit || 0} | ${tx.previousBalanceInFavor || 0} | ${tx.currentBalanceInFavor || 0} | ${tx.createdAt.toISOString()}`
       )
-    })
+    }
   } catch (error) {
-    console.error(error)
+    logger.error({ error }, 'Error inspecting transactions')
   } finally {
     await DI.orm.close()
   }

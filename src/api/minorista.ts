@@ -9,6 +9,7 @@ import { minoristaTransactionService } from '@/services/MinoristaTransactionServ
 import { DI } from '@/di'
 import { Minorista } from '@/entities/Minorista'
 import { MinoristaTransaction } from '@/entities/MinoristaTransaction'
+import { logger } from '@/lib/logger'
 
 export const minoristaRouter = express.Router()
 
@@ -253,14 +254,14 @@ minoristaRouter.get(
       })
 
       if ('error' in result) {
-        console.error(`[API] Error fetching transactions: ${result.error}`)
+        logger.error({ error: result.error }, `[API] Error fetching transactions`)
         return res.status(404).json(ApiResponse.notFound('Minorista', minoristaId))
       }
 
       const transactions = result.transactions
       const total = result.total
 
-      console.log(`[API] Found ${transactions.length} transactions (Total: ${total}) for minorista ${minoristaId}`)
+      logger.info(`[API] Found ${transactions.length} transactions (Total: ${total}) for minorista ${minoristaId}`)
 
       if (transactions.length === 0) {
         return res.json(
@@ -285,7 +286,7 @@ minoristaRouter.get(
         }
       )
 
-      console.log(`[API] Refetched ${fullTransactions.length} full transactions`)
+      logger.info(`[API] Refetched ${fullTransactions.length} full transactions`)
 
       res.json(
         ApiResponse.success({
@@ -318,7 +319,7 @@ minoristaRouter.get(
         })
       )
     } catch (error) {
-      console.error('Error fetching transactions:', error)
+      logger.error({ error }, 'Error fetching transactions')
       res.status(500).json(ApiResponse.serverError())
     }
   }

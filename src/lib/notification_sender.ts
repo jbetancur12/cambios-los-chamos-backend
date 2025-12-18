@@ -1,4 +1,5 @@
 import admin from './admin_init'
+import { logger } from './logger'
 import { DI } from '@/di' // Asumo que tienes la inyección de dependencias global configurada
 import { UserFcmToken } from '@/entities/UserFcmToken'
 import { FRONTEND_URL } from '@/settings'
@@ -20,11 +21,11 @@ async function getFcmTokensByUserId(userId: string): Promise<string[]> {
     // Extrae solo el valor del token (fcmToken) en un array de strings.
     const tokens = tokenRecords.map((r) => r.fcmToken)
 
-    console.log(`[FCM-DB] Encontrados ${tokens.length} token(s) para el usuario ${userId}.`)
+    logger.debug(`[FCM-DB] Encontrados ${tokens.length} token(s) para el usuario ${userId}.`)
 
     return tokens
   } catch (error) {
-    console.error(`[FCM-DB] Error al buscar tokens para el usuario ${userId}:`, error)
+    logger.error({ error }, `[FCM-DB] Error al buscar tokens para el usuario ${userId}`)
     return []
   }
 }
@@ -35,14 +36,14 @@ export async function sendGiroAssignedNotification(
   amountBs: number,
   executionType: string = 'Giro'
 ): Promise<void> {
-  console.log(`[FCM-SENDER] Iniciando envío de notificación a usuario ${userId}`)
+  logger.info(`[FCM-SENDER] Iniciando envío de notificación a usuario ${userId}`)
   const fcmTokens = await getFcmTokensByUserId(userId)
 
+  // Omitido: No se encontraron tokens
   if (fcmTokens.length === 0) {
-    console.warn(`[FCM-SENDER] No se encontraron tokens para el usuario ${userId}. Notificación omitida.`)
     return
   }
-  console.log(`[FCM-SENDER] Se enviará a ${fcmTokens.length} tokens.`)
+  logger.info(`[FCM-SENDER] Se enviará a ${fcmTokens.length} tokens.`)
 
   const title = executionType === 'PAGO_MOVIL' ? '💸 Nuevo Pago Móvil' : `💸 Nuevo ${executionType} Asignado`
 
@@ -78,7 +79,7 @@ export async function sendGiroAssignedNotification(
 
   try {
     const response = await admin.messaging().sendEachForMulticast(message)
-    console.log(`[FCM] ${response.successCount} enviadas, ${response.failureCount} fallidas`)
+    logger.info(`[FCM] ${response.successCount} enviadas, ${response.failureCount} fallidas`)
 
     const toDelete: string[] = []
 
@@ -93,11 +94,12 @@ export async function sendGiroAssignedNotification(
           code === 'messaging/registration-token-not-registered' ||
           code === 'messaging/unregistered'
         ) {
-          console.warn(`[FCM-CLEANUP] Token inválido detectado (${code}). Se eliminará.`)
+          // SILENCED: User requested to remove this log
+          // logger.warn(`[FCM-CLEANUP] Token inválido detectado (${code}). Se eliminará.`)
           toDelete.push(fcmTokens[i])
         } else {
           // Otros errores reales
-          console.error(`[FCM-ERROR] Error enviando a token ${fcmTokens[i].substring(0, 10)}...:`, code, msg)
+          logger.error({ code, msg }, `[FCM-ERROR] Error enviando a token ${fcmTokens[i].substring(0, 10)}...`)
         }
       }
     })
@@ -105,7 +107,7 @@ export async function sendGiroAssignedNotification(
       await removeInvalidTokens(toDelete)
     }
   } catch (error) {
-    console.error(`[FCM] ERROR CRÍTICO al enviar el lote de notificaciones:`, error)
+    logger.error({ error }, `[FCM] ERROR CRÍTICO al enviar el lote de notificaciones`)
     throw error
   }
 }
@@ -116,8 +118,8 @@ async function removeInvalidTokens(tokens: string[]): Promise<void> {
   try {
     await tokenRepo.nativeDelete({ fcmToken: { $in: tokens } })
     await DI.em.flush()
-    console.log(`[FCM-CLEANUP] ${tokens.length} tokens eliminados con éxito.`)
+    logger.info(`[FCM-CLEANUP] ${tokens.length} tokens eliminados con éxito.`)
   } catch (error) {
-    console.error('[FCM-CLEANUP] Error al eliminar tokens inválidos:', error)
+    logger.error({ error }, '[FCM-CLEANUP] Error al eliminar tokens inválidos')
   }
 }

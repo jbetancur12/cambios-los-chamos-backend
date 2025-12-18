@@ -3,6 +3,7 @@ import config from './mikro-orm.config'
 import { Minorista } from './entities/Minorista'
 import { MinoristaTransaction, MinoristaTransactionType } from './entities/MinoristaTransaction'
 import * as dotenv from 'dotenv'
+import { logger } from './lib/logger'
 
 dotenv.config()
 
@@ -15,19 +16,19 @@ async function checkBalance() {
     const minorista = await em.findOne(Minorista, { user: { email: 'orligginau@gmail.com' } }, { populate: ['user'] })
 
     if (!minorista) {
-      console.log('❌ Minorista not found')
+      logger.warn('❌ Minorista not found')
       return
     }
 
-    console.log(`Checking balance for: ${minorista.user.fullName} (${minorista.id})`)
-    console.log(`Current DB Balance (creditBalance): ${minorista.creditBalance}`)
-    console.log(`Current DB Available Credit: ${minorista.availableCredit}`)
-    console.log(`Credit Limit: ${minorista.creditLimit}`)
+    logger.info(`Checking balance for: ${minorista.user.fullName} (${minorista.id})`)
+    logger.info(`Current DB Balance (creditBalance): ${minorista.creditBalance}`)
+    logger.info(`Current DB Available Credit: ${minorista.availableCredit}`)
+    logger.info(`Credit Limit: ${minorista.creditLimit}`)
 
     // Fetch ALL transactions
     const transactions = await em.find(MinoristaTransaction, { minorista: minorista.id })
 
-    console.log(`Found ${transactions.length} transactions.`)
+    logger.info(`Found ${transactions.length} transactions.`)
 
     let calculatedDebt = 0
 
@@ -101,15 +102,15 @@ async function checkBalance() {
 
     const netDebtCalculated = totalDiscounts - totalProfits - totalRecharges - totalRefunds
 
-    console.log('--- Calculation ---')
-    console.log(`Total Discounts (Raw): ${totalDiscounts}`)
-    console.log(`Total Profits: ${totalProfits}`)
-    console.log(`Total Recharges: ${totalRecharges}`)
-    console.log(`Total Refunds: ${totalRefunds}`)
-    console.log(`Calculated Net Debt: ${netDebtCalculated}`)
-    console.log(`Diff (DB - Calculated): ${minorista.creditBalance - netDebtCalculated}`)
+    logger.info('--- Calculation ---')
+    logger.info(`Total Discounts (Raw): ${totalDiscounts}`)
+    logger.info(`Total Profits: ${totalProfits}`)
+    logger.info(`Total Recharges: ${totalRecharges}`)
+    logger.info(`Total Refunds: ${totalRefunds}`)
+    logger.info(`Calculated Net Debt: ${netDebtCalculated}`)
+    logger.info(`Diff (DB - Calculated): ${minorista.creditBalance - netDebtCalculated}`)
   } catch (err) {
-    console.error('❌ Error:', err)
+    logger.error({ error: err }, '❌ Error')
   } finally {
     await orm.close()
   }

@@ -1,27 +1,31 @@
 import { initDI, DI } from '@/di'
-import { MinoristaTransaction } from '@/entities/MinoristaTransaction'
+import { logger } from '../lib/logger'
 
-async function deleteTransaction() {
+const deleteTransaction = async () => {
   await initDI()
   const em = DI.orm.em.fork()
 
-  // Replace this ID with the one you want to delete
-  const txId = 'e591e043-d40f-44ad-99b8-e76358bf5d1a'
-
   try {
-    const tx = await em.findOne(MinoristaTransaction, { id: txId })
+    const txId = '123' // Replace with actual ID
+
+    // Using DI.minoristaTransactions if available or via EM
+    // Assuming DI.minoristaTransactions exists from other scripts
+    // If not, use em.getRepository
+    // Let's use DI.em.getRepository('MinoristaTransaction') safely
+
+    const repo = DI.em.getRepository('MinoristaTransaction') as any // Cast to avoid typed entity issues if needed
+    const tx = await repo.findOne(txId)
 
     if (!tx) {
-      console.log(`Transaction ${txId} not found.`)
+      logger.warn(`Transaction ${txId} not found.`)
       return
     }
 
-    console.log(`Deleting Transaction: ${tx.id} | Type: ${tx.type} | Amount: ${tx.amount}`)
-
+    logger.info(`Deleting Transaction: ${tx.id} | Type: ${tx.type} | Amount: ${tx.amount}`)
     await em.removeAndFlush(tx)
-    console.log('Transaction deleted successfully.')
+    logger.info('Transaction deleted successfully.')
   } catch (error) {
-    console.error('Error deleting transaction:', error)
+    logger.error({ error }, 'Error deleting transaction')
   } finally {
     await DI.orm.close()
   }

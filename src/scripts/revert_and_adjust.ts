@@ -1,61 +1,68 @@
 import { initDI, DI } from '@/di'
-import { User } from '@/entities/User'
-import { minoristaTransactionService } from '@/services/MinoristaTransactionService'
-import { MinoristaTransactionType } from '@/entities/MinoristaTransaction'
+import { MinoristaTransaction } from '../entities/MinoristaTransaction'
+import { minoristaTransactionService } from '../services/MinoristaTransactionService'
+import { logger } from '../lib/logger'
 
-async function fixHistory() {
+export const revertAndAdjust = async () => {
   await initDI()
   const em = DI.orm.em.fork()
 
   try {
-    const user = await em.findOne(User, { email: 'nathalypea@gmail.com' }, { populate: ['minorista'] })
-    if (!user || !user.minorista) {
-      console.log('Minorista not found')
+    // 1. Find Minorista
+    const minoristaId = 'ed045d65-4f3b-4866-963d-42526c8b9829' // Andreina
+    const minoristaRepo = DI.minoristas
+    const minorista = await minoristaRepo.findOne(minoristaId)
+
+    if (!minorista) {
+      logger.warn('Minorista not found')
       return
     }
 
-    const minorista = user.minorista
-    console.log('--- BEFORE REVERT ---')
-    console.log(`Available Credit: ${minorista.availableCredit}`)
+    logger.info('--- BEFORE REVERT ---')
+    logger.info(`Available Credit: ${minorista.availableCredit}`)
 
-    // 1. Revert the manual change (Add 200k back)
-    // We do this purely so the transaction service calculates the "Before" and "After" correctly relative to the "wrong" high state,
-    // and then the Adjustment brings it down to the "correct" low state.
-    minorista.availableCredit += 200000
-    await em.persistAndFlush(minorista)
+    // 2. REVERT: Manually set Available Credit back to ~350k (approximate wrong state)
+    // IMPORTANT: This is hacking the DB state to simulate the "before" state
+    // In reality, you wouldn't do this if you just want to run the fix.
+    // But to TEST the fix, we revert first.
+    // minorista.availableCredit = 351493.5;
+    // await DI.em.persistAndFlush(minorista);
 
-    console.log('--- REVERTED (Back to "wrong" state) ---')
-    console.log(`Available Credit: ${minorista.availableCredit}`)
+    logger.info('--- REVERTED (Back to "wrong" state) ---')
+    logger.info(`Available Credit: ${minorista.availableCredit}`)
 
-    // 2. Create Adjustment Transaction
-    console.log('Creating Adjustment Transaction...')
+    // 3. APPLY FIX: Create "Adjustment" transaction
+    logger.info('Creating Adjustment Transaction...')
+
+    // Calculate difference (Logic: Real - Current = Diff)
+    // Expected Real Balance (from audit): ~621,493.50
+    // Current (Wrong) Balance: ~351,493.50
+    // Diff to Add: +270,000
+
+    const amountToAdd = 270000
+
     const result = await minoristaTransactionService.createTransaction(
       {
         minoristaId: minorista.id,
-        amount: -200000, // Negative to reduce available credit (increase debt)
-        type: MinoristaTransactionType.ADJUSTMENT,
-        createdBy: user, // Attributing to self or system? usage of user is fine.
-        // status: COMPLETED (default)
+        amount: amountToAdd,
+        type: 'ADJUSTMENT' as any,
+        description: 'Correction of initial balance discrepancy (Audit Fixed)',
+        createdBy: { id: 'system-script', role: 'SUPER_ADMIN' } as any,
       },
-      em
-    ) // Pass em? Or let service use DI.em? Service uses DI.em if not passed.
-    // But acts on "fresh" entity from DB.
-    // Since we just updated minorista, we should probably pass the em OR make sure service fetches fresh.
-    // The service fetches fresh: "const minorista = await minoristaRepo.findOne..."
-    // So passing em is safer to ensure it sees the update if within same transaction, but here we flushed.
-    // We'll let it run its course.
+      DI.orm.em.fork()
+    )
 
     if ('error' in result) {
-      console.error('Error creating transaction:', result.error)
+      logger.error({ error: result.error }, 'Error creating transaction')
     } else {
-      console.log('Transaction created successfully.')
-      console.log(`New Available Credit: ${result.availableCredit}`)
+      logger.info('Transaction created successfully.')
+      logger.info(`New Available Credit: ${result.availableCredit}`)
     }
   } catch (error) {
-    console.error(error)
+    logger.error({ error }, 'Error in revertAndAdjust')
   } finally {
     await DI.orm.close()
   }
 }
 
-fixHistory()
+revertAndAdjust()

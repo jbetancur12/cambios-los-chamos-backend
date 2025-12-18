@@ -2,6 +2,7 @@ import { Request, Response, Router } from 'express'
 // Importamos directamente el servicio singleton
 import { notificationService } from '../services/NotificationService'
 import { ApiResponse } from '@/lib/apiResponse'
+import { logger } from '@/lib/logger'
 
 export const notificationRouter = Router()
 
@@ -22,7 +23,7 @@ notificationRouter.post('/save-token', async (req: Request, res: Response) => {
     return res.status(200).json(ApiResponse.success({ message: 'Token de FCM guardado/actualizado correctamente.' }))
   } catch (error) {
     // Manejo de errores (ej. si el usuario no existe en la DB)
-    console.error('Error en el endpoint /api/fcm/save-token:', error)
+    logger.error({ error }, 'Error en el endpoint /api/fcm/save-token')
 
     // Si es un error conocido (como usuario no encontrado)
     if (error instanceof Error && error.message.includes('Usuario no válido')) {

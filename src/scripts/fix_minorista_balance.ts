@@ -2,6 +2,7 @@ import { initDI, DI } from '../di'
 import { User } from '../entities/User'
 import { Minorista } from '../entities/Minorista'
 import { MinoristaTransaction, MinoristaTransactionType } from '../entities/MinoristaTransaction'
+import { logger } from '../lib/logger'
 
 async function run() {
   try {
@@ -14,31 +15,31 @@ async function run() {
     DI.minoristas = em.getRepository(Minorista) as any
     DI.minoristaTransactions = em.getRepository(MinoristaTransaction) as any
 
-    console.log('--- STARTING BALANCE FIX SCRIPT ---')
+    logger.info('--- STARTING BALANCE FIX SCRIPT ---')
 
     const email = 'andreinacampos0510@gmail.com' // The user reported this email
     const user = await em.findOne(User, { email })
 
     if (!user) {
-      console.error(`User with email ${email} not found.`)
+      logger.error(`User with email ${email} not found.`)
       return
     }
 
     const minorista = await em.findOne(Minorista, { user })
     if (!minorista) {
-      console.error(`Minorista profile not found for user ${email}.`)
+      logger.error(`Minorista profile not found for user ${email}.`)
       return
     }
 
-    console.log(`Checking Minorista: ${user.fullName} (${user.email})`)
-    console.log(
+    logger.info(`Checking Minorista: ${user.fullName} (${user.email})`)
+    logger.info(
       `Current State: CreditLimit=${minorista.creditLimit}, Available=${minorista.availableCredit}, CreditBalance=${minorista.creditBalance}`
     )
 
     // Fetch all transactions ordered by date
     const transactions = await em.find(MinoristaTransaction, { minorista }, { orderBy: { createdAt: 'ASC' } })
 
-    console.log(`Found ${transactions.length} transactions.`)
+    logger.info(`Found ${transactions.length} transactions.`)
 
     // Replay transactions
     // We need to know the initial state.
@@ -57,7 +58,7 @@ async function run() {
     // Let's look at the transactions.
 
     for (const t of transactions) {
-      console.log(`Tx ${t.id} (${t.type}): Amount=${t.amount}, Profit=${t.profitEarned}`)
+      logger.info(`Tx ${t.id} (${t.type}): Amount=${t.amount}, Profit=${t.profitEarned}`)
 
       // We can either trust the transaction's stored "availableCredit" (if it was calculated correctly in memory)
       // or recalculate it.
@@ -69,29 +70,29 @@ async function run() {
 
     if (transactions.length > 0) {
       const lastTx = transactions[transactions.length - 1]
-      console.log(
+      logger.info(
         `Last Transaction Stored State: Available=${lastTx.availableCredit}, CreditBalance=${lastTx.currentBalanceInFavor}`
       )
 
       if (Math.abs(lastTx.availableCredit - minorista.availableCredit) > 1) {
-        console.log(
+        logger.info(
           `MISMATCH DETECTED! Minorista entity has ${minorista.availableCredit}, but last transaction says ${lastTx.availableCredit}.`
         )
 
-        console.log('Fixing Minorista entity...')
+        logger.info('Fixing Minorista entity...')
         minorista.availableCredit = lastTx.availableCredit
         minorista.creditBalance = lastTx.currentBalanceInFavor || 0
 
         await em.persistAndFlush(minorista)
-        console.log('FIX APPLIED.')
+        logger.info('FIX APPLIED.')
       } else {
-        console.log('No mismatch detected. The balance seems consistent with the last transaction.')
+        logger.info('No mismatch detected. The balance seems consistent with the last transaction.')
       }
     } else {
-      console.log('No transactions found. Cannot recalculate.')
+      logger.info('No transactions found. Cannot recalculate.')
     }
   } catch (error) {
-    console.error('Unexpected error:', error)
+    logger.error({ error }, 'Unexpected error')
   } finally {
     await DI.orm.close()
   }

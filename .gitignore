@@ -7,3 +7,4 @@ temp/
 # Artillery Reports
 artillery_report*.json
 stress_test_report.html
+logs/

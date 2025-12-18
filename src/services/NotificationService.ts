@@ -4,6 +4,7 @@ import { User } from '../entities/User'
 import { UserFcmToken } from '@/entities/UserFcmToken'
 // Importamos la inyección de dependencias global de tu proyecto
 import { DI } from '@/di'
+import { logger } from '@/lib/logger'
 
 /**
  * Servicio encargado de gestionar el registro y actualización de tokens FCM
@@ -40,7 +41,7 @@ export class NotificationService {
         }
         // El onUpdate de la entidad actualizará el 'updatedAt'.
         await DI.em.persistAndFlush(tokenRecord)
-        console.log(`[FCM] Token ${fcmToken} existente, marca de tiempo actualizada para userId: ${userId}.`)
+        logger.info(`[FCM] Token ${fcmToken} existente, marca de tiempo actualizada para userId: ${userId}.`)
         return
       }
 
@@ -53,10 +54,10 @@ export class NotificationService {
       })
 
       await DI.em.persistAndFlush(newToken)
-      console.log(`[FCM] Nuevo token guardado para el usuario: ${userId}`)
+      logger.info(`[FCM] Nuevo token guardado para el usuario: ${userId}`)
     } catch (error) {
       // Si el usuario no se encuentra (findOneOrFail falla)
-      console.error(`[FCM] Error al guardar token: Usuario ${userId} no encontrado o error de DB.`, error)
+      logger.error({ error }, `[FCM] Error al guardar token: Usuario ${userId} no encontrado o error de DB.`)
       throw new Error('Usuario no válido o error de base de datos.')
     }
   }
@@ -76,7 +77,7 @@ export class NotificationService {
     const tokens = await userFcmTokenRepo.find({ user: userId })
 
     if (tokens.length === 0) {
-      console.log(`[FCM] No hay tokens registrados para el usuario ${userId}`)
+      logger.info(`[FCM] No hay tokens registrados para el usuario ${userId}`)
       return
     }
 
@@ -96,7 +97,7 @@ export class NotificationService {
       // Por ahora asumimos que la configuración está, o usamos default creds
       // Ojo: Si no está inicializado, fallará.
       // TODO: Verificar dónde se inicializa firebase-admin.
-      console.warn('[FCM] Firebase Admin no parece estar inicializado. Intentando inicializar...')
+      logger.warn('[FCM] Firebase Admin no parece estar inicializado. Intentando inicializar...')
       try {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const serviceAccount = require('../../lib/firebase-admin-key.json')
@@ -108,7 +109,7 @@ export class NotificationService {
         try {
           admin.initializeApp()
         } catch (err) {
-          console.error('[FCM] Error inicializando Firebase Admin:', err)
+          logger.error({ err }, '[FCM] Error inicializando Firebase Admin')
           return
         }
       }
@@ -125,7 +126,7 @@ export class NotificationService {
 
     try {
       const response = await admin.messaging().sendEachForMulticast(message)
-      console.log(
+      logger.info(
         `[FCM] Notificación enviada a usuario ${userId}: ${response.successCount} éxitos, ${response.failureCount} fallos.`
       )
 
@@ -139,7 +140,7 @@ export class NotificationService {
               // Eliminar token inválido
               // Necesitamos hacer esto en un fork o algo para no bloquear, pero aquí está bien.
               // Como estamos a mitad de ejecución, tal vez mejor solo loguear por ahora
-              console.log(`[FCM] Token inválido detectado para borrar: ${registrationTokens[idx]}`)
+              logger.info(`[FCM] Token inválido detectado para borrar: ${registrationTokens[idx]}`)
             }
           }
         })
@@ -147,11 +148,11 @@ export class NotificationService {
         // Eliminar tokens inválidos de la DB
         if (failedTokens.length > 0) {
           await DI.em.nativeDelete(UserFcmToken, { fcmToken: { $in: failedTokens } })
-          console.log(`[FCM] Eliminados ${failedTokens.length} tokens inválidos.`)
+          logger.info(`[FCM] Eliminados ${failedTokens.length} tokens inválidos.`)
         }
       }
     } catch (error) {
-      console.error('[FCM] Error enviando multicast:', error)
+      logger.error({ error }, '[FCM] Error enviando multicast')
     }
   }
 }

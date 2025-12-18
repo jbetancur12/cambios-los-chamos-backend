@@ -4,6 +4,7 @@ import { UserRole } from '@/entities/User'
 import { DI } from '@/di'
 import { ApiResponse } from '@/lib/apiResponse'
 import { RechargeOperator } from '@/entities/RechargeOperator'
+import { logger } from '@/lib/logger'
 
 const router = Router()
 
@@ -16,7 +17,7 @@ router.get('/', requireAuth(), async (req: Request, res: Response) => {
     const operators = await DI.rechargeOperators.find({ isActive: true })
     res.json(ApiResponse.success(operators))
   } catch (error) {
-    console.error('Error fetching recharge operators:', error)
+    logger.error({ error }, 'Error fetching recharge operators')
     res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -33,7 +34,7 @@ router.get(
       const operators = await DI.rechargeOperators.findAll()
       res.json(ApiResponse.success(operators))
     } catch (error) {
-      console.error('Error fetching all recharge operators:', error)
+      logger.error({ error }, 'Error fetching all recharge operators')
       res.status(500).json(ApiResponse.serverError())
     }
   }
@@ -64,7 +65,7 @@ router.post(
       await DI.em.persistAndFlush(operator)
       res.status(201).json(ApiResponse.success(operator))
     } catch (error) {
-      console.error('Error creating recharge operator:', error)
+      logger.error({ error }, 'Error creating recharge operator')
       res.status(500).json(ApiResponse.serverError())
     }
   }
@@ -97,7 +98,7 @@ router.put(
       await DI.em.persistAndFlush(operator)
       res.json(ApiResponse.success(operator))
     } catch (error) {
-      console.error('Error updating recharge operator:', error)
+      logger.error({ error }, 'Error updating recharge operator')
       res.status(500).json(ApiResponse.serverError())
     }
   }
@@ -127,7 +128,7 @@ router.delete(
 
       res.json(ApiResponse.success({ message: 'Operator deactivated' }))
     } catch (error) {
-      console.error('Error deleting recharge operator:', error)
+      logger.error({ error }, 'Error deleting recharge operator')
       res.status(500).json(ApiResponse.serverError())
     }
   }

@@ -7,9 +7,7 @@ const startServer = async () => {
     logger.info('Iniciando servidor Express...')
     await startExpressServer()
   } catch (error) {
-    console.error('🔥 Error detallado al iniciar el servidor Express:')
-    console.error(error)
-    logger.error({ error }, 'Error al iniciar el servidor Express')
+    logger.error({ error }, '🔥 Error detallado al iniciar el servidor Express:')
     process.exit(1)
   }
 }

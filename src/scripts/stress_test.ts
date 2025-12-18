@@ -7,14 +7,15 @@ import { Bank } from '../entities/Bank'
 import { ExchangeRate } from '../entities/ExchangeRate'
 import { Currency } from '../entities/Bank'
 import { ExecutionType } from '../entities/Giro'
+import { logger } from '../lib/logger'
 
 async function runStressTest() {
-  console.log('Initializing DI...')
+  logger.info('Initializing DI...')
   await initDI()
   const em = DI.orm.em.fork()
 
   try {
-    console.log('Setting up test data...')
+    logger.info('Setting up test data...')
 
     // 1. Find Test User (Jesús Segura)
     const user = await em.findOne(User, { fullName: 'Jesús Segura' })
@@ -25,10 +26,10 @@ async function runStressTest() {
     if (!minorista) throw new Error('Minorista profile not found')
 
     // 3. Ensure sufficient credit
-    console.log(`Current Available Credit: ${minorista.availableCredit}`)
+    logger.info(`Current Available Credit: ${minorista.availableCredit}`)
     minorista.availableCredit = 100000000 // Give plenty of credit
     await em.persistAndFlush(minorista)
-    console.log('Updated Available Credit to 100,000,000 for testing')
+    logger.info('Updated Available Credit to 100,000,000 for testing')
 
     // 4. Find a Bank
     const bank = await em.findOne(Bank, { name: 'BANESCO' })
@@ -39,7 +40,7 @@ async function runStressTest() {
     let rate = rates[0]
 
     if (!rate) {
-      console.log('No exchange rate found. Creating default rate...')
+      logger.info('No exchange rate found. Creating default rate...')
       // @ts-ignore
       rate = em.create(ExchangeRate, {
         buyRate: 3800,
@@ -69,7 +70,7 @@ async function runStressTest() {
 
     // 7. Run Stress Test
     const CONCURRENCY = 50
-    console.log(`Starting stress test with ${CONCURRENCY} concurrent requests...`)
+    logger.info(`Starting stress test with ${CONCURRENCY} concurrent requests...`)
 
     const startTime = Date.now()
     const promises = []
@@ -99,24 +100,24 @@ async function runStressTest() {
       } else {
         failCount++
         if (r.status === 'rejected') {
-          console.error('Request failed:', r.reason)
+          logger.error({ reason: r.reason }, 'Request failed')
           if (r.reason instanceof Error) {
-            console.error('Error stack:', r.reason.stack)
+            logger.error(r.reason.stack)
           }
         }
-        if (r.status === 'fulfilled' && 'error' in r.value) console.error('Request error:', r.value.error)
+        if (r.status === 'fulfilled' && 'error' in r.value) logger.error({ error: r.value.error }, 'Request error')
       }
     })
 
-    console.log('------------------------------------------------')
-    console.log(`Stress Test Completed in ${duration.toFixed(2)} seconds`)
-    console.log(`Total Requests: ${CONCURRENCY}`)
-    console.log(`Successful: ${successCount}`)
-    console.log(`Failed: ${failCount}`)
-    console.log(`Requests per second: ${(CONCURRENCY / duration).toFixed(2)}`)
-    console.log('------------------------------------------------')
+    logger.info('------------------------------------------------')
+    logger.info(`Stress Test Completed in ${duration.toFixed(2)} seconds`)
+    logger.info(`Total Requests: ${CONCURRENCY}`)
+    logger.info(`Successful: ${successCount}`)
+    logger.info(`Failed: ${failCount}`)
+    logger.info(`Requests per second: ${(CONCURRENCY / duration).toFixed(2)}`)
+    logger.info('------------------------------------------------')
   } catch (error) {
-    console.error('Stress test failed:', error)
+    logger.error({ error }, 'Stress test failed')
   } finally {
     await DI.orm.close()
   }

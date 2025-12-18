@@ -3,6 +3,7 @@
 import { User } from '@/entities/User'
 import { UserFcmToken } from '@/entities/UserFcmToken'
 import { EntityManager } from '@mikro-orm/core'
+import { logger } from '@/lib/logger'
 
 // ... (asume que tienes acceso al EntityManager, 'em')
 
@@ -12,7 +13,7 @@ export const saveToken = async (em: EntityManager, userId: string, fcmToken: str
 
   if (tokenRecord) {
     // El token ya existe: Solo actualizamos la marca de tiempo (o no hacemos nada)
-    console.log('Token ya existe, actualización omitida.')
+    logger.info('Token ya existe, actualización omitida.')
     // Si el user_id hubiera cambiado, lo actualizaríamos aquí, pero no debería pasar.
     return
   }
@@ -31,5 +32,5 @@ export const saveToken = async (em: EntityManager, userId: string, fcmToken: str
   })
 
   await em.persistAndFlush(tokenRecord)
-  console.log(`Nuevo token guardado para el usuario: ${userId}`)
+  logger.info(`Nuevo token guardado para el usuario: ${userId}`)
 }

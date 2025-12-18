@@ -4,6 +4,7 @@ import { User } from '@/entities/User'
 import { Transferencista } from '@/entities/Transferencista'
 import { BankAccount, BankAccountOwnerType } from '@/entities/BankAccount'
 import { Bank } from '@/entities/Bank'
+import { logger } from '@/lib/logger'
 
 // Mapeo de transferencistas a sus cuentas.
 // NOTA: Los 'accountHolder' deben ser el nombre legal del titular.
@@ -42,7 +43,7 @@ const realBankAccountsData = [
 
 export class RealTransferencistaBankAccountsSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    console.log('Iniciando RealTransferencistaBankAccountsSeeder...')
+    logger.info('Iniciando RealTransferencistaBankAccountsSeeder...')
 
     // Asumimos que la entidad Bank existe para estos nombres
     const bankNames = new Set(realBankAccountsData.flatMap((d) => d.banks.map((b) => b.bankName)))
@@ -54,7 +55,7 @@ export class RealTransferencistaBankAccountsSeeder extends Seeder {
       const user = await em.findOne(User, { email: data.transferencistaEmail })
 
       if (!user) {
-        console.warn(
+        logger.warn(
           `Usuario no encontrado para el email: ${data.transferencistaEmail}. Omitiendo la creación de cuentas.`
         )
         continue
@@ -64,7 +65,7 @@ export class RealTransferencistaBankAccountsSeeder extends Seeder {
       const transferencista = await em.findOne(Transferencista, { user })
 
       if (!transferencista) {
-        console.warn(
+        logger.warn(
           `Entidad Transferencista no encontrada para el usuario: ${data.transferencistaEmail}. Omitiendo la creación de cuentas.`
         )
         continue
@@ -75,7 +76,7 @@ export class RealTransferencistaBankAccountsSeeder extends Seeder {
         const bank = bankMap.get(bankData.bankName)
 
         if (!bank) {
-          console.error(
+          logger.error(
             `ERROR: El banco con nombre "${bankData.bankName}" NO existe en la base de datos. Omitiendo la cuenta.`
           )
           continue
@@ -92,11 +93,11 @@ export class RealTransferencistaBankAccountsSeeder extends Seeder {
           updatedAt: new Date(),
         })
         em.persist(bankAccount)
-        console.log(`Cuenta creada para ${data.fullName}: ${bankData.bankName}`)
+        logger.info(`Cuenta creada para ${data.fullName}: ${bankData.bankName}`)
       }
     }
 
     await em.flush()
-    console.log('RealTransferencistaBankAccountsSeeder finalizado.')
+    logger.info('RealTransferencistaBankAccountsSeeder finalizado.')
   }
 }

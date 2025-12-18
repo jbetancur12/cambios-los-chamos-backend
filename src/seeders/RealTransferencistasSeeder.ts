@@ -3,6 +3,7 @@ import { Seeder } from '@mikro-orm/seeder'
 import { User, UserRole } from '@/entities/User'
 import { Transferencista } from '@/entities/Transferencista'
 import { makePassword } from '@/lib/passwordUtils'
+import { logger } from '@/lib/logger'
 
 // Datos de los transferencistas reales
 const realTransferencistasData = [
@@ -14,7 +15,7 @@ export class RealTransferencistasSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     const defaultPassword = makePassword('12345678')
 
-    console.log('Iniciando RealTransferencistasSeeder...')
+    logger.info('Iniciando RealTransferencistasSeeder...')
 
     for (const data of realTransferencistasData) {
       // 1. Verificar si el usuario ya existe
@@ -42,14 +43,14 @@ export class RealTransferencistasSeeder extends Seeder {
           giros: [],
         })
         em.persist(transferencista)
-        console.log(`Transferencista creado: ${data.fullName} (${data.email})`)
+        logger.info(`Transferencista creada: ${data.fullName} (${data.email})`)
       } else {
-        console.log(`Usuario ya existe, omitiendo: ${data.email}`)
+        logger.info(`Usuario ya existe, omitiendo: ${data.email}`)
       }
     }
 
     // Guardar todos los cambios
     await em.flush()
-    console.log('RealTransferencistasSeeder finalizado.')
+    logger.info('RealTransferencistasSeeder finalizado.')
   }
 }

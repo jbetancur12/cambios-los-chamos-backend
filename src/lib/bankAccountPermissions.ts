@@ -45,8 +45,6 @@ export const canExecuteGiroWithAccount = (bankAccount: BankAccount, executingUse
       return false
     }
 
-    console.log('---------')
-
     const transferencista = executingUser.transferencista
 
     if (!transferencista || transferencista.id !== bankAccount.transferencista?.id) {

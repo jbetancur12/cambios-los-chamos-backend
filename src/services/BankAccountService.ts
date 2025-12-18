@@ -4,6 +4,7 @@ import { Transferencista } from '@/entities/Transferencista'
 import { Bank } from '@/entities/Bank'
 import { User } from '@/entities/User'
 import { canAccessBankAccount } from '@/lib/bankAccountPermissions'
+import { logger } from '@/lib/logger'
 
 export interface CreateBankAccountInput {
   bankId: string
@@ -30,7 +31,7 @@ export class BankAccountService {
     const bankRepo = DI.em.getRepository(Bank)
 
     const bank = await bankRepo.findOne({ id: data.bankId })
-    console.log('🚀 ~ BankAccountService ~ createBankAccount ~ bank:', bank)
+    logger.info({ bank }, 'BankAccountService createBankAccount bank')
     if (!bank) {
       return { error: 'BANK_NOT_FOUND' }
     }
@@ -70,7 +71,7 @@ export class BankAccountService {
 
       return newBankAccount
     } catch (e) {
-      console.error('Error detallado al crear cuenta:', e)
+      logger.error({ error: e }, 'Error detallado al crear cuenta')
       throw e
     }
   }

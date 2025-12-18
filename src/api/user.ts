@@ -16,6 +16,7 @@ import { userService } from '@/services/UserService'
 import { validateParams } from '@/lib/validateParams'
 import { IS_DEVELOPMENT } from '@/settings'
 import { posthogCapture } from '@/lib/posthogUtils'
+import { logger } from '@/lib/logger'
 
 export const userRouter = express.Router({ mergeParams: true })
 
@@ -37,9 +38,8 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
     // - secure: true in production (HTTPS), false in development (HTTP)
     // - httpOnly: true prevents JavaScript access (security)
     // This works for:
-    //   - Cloudflare tunnels (same domain for frontend/backend)
     //   - LocalHost development (same domain, different ports)
-    console.log('[LOGIN] Setting cookie with secure:', !IS_DEVELOPMENT, 'sameSite: lax')
+    logger.info({ secure: !IS_DEVELOPMENT, sameSite: 'lax' }, '[LOGIN] Setting cookie')
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: !IS_DEVELOPMENT, // true in production (HTTPS), false in development (HTTP)
@@ -81,7 +81,7 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
       return res.status(403).json(ApiResponse.accountInactive())
     }
     // Cualquier otro error
-    console.error('Error en login:', error)
+    logger.error({ error }, 'Error en login')
     return res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -217,7 +217,7 @@ userRouter.post('/send-reset-password', validateBody(sendResetPasswordSchema), a
       })
     )
   } catch (err) {
-    console.error(err)
+    logger.error({ err }, 'Error enviar correo reset password')
     return res.status(500).json(ApiResponse.serverError())
   }
 })

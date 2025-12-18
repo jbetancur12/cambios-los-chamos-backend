@@ -8,13 +8,14 @@ import {
   MinoristaTransactionType,
 } from '../entities/MinoristaTransaction'
 import config from '../mikro-orm.config'
+import { logger } from '../lib/logger'
 
 async function reconcileBalances() {
   const orm = await MikroORM.init(config)
   const em = orm.em.fork()
 
   try {
-    console.log('🔍 Buscando minoristas con inconsistencias (Deuda + Saldo a Favor)...')
+    logger.info('🔍 Buscando minoristas con inconsistencias (Deuda + Saldo a Favor)...')
 
     const minoristas = await em.find(Minorista, {}, { populate: ['user'] })
     let fixedCount = 0
@@ -22,7 +23,7 @@ async function reconcileBalances() {
     // Find an admin user for the transaction log
     const adminUser = await em.findOne(User, { role: UserRole.SUPER_ADMIN })
     if (!adminUser) {
-      console.warn('⚠ No se encontró SUPER_ADMIN. Usando el primer usuario encontrado como fallback (solo auditoría).')
+      logger.warn('⚠ No se encontró SUPER_ADMIN. Usando el primer usuario encontrado como fallback (solo auditoría).')
     }
 
     for (const m of minoristas) {
@@ -32,12 +33,12 @@ async function reconcileBalances() {
 
       // Check threshold (avoid floating point noise)
       if (debt > 1 && balanceInFavor > 1) {
-        console.log(`\n⚠ Encontrado: ${m.user.fullName} (${m.user.email})`)
-        console.log(`   - Deuda actual: $${debt.toLocaleString()}`)
-        console.log(`   - Saldo a favor: $${balanceInFavor.toLocaleString()}`)
+        logger.info(`\n⚠ Encontrado: ${m.user.fullName} (${m.user.email})`)
+        logger.info(`   - Deuda actual: $${debt.toLocaleString()}`)
+        logger.info(`   - Saldo a favor: $${balanceInFavor.toLocaleString()}`)
 
         const amountToReconcile = Math.min(debt, balanceInFavor)
-        console.log(`   🛠 Ajustando: Cruzando $${amountToReconcile.toLocaleString()}...`)
+        logger.info(`   🛠 Ajustando: Cruzando $${amountToReconcile.toLocaleString()}...`)
 
         // Capture previous state
         const prevAvailable = m.availableCredit
@@ -72,21 +73,21 @@ async function reconcileBalances() {
         })
 
         fixedCount++
-        console.log(
+        logger.info(
           `   ✅ Corregido. Deuda restante: $${Math.max(0, m.creditLimit - m.availableCredit).toLocaleString()} | Saldo restante: $${m.creditBalance.toLocaleString()}`
         )
       }
     }
 
     if (fixedCount > 0) {
-      console.log(`\n💾 Guardando cambios en ${fixedCount} minoristas...`)
+      logger.info(`\n💾 Guardando cambios en ${fixedCount} minoristas...`)
       await em.flush()
-      console.log('✨ Todo listo.')
+      logger.info('✨ Todo listo.')
     } else {
-      console.log('\n👍 No se encontraron inconsistencias.')
+      logger.info('\n👍 No se encontraron inconsistencias.')
     }
   } catch (error) {
-    console.error('❌ Error:', error)
+    logger.error({ error }, '❌ Error')
   } finally {
     await orm.close()
   }

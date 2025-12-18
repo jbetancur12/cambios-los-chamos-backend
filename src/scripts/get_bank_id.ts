@@ -1,5 +1,6 @@
 import { initDI, DI } from '../di'
 import { Bank } from '../entities/Bank'
+import { logger } from '../lib/logger'
 
 async function run() {
   try {
@@ -7,12 +8,12 @@ async function run() {
     const em = DI.orm.em.fork()
     const bank = await em.findOne(Bank, { name: 'BANESCO' })
     if (bank) {
-      console.log(`BANK_ID:${bank.id}`)
+      logger.info(`BANK_ID:${bank.id}`)
     } else {
-      console.error('Bank not found')
+      logger.error('Bank not found')
     }
   } catch (error) {
-    console.error(error)
+    logger.error(error)
   } finally {
     await DI.orm.close()
   }

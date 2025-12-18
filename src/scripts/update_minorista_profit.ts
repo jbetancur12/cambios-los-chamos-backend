@@ -1,4 +1,5 @@
 import { DI } from '../di'
+import { logger } from '../lib/logger'
 import { MikroORM } from '@mikro-orm/core'
 import config from '../mikro-orm.config'
 import { Minorista } from '../entities/Minorista'
@@ -9,42 +10,59 @@ async function updateMinoristaProfitByName() {
   const em = orm.em.fork()
 
   try {
-    const targetName = 'Jesús Segura'
-    const targetProfit = 0.06
-    const defaultProfit = 0.05
+    const defaultProfit = 0.035 // Default profit for everyone else
 
-    console.log('Starting profit percentage update...')
+    // Define targets for specific profit updates
+    const targets = [
+      { targetName: 'Jesús Segura', targetProfit: 0.06 },
+      { targetName: 'Juan Pérez', targetProfit: 0.05 }, // Example additional target
+      // Add more specific targets here if needed
+    ]
 
-    // 1. Update Jesús Segura
-    const jesusUser = await em.findOne(User, { fullName: targetName })
-    if (jesusUser) {
-      const minorista = await em.findOne(Minorista, { user: jesusUser.id })
-      if (minorista) {
-        console.log(`Found ${targetName}. Updating profit to ${targetProfit}...`)
-        minorista.profitPercentage = targetProfit
-        em.persist(minorista)
+    logger.info('Starting profit percentage update...')
+
+    for (const { targetName, targetProfit } of targets) {
+      if (typeof targetProfit !== 'number') continue
+
+      // 1. Buscar usuario por nombre (exacto o parcial)
+      const user = await DI.users.findOne({ fullName: { $like: `%${targetName}%` } })
+
+      if (user) {
+        // 2. Buscar minorista
+        const minorista = await DI.minoristas.findOne({ user })
+        if (minorista) {
+          logger.info(`Found ${targetName}. Updating profit to ${targetProfit}...`)
+          minorista.profitPercentage = targetProfit
+          await DI.em.persistAndFlush(minorista)
+        } else {
+          logger.warn(`User ${targetName} found but has no Minorista profile.`)
+        }
       } else {
-        console.log(`User ${targetName} found but has no Minorista profile.`)
+        logger.warn(`User ${targetName} not found.`)
       }
-    } else {
-      console.log(`User ${targetName} not found.`)
     }
 
-    // 2. Update everyone else to 0.05 (optional, but requested "everyone else 5%")
-    // This ensures consistency if anyone else was accidentally changed
-    const allMinoristas = await em.find(Minorista, {}, { populate: ['user'] })
+    // Reset others to default? Optional
+    // If you want everyone else to be 3.5, you can iterate all minoristas
+    // and set if not in the target list. Be careful with this.
+
+    // Example reset all others logic (commented out by default)
+    /*
+    const allMinoristas = await DI.minoristas.findAll({ populate: ['user'] });
+    const targetNames = targets.map(t => t.targetName);
     for (const m of allMinoristas) {
-      if (m.user.fullName !== targetName && m.profitPercentage !== defaultProfit) {
-        console.log(`Resetting ${m.user.fullName} to ${defaultProfit}...`)
-        m.profitPercentage = defaultProfit
-        em.persist(m)
+      const isTarget = targetNames.some(name => m.user.fullName.includes(name));
+      if (!isTarget) {
+        logger.info(`Resetting ${m.user.fullName} to ${defaultProfit}...`);
+        m.profitPercentage = defaultProfit;
+        await DI.em.persistAndFlush(m);
       }
     }
+    */
 
-    await em.flush()
-    console.log('Update completed successfully!')
+    logger.info('Update completed successfully!')
   } catch (error) {
-    console.error('Error updating profit percentages:', error)
+    logger.error({ error }, 'Error updating profit percentages')
   } finally {
     await orm.close()
   }

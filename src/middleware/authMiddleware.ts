@@ -3,6 +3,7 @@ import { DI } from '@/di'
 import { UserRole } from '@/entities/User'
 import { Giro } from '@/entities/Giro'
 import { ApiResponse } from '@/lib/apiResponse'
+import { logger } from '@/lib/logger'
 
 /**
  * Verifica que el usuario esté autenticado
@@ -87,7 +88,7 @@ export const requireGiroAccess = () => {
 
       return res.status(403).json(ApiResponse.forbidden('No tienes acceso a este giro'))
     } catch (err) {
-      console.error('Error in requireGiroAccess:', err)
+      logger.error({ err }, 'Error in requireGiroAccess')
       return res.status(500).json(ApiResponse.serverError())
     }
   }

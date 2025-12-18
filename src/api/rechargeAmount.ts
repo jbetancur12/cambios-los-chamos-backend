@@ -4,6 +4,7 @@ import { UserRole } from '@/entities/User'
 import { DI } from '@/di'
 import { ApiResponse } from '@/lib/apiResponse'
 import { RechargeAmount } from '@/entities/RechargeAmount'
+import { logger } from '@/lib/logger'
 
 const router = Router()
 
@@ -16,7 +17,7 @@ router.get('/', requireAuth(), async (req: Request, res: Response) => {
     const amounts = await DI.rechargeAmounts.find({ isActive: true }, { orderBy: { amountBs: 'ASC' } })
     res.json(ApiResponse.success(amounts))
   } catch (error) {
-    console.error('Error fetching recharge amounts:', error)
+    logger.error({ error }, 'Error fetching recharge amounts')
     res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -30,7 +31,7 @@ router.get('/all', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: 
     const amounts = await DI.rechargeAmounts.findAll({ orderBy: { amountBs: 'ASC' } })
     res.json(ApiResponse.success(amounts))
   } catch (error) {
-    console.error('Error fetching all recharge amounts:', error)
+    logger.error({ error }, 'Error fetching all recharge amounts')
     res.status(500).json(ApiResponse.serverError())
   }
 })
@@ -67,7 +68,7 @@ router.post(
       await DI.em.persistAndFlush(amount)
       res.status(201).json(ApiResponse.success(amount))
     } catch (error) {
-      console.error('Error creating recharge amount:', error)
+      logger.error({ error }, 'Error creating recharge amount')
       res.status(500).json(ApiResponse.serverError())
     }
   }
@@ -104,7 +105,7 @@ router.put(
       await DI.em.persistAndFlush(amount)
       res.json(ApiResponse.success(amount))
     } catch (error) {
-      console.error('Error updating recharge amount:', error)
+      logger.error({ error }, 'Error updating recharge amount')
       res.status(500).json(ApiResponse.serverError())
     }
   }
@@ -134,7 +135,7 @@ router.delete(
 
       res.json(ApiResponse.success({ message: 'Recharge amount deactivated' }))
     } catch (error) {
-      console.error('Error deleting recharge amount:', error)
+      logger.error({ error }, 'Error deleting recharge amount')
       res.status(500).json(ApiResponse.serverError())
     }
   }

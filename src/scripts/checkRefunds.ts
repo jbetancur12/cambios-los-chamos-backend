@@ -5,6 +5,7 @@ import {
   MinoristaTransactionType,
   MinoristaTransactionStatus,
 } from '../entities/MinoristaTransaction'
+import { logger } from '../lib/logger'
 
 async function checkRefunds() {
   const orm = await MikroORM.init(config)
@@ -28,9 +29,9 @@ async function checkRefunds() {
       status: MinoristaTransactionStatus.CANCELLED,
     })
 
-    console.log(`COMPLETED Refunds: ${completedRefunds}`)
-    console.log(`PENDING Refunds: ${pendingRefunds}`)
-    console.log(`CANCELLED Refunds: ${cancelledRefunds}`)
+    logger.info(`COMPLETED Refunds: ${completedRefunds}`)
+    logger.info(`PENDING Refunds: ${pendingRefunds}`)
+    logger.info(`CANCELLED Refunds: ${cancelledRefunds}`)
 
     if (completedRefunds > 0) {
       // Fetch a few to see dates
@@ -38,13 +39,13 @@ async function checkRefunds() {
         { type: MinoristaTransactionType.REFUND, status: MinoristaTransactionStatus.COMPLETED },
         { limit: 5, orderBy: { createdAt: 'DESC' } }
       )
-      console.log(
-        'Recent Completed Refunds:',
-        recent.map((t) => ({ id: t.id, amount: t.amount, date: t.createdAt }))
+      logger.info(
+        { recentCalls: recent.map((t) => ({ id: t.id, amount: t.amount, date: t.createdAt })) },
+        'Recent Completed Refunds'
       )
     }
   } catch (error) {
-    console.error('Error:', error)
+    logger.error({ error }, 'Error checking refunds')
   } finally {
     await orm.close()
   }

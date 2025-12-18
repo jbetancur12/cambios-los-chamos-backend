@@ -15,6 +15,7 @@ import { bankAccountTransactionService } from '@/services/BankAccountTransaction
 import { BankAccount, BankAccountOwnerType } from '@/entities/BankAccount'
 import { BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 import { canAccessBankAccount } from '@/lib/bankAccountPermissions'
+import { logger } from '@/lib/logger'
 
 export const bankAccountRouter = express.Router({ mergeParams: true })
 
@@ -79,7 +80,7 @@ bankAccountRouter.post(
         })
       )
     } catch (err) {
-      console.error('Error al crear cuenta bancaria:', err)
+      logger.error({ err }, 'Error al crear cuenta bancaria')
       res.status(500).json(ApiResponse.error('Error al crear cuenta bancaria'))
     }
   }
@@ -269,7 +270,7 @@ bankAccountRouter.patch(
 
     // Determinar el tipo de transacción según si es positivo o negativo
     const transactionType = amount >= 0 ? 'DEPOSIT' : 'ADJUSTMENT'
-    console.log('🚀 ~ transactionType:', transactionType)
+    logger.debug({ transactionType }, 'Actualizando balance')
 
     const result = await bankAccountTransactionService.createTransaction({
       bankAccountId,

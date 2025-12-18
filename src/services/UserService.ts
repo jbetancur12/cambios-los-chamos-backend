@@ -8,6 +8,7 @@ import { sendEmail } from '@/lib/emailUtils'
 import { sendVerificationEmail } from '@/api/emailVerification'
 import { Transferencista } from '@/entities/Transferencista'
 import { Minorista } from '@/entities/Minorista'
+import { logger } from '@/lib/logger'
 
 export class UserService {
   /**
@@ -110,7 +111,7 @@ export class UserService {
       try {
         await sendVerificationEmail(user)
       } catch (error) {
-        console.error('❌ Error enviando correo de verificación para:', user.email, error)
+        logger.error({ error, email: user.email }, '❌ Error enviando correo de verificación')
         // Log para investigación, pero no afecta la creación del usuario
       }
     })
@@ -169,15 +170,15 @@ export class UserService {
       )
 
       if (error) {
-        console.error('❌ Error enviando email de reset de contraseña:', error)
+        logger.error({ error }, '❌ Error enviando email de reset de contraseña')
         // Retornar true de todas formas para no revelar errores internos
         return true
       }
 
-      console.log('✅ Email de reset de contraseña enviado a', user.email)
+      logger.info(`✅ Email de reset de contraseña enviado a ${user.email}`)
       return true
     } catch (error) {
-      console.error('❌ Error inesperado en sendResetPasswordEmail:', error)
+      logger.error({ error }, '❌ Error inesperado en sendResetPasswordEmail')
       // Retornar true de todas formas para no revelar errores internos
       return true
     }
@@ -225,7 +226,7 @@ export class UserService {
   async toggleUserActiveStatus(userId: string): Promise<User | false> {
     const userRepo = DI.em.getRepository(User)
     const user = await userRepo.findOne({ id: userId })
-    console.log('🚀 ~ UserService ~ toggleUserActiveStatus ~ user:', user)
+    logger.debug({ user }, 'UserService toggleUserActiveStatus')
 
     if (!user) {
       return false

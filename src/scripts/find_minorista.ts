@@ -1,30 +1,27 @@
-import { DI } from '../di'
-import { MikroORM } from '@mikro-orm/core'
-import config from '../mikro-orm.config'
-import { User } from '../entities/User'
-import { Minorista } from '../entities/Minorista'
+import { initDI, DI } from '@/di'
+import { logger } from '../lib/logger'
 
-async function findMinorista() {
-  const orm = await MikroORM.init(config)
-  const em = orm.em.fork()
+const findMinorista = async () => {
+  await initDI()
+  const em = DI.orm.em.fork()
 
   try {
-    const users = await em.find(User, { fullName: { $ilike: '%Jesús Segura%' } })
-    console.log('Found users:', users.length)
+    const users = await DI.users.findAll({ populate: ['minorista'] })
+    logger.info(`Found users: ${users.length}`)
 
     for (const user of users) {
-      const minorista = await em.findOne(Minorista, { user: user.id })
-      if (minorista) {
-        console.log(`Found Minorista: ${user.fullName} (ID: ${minorista.id})`)
-        console.log(`Current Profit Percentage: ${minorista.profitPercentage}`)
+      if (user.minorista) {
+        const minorista = user.minorista
+        logger.info(`Found Minorista: ${user.fullName} (ID: ${minorista.id})`)
+        logger.info(`Current Profit Percentage: ${minorista.profitPercentage}`)
       } else {
-        console.log(`User ${user.fullName} is not a minorista.`)
+        logger.info(`User ${user.fullName} is not a minorista.`)
       }
     }
   } catch (error) {
-    console.error(error)
+    logger.error({ error }, 'Error finding minoristas')
   } finally {
-    await orm.close()
+    await DI.orm.close()
   }
 }
 

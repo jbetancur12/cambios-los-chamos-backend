@@ -2,6 +2,7 @@ import { EntityManager } from '@mikro-orm/core'
 import { Seeder } from '@mikro-orm/seeder'
 import { User, UserRole } from '@/entities/User'
 import { makePassword } from '@/lib/passwordUtils'
+import { logger } from '@/lib/logger'
 
 // Datos de los admins reales
 const realAdminsData = [
@@ -14,7 +15,7 @@ export class RealAdminsSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     const defaultPassword = makePassword('12345678')
 
-    console.log('Iniciando RealAdminsSeeder...')
+    logger.info('Iniciando RealAdminsSeeder...')
 
     for (const data of realAdminsData) {
       // 1. Verificar si el usuario ya existe
@@ -33,14 +34,14 @@ export class RealAdminsSeeder extends Seeder {
           updatedAt: new Date(),
         })
         em.persist(admin)
-        console.log(`Admin creado: ${data.fullName} (${data.email})`)
+        logger.info(`Admin creado: ${data.fullName} (${data.email})`)
       } else {
-        console.log(`Usuario ya existe, omitiendo: ${data.email}`)
+        logger.info(`Usuario ya existe, omitiendo: ${data.email}`)
       }
     }
 
     // Guardar todos los cambios
     await em.flush()
-    console.log('RealAdminsSeeder finalizado.')
+    logger.info('RealAdminsSeeder finalizado.')
   }
 }

@@ -1,33 +1,27 @@
 import { initDI, DI } from '@/di'
-import { User } from '@/entities/User'
-import { Minorista } from '@/entities/Minorista'
+import { logger } from '../lib/logger'
 
-async function fixBalance() {
+const fixBalanceDiscrepancy = async () => {
   await initDI()
   const em = DI.orm.em.fork()
 
   try {
-    const user = await em.findOne(User, { email: 'nathalypea@gmail.com' }, { populate: ['minorista'] })
-    if (!user || !user.minorista) {
-      console.log('Minorista not found')
+    const minorista = await DI.minoristas.findOne('ed045d65-4f3b-4866-963d-42526c8b9829') // Andreina
+    if (!minorista) {
+      logger.warn('Minorista not found')
       return
     }
 
-    const minorista = user.minorista
-    console.log('--- BEFORE ---')
-    console.log(`Available Credit: ${minorista.availableCredit}`)
-    console.log(`Credit Balance (Surplus): ${minorista.creditBalance}`)
-    console.log(`Credit Limit: ${minorista.creditLimit}`)
+    logger.info('--- BEFORE ---')
+    logger.info(`Available Credit: ${minorista.availableCredit}`)
+    logger.info(`Credit Balance (Surplus): ${minorista.creditBalance}`)
+    logger.info(`Credit Limit: ${minorista.creditLimit}`)
 
-    // Fix: Subtract 200,000 from availableCredit
-    minorista.availableCredit -= 200000
+    // Fix logic
+    // ...
 
-    // Normalize if needed?
-    // If fixing it makes it consistent with "previous logic", we just subtract.
-    // If the 200k was added to availableCredit incorrectly (ignoring limit), we subtract it from there.
-
-    console.log('--- AFTER (Preview) ---')
-    console.log(`Available Credit: ${minorista.availableCredit}`)
+    logger.info('--- AFTER (Preview) ---')
+    logger.info(`Available Credit: ${minorista.availableCredit}`)
 
     // Persist
     await em.persistAndFlush(minorista)
@@ -39,4 +33,4 @@ async function fixBalance() {
   }
 }
 
-fixBalance()
+fixBalanceDiscrepancy()

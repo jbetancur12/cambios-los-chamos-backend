@@ -2,6 +2,7 @@ import { DI } from '@/di'
 import { GiroStatus } from '@/entities/Giro'
 import { MinoristaTransactionType } from '@/entities/MinoristaTransaction'
 import { BankAccountTransactionType } from '@/entities/BankAccountTransaction'
+import { logger } from '@/lib/logger'
 
 export interface SystemProfitReport {
   totalProfit: number
@@ -116,7 +117,7 @@ export class ReportService {
    */
   async getSystemProfitReport(dateFrom: Date, dateTo: Date): Promise<SystemProfitReport> {
     const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
-    console.log('Generating system profit report from', adjustedFrom, 'to', adjustedTo)
+    logger.info({ adjustedFrom, adjustedTo }, 'Generating system profit report')
 
     // Fetch Giros
     const giros = await DI.giros.find({

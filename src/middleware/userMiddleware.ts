@@ -4,6 +4,7 @@ import { verifyAccessToken } from '@/lib/tokenUtils'
 import { RequestUser } from '@/middleware/requestUser'
 import { User } from '@/entities/User'
 import { ApiResponse } from '@/lib/apiResponse'
+import { logger } from '@/lib/logger'
 
 export const userMiddleware = () => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -24,11 +25,11 @@ export const userMiddleware = () => {
 
     // Debug logging
     if (!token) {
-      console.log('[AUTH] No token found - cookies:', Object.keys(req.cookies || {}), 'authHeader:', !!authHeader)
+      logger.debug({ cookies: Object.keys(req.cookies || {}), hasAuthHeader: !!authHeader }, '[AUTH] No token found')
       return next()
     }
 
-    console.log('[AUTH] Token found from', accessToken ? 'cookie' : 'authHeader')
+    logger.debug({ source: accessToken ? 'cookie' : 'authHeader' }, '[AUTH] Token found')
 
     try {
       // 2️⃣ Verificar token y decodificar información
@@ -51,7 +52,7 @@ export const userMiddleware = () => {
       }
 
       if (!user.isActive) {
-        console.log('[AUTH] Token valid but user is inactive:', user.email)
+        logger.warn({ email: user.email }, '[AUTH] Token valid but user is inactive')
         return next()
       }
 
@@ -64,7 +65,7 @@ export const userMiddleware = () => {
 
       return next()
     } catch (err) {
-      console.error('Error verifying token:', err)
+      logger.error({ err }, 'Error verifying token')
       return res.status(401).json(ApiResponse.invalidToken())
     }
   }

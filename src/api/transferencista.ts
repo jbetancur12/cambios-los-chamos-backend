@@ -6,6 +6,7 @@ import { validateBody } from '@/lib/zodUtils'
 import { createTransferencistaSchema } from '@/schemas/TransferencistaSchema'
 import { UserRole } from '@/entities/User'
 import { transferencistaService } from '@/services/TransferencistaService'
+import { logger } from '@/lib/logger'
 
 export const transferencistaRouter = express.Router()
 
@@ -89,7 +90,7 @@ transferencistaRouter.put(
 
       res.json(ApiResponse.success({ data: result, message }))
     } catch (err) {
-      console.error('Error al actualizar disponibilidad:', err)
+      logger.error({ err }, 'Error al actualizar disponibilidad')
       res.status(500).json(ApiResponse.error('Error al actualizar disponibilidad'))
     }
   }

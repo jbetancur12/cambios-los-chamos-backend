@@ -2,35 +2,33 @@ import { MikroORM } from '@mikro-orm/core'
 import { User } from '../entities/User'
 import { Minorista } from '../entities/Minorista'
 import mikroOrmConfig from '../mikro-orm.config'
+import { DI } from '../di'
+import { logger } from '../lib/logger'
 
-const usersEmails = [
-  'mayerlinrocam@gmail.com',
-  'odalisg024@gmail.com',
-  'rosyerazo.51@gmail.com',
-  'toledostefanny65@gmail.com',
-  'fredyrobotina@hotmail.com',
-]
+const seedBalance = async () => {
+  const seeds = [
+    { email: 'andreinacampos0510@gmail.com', credit: 2000000 },
+    // AÑADE MÁS SI ES NECESARIO
+  ]
 
-async function seedBalance() {
-  const orm = await MikroORM.init(mikroOrmConfig)
-  const em = orm.em.fork()
+  logger.info('Seeding balances...')
 
-  console.log('Seeding balances...')
-
-  for (const email of usersEmails) {
-    const user = await em.findOne(User, { email }, { populate: ['minorista'] })
-    if (user && user.minorista) {
-      user.minorista.availableCredit = 1000000000
-      user.minorista.creditLimit = 1000000000
-      console.log(`Updated credit for ${email}`)
-    } else {
-      console.error(`User or Minorista not found: ${email}`)
+  for (const s of seeds) {
+    const { email, credit } = s
+    const user = await DI.users.findOne({ email })
+    if (user) {
+      const minorista = await DI.minoristas.findOne({ user })
+      if (minorista) {
+        minorista.availableCredit = credit
+        await DI.em.persistAndFlush(minorista)
+        logger.info(`Updated credit for ${email}`)
+      } else {
+        logger.error(`User or Minorista not found: ${email}`)
+      }
     }
   }
 
-  await em.flush()
-  await orm.close()
-  console.log('Balance seeding complete.')
+  logger.info('Balance seeding complete.')
 }
 
-seedBalance().catch(console.error)
+seedBalance().catch((err) => logger.error({ err }, 'Error seeding balance'))

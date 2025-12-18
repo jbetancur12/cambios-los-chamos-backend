@@ -4,6 +4,7 @@ import { UserRole, User } from '@/entities/User'
 import { ApiResponse } from '@/lib/apiResponse'
 import { auditService } from '@/services/AuditService'
 import { DI } from '@/di'
+import { logger } from '@/lib/logger'
 
 export const auditRouter = express.Router()
 
@@ -26,7 +27,7 @@ auditRouter.get('/', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN), async (r
       return res.json(ApiResponse.success(results))
     }
   } catch (error) {
-    console.error('Audit error:', error)
+    logger.error({ error }, 'Audit error')
     return res.status(500).json(ApiResponse.serverError())
   }
 })

@@ -4,13 +4,15 @@ import { Minorista } from '../entities/Minorista'
 import { Bank, Currency } from '../entities/Bank'
 import { Transferencista } from '../entities/Transferencista'
 import { giroService } from '../services/GiroService'
-import { minoristaService } from '../services/MinoristaService'
 import { ExecutionType, Giro } from '../entities/Giro'
 import { exchangeRateService } from '../services/ExchangeRateService'
 import { MinoristaTransaction } from '../entities/MinoristaTransaction'
 import { ExchangeRate } from '../entities/ExchangeRate'
+import { logger } from '../lib/logger'
 
-async function run() {
+const MINORISTA_EMAIL = 'andreinacampos0510@gmail.com'
+
+export const reproduceGiroBug = async () => {
   try {
     await initDI()
     const em = DI.orm.em.fork()
@@ -24,7 +26,7 @@ async function run() {
     DI.minoristaTransactions = em.getRepository(MinoristaTransaction) as any
     DI.exchangeRates = em.getRepository(ExchangeRate) as any
 
-    console.log('--- STARTING REPRODUCTION SCRIPT ---')
+    logger.info('--- STARTING REPRODUCTION SCRIPT ---')
 
     // 1. Create or get necessary data
     // Bank
@@ -153,12 +155,12 @@ async function run() {
     minorista.creditBalance = 0
     await em.persistAndFlush(minorista)
 
-    console.log(
+    logger.info(
       `Initial State: CreditLimit=${minorista.creditLimit}, Available=${minorista.availableCredit}, Debt=${minorista.creditLimit - minorista.availableCredit}`
     )
 
     // 2. Execute Giro
-    console.log('Executing Giro of 80000...')
+    logger.info('Executing Giro of 80000...')
     const amount = 80000
 
     const result = await giroService.createGiro(
@@ -179,21 +181,21 @@ async function run() {
     )
 
     if ('error' in result) {
-      console.error('Error creating giro:', result.error)
+      logger.error({ error: result.error }, 'Error creating giro')
       return
     }
 
-    console.log('Giro created successfully:', result.id)
+    logger.info(`Giro created successfully: ${result.id}`)
 
     // 3. Verify State
     // Refresh minorista
     await em.refresh(minorista)
-    console.log(
+    logger.info(
       `Final State: CreditLimit=${minorista.creditLimit}, Available=${minorista.availableCredit}, Debt=${minorista.creditLimit - minorista.availableCredit}`
     )
 
     const expectedAvailable = 350000 - amount + amount * 0.05 // Deduct amount, add profit (5%)
-    console.log(`Expected Available (approx): ${expectedAvailable}`)
+    logger.info(`Expected Available (approx): ${expectedAvailable}`)
 
     // Check transactions
     const transactions = await em.find(
@@ -201,28 +203,28 @@ async function run() {
       { minorista: minorista.id },
       { orderBy: { createdAt: 'DESC' }, limit: 5 }
     )
-    console.log('Recent Transactions:')
+    logger.info('Recent Transactions:')
     transactions.forEach((t) => {
-      console.log(`- ID: ${t.id}, Type: ${t.type}, Amount: ${t.amount}, Giro: ${t.giro?.id}`)
+      logger.info(`- ID: ${t.id}, Type: ${t.type}, Amount: ${t.amount}, Giro: ${t.giro?.id}`)
     })
 
     const linkedTransaction = transactions.find((t) => t.giro?.id === result.id)
     if (linkedTransaction) {
-      console.log('SUCCESS: Transaction linked to Giro found.')
+      logger.info('SUCCESS: Transaction linked to Giro found.')
     } else {
-      console.error('FAILURE: No transaction linked to Giro found.')
+      logger.error('FAILURE: No transaction linked to Giro found.')
     }
 
     // SIMULATE BUG: Revert minorista balance to initial state (as if em.refresh discarded the changes)
     // This simulates that the first giro was made BEFORE the fix.
-    console.log('--- SIMULATING BUG EFFECT (Reverting balance to 350k) ---')
+    logger.info('--- SIMULATING BUG EFFECT (Reverting balance to 350k) ---')
     minorista.availableCredit = 350000
     minorista.creditBalance = 0
     await em.persistAndFlush(minorista)
-    console.log('--- END SIMULATION ---')
+    logger.info('--- END SIMULATION ---')
 
     // 4. Execute Second Giro (10000)
-    console.log('\nExecuting Second Giro of 10000...')
+    logger.info('\nExecuting Second Giro of 10000...')
     const amount2 = 10000
 
     // Simulate new request context by clearing EM or refreshing minorista from DB
@@ -236,11 +238,11 @@ async function run() {
     const rate2 = (await em.find(ExchangeRate, {}, { orderBy: { createdAt: 'DESC' }, limit: 1 }))[0]
 
     if (!minorista2 || !minoristaUser2 || !bank2 || !rate2) {
-      console.error('Could not fetch entities for second run')
+      logger.error('Could not fetch entities for second run')
       return
     }
 
-    console.log(`State before 2nd Giro: CreditLimit=${minorista2.creditLimit}, Available=${minorista2.availableCredit}`)
+    logger.info(`State before 2nd Giro: CreditLimit=${minorista2.creditLimit}, Available=${minorista2.availableCredit}`)
 
     const result2 = await giroService.createGiro(
       {
@@ -260,29 +262,29 @@ async function run() {
     )
 
     if ('error' in result2) {
-      console.error('Error creating 2nd giro:', result2.error)
+      logger.error({ error: result2.error }, 'Error creating 2nd giro')
       return
     }
 
-    console.log('2nd Giro created successfully:', result2.id)
+    logger.info(`2nd Giro created successfully: ${result2.id}`)
 
     // 5. Verify Final State
     await em.refresh(minorista2)
-    console.log(
+    logger.info(
       `Final State after 2nd Giro: CreditLimit=${minorista2.creditLimit}, Available=${minorista2.availableCredit}, Debt=${minorista2.creditLimit - minorista2.availableCredit}`
     )
 
     const expectedAvailable2 = expectedAvailable - amount2 + amount2 * 0.05
-    console.log(`Expected Available 2 (approx): ${expectedAvailable2}`)
+    logger.info(`Expected Available 2 (approx): ${expectedAvailable2}`)
 
     // Check if it matches the "buggy" state (150k + 10k - 500 = 159.5k debt -> 340.5k available)
     const buggyAvailable = 500000 - (150000 + 10000 - 500)
-    console.log(`Buggy Available (if reset to initial): ${buggyAvailable}`)
+    logger.info(`Buggy Available (if reset to initial): ${buggyAvailable}`)
   } catch (error) {
-    console.error('Unexpected error:', error)
+    logger.error({ error }, 'Error reproducing bug')
   } finally {
     await DI.orm.close()
   }
 }
 
-run()
+reproduceGiroBug()

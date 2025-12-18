@@ -5,6 +5,7 @@ import { RechargeAmount } from '@/entities/RechargeAmount'
 import { OperatorAmount } from '@/entities/OperatorAmount'
 import { User } from '@/entities/User'
 import { SUPERADMIN_EMAIL } from '@/settings'
+import { logger } from '@/lib/logger'
 
 // Datos de operadores y sus montos basados en las imágenes (Telecel eliminado)
 const operatorsConfig = {
@@ -20,7 +21,7 @@ export class RechargeSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     const superadmin = await em.findOne(User, { email: SUPERADMIN_EMAIL })
     if (!superadmin) {
-      console.warn('Superadmin not found, cannot seed recharge data')
+      logger.warn('Superadmin not found, cannot seed recharge data')
       return
     }
 
@@ -117,9 +118,9 @@ export class RechargeSeeder extends Seeder {
 
     await em.flush()
 
-    console.log('✅ Recharge operators and amounts seeded successfully based on images')
-    console.log(`   - Creados ${Object.keys(operators).length} operadores`)
-    console.log(`   - Creados ${amounts.length} montos de recarga únicos`)
-    console.log(`   - Creadas ${createdRelationships} relaciones operador-monto`)
+    logger.info('✅ Recharge operators and amounts seeded successfully based on images')
+    logger.info(`   - Creados ${Object.keys(operators).length} operadores`)
+    logger.info(`   - Creados ${amounts.length} montos de recarga únicos`)
+    logger.info(`   - Creadas ${createdRelationships} relaciones operador-monto`)
   }
 }

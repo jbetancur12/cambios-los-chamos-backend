@@ -146,7 +146,7 @@ interface CorsCallback {
 
 const corsOptions: CorsOptions = {
   origin: (origin: string | undefined, callback: CorsCallback) => {
-    console.log(`[CORS] Origin recibido: ${origin}`)
+    logger.info(`[CORS] Origin recibido: ${origin}`)
     if (
       !origin ||
       IS_DEVELOPMENT ||
@@ -154,10 +154,10 @@ const corsOptions: CorsOptions = {
         (allowed) => origin.replace(/\/$/, '') === allowed || origin.endsWith('.cambiosloschamo.com')
       )
     ) {
-      if (IS_DEVELOPMENT) console.log(`[CORS] Permitido: ${origin}`)
+      if (IS_DEVELOPMENT) logger.info(`[CORS] Permitido: ${origin}`)
       callback(null, true)
     } else {
-      console.warn(`[CORS] Bloqueado: ${origin}`)
+      logger.warn(`[CORS] Bloqueado: ${origin}`)
       callback(new Error(`CORS: Origen no permitido → ${origin}`))
     }
   },

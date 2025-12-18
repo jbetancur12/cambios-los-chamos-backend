@@ -3,6 +3,7 @@ import { Seeder } from '@mikro-orm/seeder'
 import { User, UserRole } from '@/entities/User'
 import { Minorista } from '@/entities/Minorista'
 import { makePassword } from '@/lib/passwordUtils'
+import { logger } from '@/lib/logger'
 
 // Definimos los datos de los minoristas reales
 const realMinoristasData = [
@@ -42,7 +43,7 @@ export class RealMinoristasSeeder extends Seeder {
     const defaultPassword = makePassword('12345678')
     const creditLimit = 0 // Mismo límite de crédito usado en el seeder de prueba
 
-    console.log('Iniciando RealMinoristasSeeder...')
+    logger.info('Iniciando RealMinoristasSeeder...')
 
     for (const data of realMinoristasData) {
       // 1. Verificar si el usuario ya existe
@@ -73,14 +74,14 @@ export class RealMinoristasSeeder extends Seeder {
           giros: [],
         })
         em.persist(minorista)
-        console.log(`Minorista creado: ${data.fullName} (${data.email})`)
+        logger.info(`Minorista creado: ${data.fullName} (${data.email})`)
       } else {
-        console.log(`Usuario ya existe, omitiendo: ${data.email}`)
+        logger.info(`Usuario ya existe, omitiendo: ${data.email}`)
       }
     }
 
     // Usar flush() para guardar todos los cambios en la base de datos
     await em.flush()
-    console.log('RealMinoristasSeeder finalizado.')
+    logger.info('RealMinoristasSeeder finalizado.')
   }
 }
