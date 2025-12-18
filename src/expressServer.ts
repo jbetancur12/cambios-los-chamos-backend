@@ -65,7 +65,7 @@ export const startExpressServer = async () => {
 
   app.use(express.json())
   app.use((req, res, next) => {
-    logger.info(`[REQ] ${req.method} ${req.url} desde ${req.headers.origin}`)
+    logger.info(`[REQ] ${req.method} ${req.url} desde ${req.headers.origin || req.headers.referer || 'unknown'}`)
     next()
   })
 
