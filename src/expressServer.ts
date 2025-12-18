@@ -117,8 +117,7 @@ export const startExpressServer = async () => {
     const user = (req as any).context?.requestUser?.user
 
     if (user && user.role === UserRole.SUPER_ADMIN) {
-      posthogCapture('server_error', user.id, {
-        error: String(err),
+      posthog.captureException(err as Error, user.id, {
         path: req.originalUrl || req.url,
         method: req.method,
         email: user.email,
