@@ -19,8 +19,8 @@ function getLatestLogFile(): string | null {
     try {
         const files = fs.readdirSync(LOG_DIR)
 
-        // Filter for files starting with app.log (including app.log itself and rotated ones)
-        const logFiles = files.filter(f => f.startsWith(BASE_LOG_FILENAME))
+        // Filter for files starting with 'app' and containing '.log' (matches app.log, app.1.log, app-2023...log)
+        const logFiles = files.filter(f => f.startsWith('app') && f.includes('.log'))
 
         if (logFiles.length === 0) return null
 
