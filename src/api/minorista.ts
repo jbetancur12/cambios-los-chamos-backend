@@ -324,3 +324,86 @@ minoristaRouter.get(
     }
   }
 )
+
+// ------------------ EXPORTAR TRANSACCIONES A CSV ------------------
+minoristaRouter.get(
+  '/:minoristaId/transactions/export',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MINORISTA),
+  async (req: Request, res: Response) => {
+    const { minoristaId } = req.params
+    const user = req.context?.requestUser?.user
+
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
+    if (user.role === UserRole.MINORISTA) {
+      const minoristaRepo = DI.em.getRepository(Minorista)
+      const userMinorista = await minoristaRepo.findOne({ user: user.id })
+      if (!userMinorista || userMinorista.id !== minoristaId) {
+        return res.status(403).json(ApiResponse.forbidden('No tienes permiso para exportar transacciones de otro minorista'))
+      }
+    }
+
+    try {
+      let startDate: string | undefined = undefined
+      let endDate: string | undefined = undefined
+
+      if (req.query.startDate) startDate = req.query.startDate as string
+      if (req.query.endDate) endDate = req.query.endDate as string
+
+      const result = await minoristaTransactionService.getTransactionsForExport(minoristaId, {
+        startDate,
+        endDate,
+      })
+
+      if ('error' in result) {
+        return res.status(404).json(ApiResponse.notFound('Minorista', minoristaId))
+      }
+
+      // Generate CSV
+      const headers = ['Fecha', 'Tipo', 'Monto', 'Credito Anterior', 'Credito Nuevo', 'Saldo Favor Ant', 'Saldo Favor Nuevo', 'Ganancia', 'Descripcion']
+      let csv = headers.join(',') + '\n'
+
+      // We need to respect timezone Colombia here too? 
+      // Ideally yes, but server is UTC. Let's output UTC ISO or use a library.
+      // For simplicity, ISO string is safe. Or formatted if user insists on "Colombia Time".
+      // The user emphasized timezone Colombia in the script. Let's try to be nice in CSV too.
+      // Using generic logic:
+      const formatColDate = (d: Date) => {
+        return new Intl.DateTimeFormat('es-CO', {
+          timeZone: 'America/Bogota',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }).format(d)
+      }
+
+      result.forEach((t) => {
+        const row = [
+          `"${formatColDate(t.createdAt)}"`,
+          `"${t.type}"`,
+          t.amount.toFixed(2),
+          t.previousAvailableCredit.toFixed(2),
+          t.availableCredit.toFixed(2),
+          (t.previousBalanceInFavor || 0).toFixed(2),
+          (t.currentBalanceInFavor || 0).toFixed(2),
+          (t.profitEarned || 0).toFixed(2),
+          `"${(t.description || '').replace(/"/g, '""')}"`
+        ]
+        csv += row.join(',') + '\n'
+      })
+
+      res.header('Content-Type', 'text/csv')
+      res.header('Content-Disposition', `attachment; filename="transacciones_${minoristaId}.csv"`)
+      res.send(csv)
+
+    } catch (error) {
+      logger.error({ error }, 'Error exporting transactions')
+      res.status(500).json(ApiResponse.serverError())
+    }
+  }
+)

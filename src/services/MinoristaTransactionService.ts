@@ -6,7 +6,7 @@ import {
 } from '@/entities/MinoristaTransaction'
 import { Minorista } from '@/entities/Minorista'
 import { User } from '@/entities/User'
-import { EntityManager, FilterQuery } from '@mikro-orm/core'
+import { EntityManager, FilterQuery, LockMode } from '@mikro-orm/core'
 import { giroSocketManager } from '@/websocket'
 
 export interface CreateTransactionInput {
@@ -17,8 +17,7 @@ export interface CreateTransactionInput {
   createdBy: User
   updateBalanceInFavor?: boolean
   description?: string
-  giro?: any // Using any to avoid circular dependency import if Giro is not imported, or import it.
-  // Actually, I can import Giro type or just use concrete type. Giro is not imported here yet?
+  giro?: any
 }
 
 export class MinoristaTransactionService {
@@ -38,49 +37,15 @@ export class MinoristaTransactionService {
       return { error: 'TRANSACTION_NOT_FOUND' }
     }
 
-    // Si la transacción pasa a CANCELLED y estaba PENDING o COMPLETED, debemos revertir el saldo
-    // Sin embargo, la lógica de negocio actual dice:
-    // "si el giro se devuelve o elimina el cupo se reintegra"
-    // Esto generalmente se maneja creando una transacción de reembolso (REFUND).
-    // Pero si la transacción estaba PENDING (no visible), al cancelarla simplemente debemos devolver el dinero
-    // y mantenerla oculta o marcarla como CANCELLED.
-
-    // Si estaba PENDING y pasa a CANCELLED: Devolvemos el saldo al minorista.
     if (transaction.status === MinoristaTransactionStatus.PENDING && status === MinoristaTransactionStatus.CANCELLED) {
-      const minorista = transaction.minorista
-
-      // Revertir el impacto en el crédito disponible (sumar lo que se descontó)
-      // El 'amount' en DISCOUNT es positivo, y se resta del crédito. Para revertir, sumamos.
-      // OJO: createTransaction maneja la lógica compleja de crédito vs saldo a favor.
-      // Para simplificar, si cancelamos un PENDING, podemos hacer un RECHARGE interno o simplemente sumar.
-      // Lo más seguro es usar createTransaction con tipo REFUND o RECHARGE, pero eso crearía OTRO registro.
-      // Si queremos que sea "clean", deberíamos revertir manualmente los valores en el minorista.
-
-      // Opción B: Crear una transacción de compensación (REFUND) y marcar ambas como CANCELLED?
-      // El usuario dijo: "si el giro se devuelve... el cupo se reintegra".
-
-      // Vamos a asumir que "updateTransactionStatus" solo cambia el estado.
-      // La lógica de reembolso se debe invocar explícitamente si se requiere.
-      // PERO, para PENDING->COMPLETED, es solo visual.
-      // Para PENDING->CANCELLED, si ya se descontó el dinero, hay que devolverlo.
+      // Logic for PENDING -> CANCELLED if needed
     }
 
     transaction.status = status
     await manager.persistAndFlush(transaction)
 
-    // Emitir evento si la transacción ahora es visible (COMPLETED) o si cambió de estado
     if (giroSocketManager) {
-      // Enviar actualización de transacción
       giroSocketManager.broadcastMinoristaTransactionUpdate(transaction)
-
-      // Si la transacción fue CANCELLED, el balance podría haber cambiado (si manejamos reversiones aquí)
-      // Pero en la lógica actual de updateTransactionStatus no tocamos el balance explícitamente,
-      // asumimos que se llamó a createTransaction(REFUND) por separado si era necesario.
-      // AUNQUE, si PENDING->CANCELLED, el dinero se "devuelve".
-      // Espera, mi implementación de updateTransactionStatus tenía un bloque comentado sobre eso.
-      // Dado el código actual, updateTransactionStatus SOLO cambia el estado.
-      // La lógica de reembolso en deleteGiro usa createTransaction(REFUND), que YA emite balance update.
-      // Así que aquí solo necesitamos emitir la actualización de la transacción.
     }
 
     return transaction
@@ -90,12 +55,24 @@ export class MinoristaTransactionService {
     data: CreateTransactionInput,
     em?: EntityManager
   ): Promise<MinoristaTransaction | { error: 'MINORISTA_NOT_FOUND' | 'INSUFFICIENT_BALANCE' }> {
-    const manager = em || DI.em
+    // 🛡️ CRITICAL: Enforce transaction for Pessimistic Locking
+    // If no EM provided, start a new transaction and recursively call this method
+    if (!em) {
+      return DI.em.transactional((txEm) => this.createTransaction(data, txEm))
+    }
+
+    const manager = em
     const minoristaRepo = manager.getRepository(Minorista)
     const transactionRepo = manager.getRepository(MinoristaTransaction)
 
-    // Buscar minorista
-    const minorista = await minoristaRepo.findOne({ id: data.minoristaId })
+    // 🔒 LOCKING: Use Pessimistic Write Lock to prevent race conditions
+    // This serializes access to the minorista record, ensuring strictly sequential balance updates.
+    // Must be run inside a transaction (guaranteed by the check above).
+    const minorista = await minoristaRepo.findOne(
+      { id: data.minoristaId },
+      { lockMode: LockMode.PESSIMISTIC_WRITE }
+    )
+
     if (!minorista) {
       return { error: 'MINORISTA_NOT_FOUND' }
     }
@@ -352,31 +329,31 @@ export class MinoristaTransactionService {
     options?: { page?: number; limit?: number; startDate?: string; endDate?: string }
   ): Promise<
     | {
-        total: number
-        page: number
-        limit: number
-        startBalance?: number
-        startBalanceInFavor?: number
-        transactions: Array<{
+      total: number
+      page: number
+      limit: number
+      startBalance?: number
+      startBalanceInFavor?: number
+      transactions: Array<{
+        id: string
+        amount: number
+        type: MinoristaTransactionType
+        previousBalance: number
+        currentBalance: number
+        previousBalanceInFavor: number
+        currentBalanceInFavor: number
+        balanceInFavorUsed?: number
+        creditUsed?: number
+        externalDebt?: number
+        profitEarned?: number
+        createdBy: {
           id: string
-          amount: number
-          type: MinoristaTransactionType
-          previousBalance: number
-          currentBalance: number
-          previousBalanceInFavor: number
-          currentBalanceInFavor: number
-          balanceInFavorUsed?: number
-          creditUsed?: number
-          externalDebt?: number
-          profitEarned?: number
-          createdBy: {
-            id: string
-            fullName: string
-            email: string
-          }
-          createdAt: Date
-        }>
-      }
+          fullName: string
+          email: string
+        }
+        createdAt: Date
+      }>
+    }
     | { error: 'MINORISTA_NOT_FOUND' }
   > {
     const minoristaRepo = DI.em.getRepository(Minorista)
@@ -475,27 +452,27 @@ export class MinoristaTransactionService {
    */
   async getTransactionById(transactionId: string): Promise<
     | {
+      id: string
+      amount: number
+      type: MinoristaTransactionType
+      previousBalance: number
+      currentBalance: number
+      minorista: {
         id: string
-        amount: number
-        type: MinoristaTransactionType
-        previousBalance: number
-        currentBalance: number
-        minorista: {
-          id: string
-          availableCredit: number
-          user: {
-            id: string
-            fullName: string
-            email: string
-          }
-        }
-        createdBy: {
+        availableCredit: number
+        user: {
           id: string
           fullName: string
           email: string
         }
-        createdAt: Date
       }
+      createdBy: {
+        id: string
+        fullName: string
+        email: string
+      }
+      createdAt: Date
+    }
     | { error: 'TRANSACTION_NOT_FOUND' }
   > {
     const transactionRepo = DI.em.getRepository(MinoristaTransaction)
@@ -531,6 +508,45 @@ export class MinoristaTransactionService {
       },
       createdAt: transaction.createdAt,
     }
+  }
+  /**
+   * Obtiene todas las transacciones para exportación (sin paginación)
+   */
+  async getTransactionsForExport(
+    minoristaId: string,
+    options?: { startDate?: string; endDate?: string }
+  ): Promise<MinoristaTransaction[] | { error: 'MINORISTA_NOT_FOUND' }> {
+    const minoristaRepo = DI.em.getRepository(Minorista)
+    const transactionRepo = DI.em.getRepository(MinoristaTransaction)
+
+    const minorista = await minoristaRepo.findOne({ id: minoristaId })
+    if (!minorista) {
+      return { error: 'MINORISTA_NOT_FOUND' }
+    }
+
+    const where: FilterQuery<MinoristaTransaction> = {
+      minorista: minoristaId,
+      status: MinoristaTransactionStatus.COMPLETED
+    }
+
+    if (options?.startDate && options?.endDate) {
+      const startDate = new Date(options.startDate)
+      const endDate = new Date(options.endDate)
+      console.log(`[Export] Filtering by date: Start=${startDate.toISOString()}, End=${endDate.toISOString()}`)
+      where.createdAt = { $gte: startDate, $lte: endDate }
+    } else {
+      console.log(`[Export] No date filter provided (Full History)`)
+    }
+
+    // Fetch ALL matching transactions ordered by date
+    const transactions = await transactionRepo.find(where, {
+      orderBy: { createdAt: 'DESC', id: 'DESC' },
+      populate: ['createdBy']
+    })
+
+    console.log(`[Export] Found ${transactions.length} transactions for minorista ${minoristaId}`)
+
+    return transactions
   }
 }
 
