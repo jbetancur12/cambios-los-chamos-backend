@@ -554,6 +554,7 @@ export class GiroService {
                 type: MinoristaTransactionType.REFUND,
                 status: MinoristaTransactionStatus.CANCELLED,
                 createdBy,
+                giro: giro, // ✨ FIX: Explicitly link to giro
               },
               em
             )
@@ -571,19 +572,15 @@ export class GiroService {
                 type: MinoristaTransactionType.REFUND,
                 status: MinoristaTransactionStatus.CANCELLED, // Ocultar reembolso
                 createdBy,
+                giro: giro, // ✨ FIX: Explicitly link to giro
               },
               em
             )
 
             // Vincular transacción al giro
             if (!('error' in refundResult)) {
-              refundResult.giro = giro
-              em.persist(refundResult)
-
-              // Opcional: ¿Deberíamos ocultar también la transacción original?
-              // El requerimiento fue "los refund deben marcarse como estado cancelled".
-              // Si ocultamos el refund pero dejamos el discount, queda el historial del cobro original.
-              // Asumimos que esto es lo deseado: Ver el cobro, pero no el "ruido" de la devolución.
+              // refundResult.giro = giro // Ya no es necesario, se pasó en el input
+              // em.persist(refundResult)
             }
           }
 
