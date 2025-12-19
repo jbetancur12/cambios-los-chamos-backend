@@ -924,6 +924,11 @@ export class GiroService {
             user: { fullName: { $ilike: `%${search}%` } },
           },
         },
+        {
+          minorista: {
+            user: { fullName: { $ilike: `%${search}%` } },
+          },
+        },
       ]
       where.$or = searchTerms
     }
@@ -1033,6 +1038,11 @@ export class GiroService {
             user: { fullName: { $ilike: `%${search}%` } },
           },
         },
+        {
+          minorista: {
+            user: { fullName: { $ilike: `%${search}%` } },
+          },
+        },
       ]
       where.$or = searchTerms
     }
@@ -1070,7 +1080,10 @@ export class GiroService {
 
     // IMPORTANT: Join necessary tables if search involves relations
     if (options.search) {
-      qb.leftJoin('g.transferencista', 't').leftJoin('t.user', 'tu')
+      qb.leftJoin('g.transferencista', 't')
+        .leftJoin('t.user', 'tu')
+        .leftJoin('g.minorista', 'm')
+        .leftJoin('m.user', 'mu')
     }
 
     const knex = DI.em.getConnection().getKnex()
