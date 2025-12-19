@@ -1,4 +1,5 @@
 import { DI } from '@/di'
+import { Giro, GiroStatus } from '@/entities/Giro'
 import {
   MinoristaTransaction,
   MinoristaTransactionType,
@@ -541,12 +542,83 @@ export class MinoristaTransactionService {
     // Fetch ALL matching transactions ordered by date
     const transactions = await transactionRepo.find(where, {
       orderBy: { createdAt: 'DESC', id: 'DESC' },
-      populate: ['createdBy']
+      populate: ['createdBy', 'giro']
     })
 
     console.log(`[Export] Found ${transactions.length} transactions for minorista ${minoristaId}`)
 
     return transactions
+  }
+  /**
+   * Obtiene datos combinados de Giros (directamente de tabla giros) y Recargas (tabla transacciones)
+   */
+  async getCombinedExportData(
+    minoristaId: string,
+    options?: { startDate?: string; endDate?: string }
+  ): Promise<any[]> {
+    const giroRepo = DI.em.getRepository(Giro)
+    const transactionRepo = DI.em.getRepository(MinoristaTransaction)
+
+    // Filtros de fecha base
+    const dateFilter: any = {}
+    if (options?.startDate && options?.endDate) {
+      dateFilter.$gte = new Date(options.startDate)
+      dateFilter.$lte = new Date(options.endDate)
+    }
+
+    // 1. Fetch COMPLETED Giros
+    const giroQuery: any = {
+      minorista: minoristaId,
+      status: GiroStatus.COMPLETADO
+    }
+    if (dateFilter.$gte) {
+      giroQuery.createdAt = dateFilter
+    }
+
+    const giros = await giroRepo.find(giroQuery, {
+      orderBy: { createdAt: 'DESC' }
+    })
+
+    // 2. Fetch RECHARGE Transactions
+    const txQuery: any = {
+      minorista: minoristaId,
+      type: MinoristaTransactionType.RECHARGE
+    }
+    if (dateFilter.$gte) {
+      txQuery.createdAt = dateFilter
+    }
+
+    const recharges = await transactionRepo.find(txQuery, {
+      orderBy: { createdAt: 'DESC' }
+    })
+
+    // 3. Map both to common structure
+    const mappedGiros = giros.map(g => ({
+      date: g.createdAt,
+      type: 'GIRO',
+      description: `Giro a ${g.beneficiaryName}`,
+      amountCOP: g.amountInput, // Monto Original en COP
+      amountBs: g.amountBs,     // Monto en Bs
+      profit: g.minoristaProfit,// Ganancia del minorista
+      isRecharge: false
+    }))
+
+    const mappedRecharges = recharges.map(t => ({
+      date: t.createdAt,
+      type: 'ABONO',
+      description: t.description || 'Recarga de Saldo',
+      amountCOP: t.amount, // Monto Recarga
+      amountBs: 0,
+      profit: 0,
+      isRecharge: true
+    }))
+
+    // 4. Merge and Sort
+    const combined = [...mappedGiros, ...mappedRecharges].sort((a, b) => {
+      return b.date.getTime() - a.date.getTime() // Descending
+    })
+
+    return combined
   }
 }
 

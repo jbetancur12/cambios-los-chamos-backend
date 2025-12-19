@@ -352,7 +352,7 @@ minoristaRouter.get(
       if (req.query.startDate) startDate = req.query.startDate as string
       if (req.query.endDate) endDate = req.query.endDate as string
 
-      const result = await minoristaTransactionService.getTransactionsForExport(minoristaId, {
+      const result = await minoristaTransactionService.getCombinedExportData(minoristaId, {
         startDate,
         endDate,
       })
@@ -361,15 +361,22 @@ minoristaRouter.get(
         return res.status(404).json(ApiResponse.notFound('Minorista', minoristaId))
       }
 
-      // Generate CSV
-      const headers = ['Fecha', 'Tipo', 'Monto', 'Credito Anterior', 'Credito Nuevo', 'Saldo Favor Ant', 'Saldo Favor Nuevo', 'Ganancia', 'Descripcion']
-      let csv = headers.join(',') + '\n'
+      // Generate Excel
+      const ExcelJS = require('exceljs')
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Transacciones')
 
-      // We need to respect timezone Colombia here too? 
-      // Ideally yes, but server is UTC. Let's output UTC ISO or use a library.
-      // For simplicity, ISO string is safe. Or formatted if user insists on "Colombia Time".
-      // The user emphasized timezone Colombia in the script. Let's try to be nice in CSV too.
-      // Using generic logic:
+      worksheet.columns = [
+        { header: 'Fecha', key: 'date', width: 20 },
+        { header: 'Tipo', key: 'type', width: 15 },
+        { header: 'Descripción', key: 'description', width: 30 },
+        { header: 'Monto COP', key: 'amountCOP', width: 15 },
+        { header: 'Monto Bs', key: 'amountBs', width: 15 },
+        { header: 'Ganancia', key: 'profit', width: 15 },
+        { header: 'Neto', key: 'netAmount', width: 15 },
+      ]
+
+      // Format Colombia Date
       const formatColDate = (d: Date) => {
         return new Intl.DateTimeFormat('es-CO', {
           timeZone: 'America/Bogota',
@@ -382,24 +389,63 @@ minoristaRouter.get(
         }).format(d)
       }
 
+      let totalNet = 0
+      let totalAbonos = 0
+      let totalGiros = 0
+      let totalBs = 0
+      let totalProfit = 0
+
       result.forEach((t) => {
-        const row = [
-          `"${formatColDate(t.createdAt)}"`,
-          `"${t.type}"`,
-          t.amount.toFixed(2),
-          t.previousAvailableCredit.toFixed(2),
-          t.availableCredit.toFixed(2),
-          (t.previousBalanceInFavor || 0).toFixed(2),
-          (t.currentBalanceInFavor || 0).toFixed(2),
-          (t.profitEarned || 0).toFixed(2),
-          `"${(t.description || '').replace(/"/g, '""')}"`
-        ]
-        csv += row.join(',') + '\n'
+        let netAmount = 0
+        if (t.isRecharge) {
+          // Abono: Positivo
+          netAmount = Number(t.amountCOP)
+          totalAbonos += Number(t.amountCOP)
+        } else {
+          // Giro: Negativo (Monto) + Ganancia (Positiva) = -Cost + Profit
+          netAmount = -Number(t.amountCOP) + Number(t.profit)
+          totalGiros += Number(t.amountCOP) // Sumamos monto positivo para el totalizador de volumen/giros
+        }
+
+        totalNet += netAmount
+        totalBs += Number(t.amountBs)
+        totalProfit += Number(t.profit)
+
+        worksheet.addRow({
+          date: formatColDate(t.date),
+          type: t.type,
+          description: t.description,
+          amountCOP: t.amountCOP,
+          amountBs: t.amountBs,
+          profit: t.profit,
+          netAmount: netAmount
+        })
       })
 
-      res.header('Content-Type', 'text/csv')
-      res.header('Content-Disposition', `attachment; filename="transacciones_${minoristaId}.csv"`)
-      res.send(csv)
+      // Add Summary Rows
+      worksheet.addRow({}) // Empty row
+
+      const summaryStyle = { bold: true }
+
+      worksheet.addRow({ description: 'Total Abonos', amountCOP: totalAbonos }).font = summaryStyle
+      worksheet.addRow({ description: 'Total Giros', amountCOP: totalGiros }).font = summaryStyle
+      // Total COP: Interpreted as Net Raw Flow (Abonos - Giros) per common accounting, or Volume? 
+      // Given "Total Neto" is separate, let's provide Net COP (Abonos - Giros)
+      worksheet.addRow({ description: 'Total COP (Abonos - Giros)', amountCOP: totalAbonos - totalGiros }).font = summaryStyle
+
+      worksheet.addRow({ description: 'Total Bs', amountBs: totalBs }).font = summaryStyle
+      worksheet.addRow({ description: 'Total Ganancias', profit: totalProfit }).font = summaryStyle
+      worksheet.addRow({ description: 'Total Neto', netAmount: totalNet }).font = summaryStyle
+      // format total column as currency if desired (optional)
+
+      // Styling header
+      worksheet.getRow(1).font = { bold: true }
+
+      res.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      res.header('Content-Disposition', `attachment; filename="reporte_${minoristaId}.xlsx"`)
+
+      const buffer = await workbook.xlsx.writeBuffer()
+      res.send(buffer)
 
     } catch (error) {
       logger.error({ error }, 'Error exporting transactions')
