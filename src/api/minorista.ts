@@ -441,8 +441,13 @@ minoristaRouter.get(
       // Styling header
       worksheet.getRow(1).font = { bold: true }
 
+      // Fetch Minorista for Filename
+      const minoristaRepo = DI.em.getRepository(Minorista)
+      const currentMinorista = await minoristaRepo.findOne({ id: minoristaId }, { populate: ['user'] })
+      const safeName = currentMinorista ? currentMinorista.user.fullName.replace(/[^a-zA-Z0-9]/g, '_') : minoristaId
+
       res.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-      res.header('Content-Disposition', `attachment; filename="reporte_${minoristaId}.xlsx"`)
+      res.header('Content-Disposition', `attachment; filename="reporte_${safeName}.xlsx"`)
 
       const buffer = await workbook.xlsx.writeBuffer()
       res.send(buffer)
