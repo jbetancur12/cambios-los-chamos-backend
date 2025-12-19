@@ -118,7 +118,7 @@ export const startExpressServer = async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = (req as any).context?.requestUser?.user
 
-    if (user && user.role === UserRole.SUPER_ADMIN) {
+    if (user && (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN)) {
       posthog.captureException(err as Error, user.id, {
         path: req.originalUrl || req.url,
         method: req.method,

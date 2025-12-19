@@ -48,8 +48,8 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
       path: '/',
     })
 
-    // Track successful login (SUPER_ADMIN only)
-    if (user.role === UserRole.SUPER_ADMIN) {
+    // Track successful login (SUPER_ADMIN and ADMIN only)
+    if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) {
       posthogCapture('user_logged_in', user.id, {
         email: user.email,
         role: user.role,
@@ -89,7 +89,7 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
 // ------------------ LOGOUT ------------------
 userRouter.post('/logout', requireAuth(), async (req: Request, res: Response) => {
   const user = req.context?.requestUser?.user
-  if (user && user.role === UserRole.SUPER_ADMIN) {
+  if (user && (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN)) {
     posthogCapture('user_logged_out', user.id, { email: user.email, role: user.role })
   }
 
@@ -169,8 +169,8 @@ userRouter.get('/me', requireAuth(), async (req: Request, res: Response) => {
     return res.status(401).json(ApiResponse.unauthorized())
   }
 
-  // Track session validation (SUPER_ADMIN only)
-  if (user.role === UserRole.SUPER_ADMIN) {
+  // Track session validation (SUPER_ADMIN and ADMIN only)
+  if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) {
     posthogCapture('user_session_validated', user.id, { role: user.role, email: user.email })
   }
 
