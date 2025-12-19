@@ -819,6 +819,7 @@ export class GiroService {
     page?: number
     limit?: number
     showAllTraffic?: boolean
+    search?: string
   }): Promise<{
     giros: Giro[]
     total: number
@@ -910,6 +911,21 @@ export class GiroService {
       ) {
         where.minorista = null
       }
+    }
+
+    if (options.search) {
+      const search = options.search.toLowerCase()
+      const searchTerms = [
+        { beneficiaryName: { $ilike: `%${search}%` } },
+        { beneficiaryId: { $ilike: `%${search}%` } },
+        { bankName: { $ilike: `%${search}%` } },
+        {
+          transferencista: {
+            user: { fullName: { $ilike: `%${search}%` } },
+          },
+        },
+      ]
+      where.$or = searchTerms
     }
 
     if (options.dateFrom || options.dateTo) {
