@@ -341,7 +341,9 @@ minoristaRouter.get(
       const minoristaRepo = DI.em.getRepository(Minorista)
       const userMinorista = await minoristaRepo.findOne({ user: user.id })
       if (!userMinorista || userMinorista.id !== minoristaId) {
-        return res.status(403).json(ApiResponse.forbidden('No tienes permiso para exportar transacciones de otro minorista'))
+        return res
+          .status(403)
+          .json(ApiResponse.forbidden('No tienes permiso para exportar transacciones de otro minorista'))
       }
     }
 
@@ -385,7 +387,7 @@ minoristaRouter.get(
           day: '2-digit',
           hour: '2-digit',
           minute: '2-digit',
-          second: '2-digit'
+          second: '2-digit',
         }).format(d)
       }
 
@@ -418,7 +420,7 @@ minoristaRouter.get(
           amountCOP: t.amountCOP,
           amountBs: t.amountBs,
           profit: t.profit,
-          netAmount: netAmount
+          netAmount: netAmount,
         })
       })
 
@@ -429,9 +431,10 @@ minoristaRouter.get(
 
       worksheet.addRow({ description: 'Total Abonos', amountCOP: totalAbonos }).font = summaryStyle
       worksheet.addRow({ description: 'Total Giros', amountCOP: totalGiros }).font = summaryStyle
-      // Total COP: Interpreted as Net Raw Flow (Abonos - Giros) per common accounting, or Volume? 
+      // Total COP: Interpreted as Net Raw Flow (Abonos - Giros) per common accounting, or Volume?
       // Given "Total Neto" is separate, let's provide Net COP (Abonos - Giros)
-      worksheet.addRow({ description: 'Total COP (Abonos - Giros)', amountCOP: totalAbonos - totalGiros }).font = summaryStyle
+      worksheet.addRow({ description: 'Total COP (Abonos - Giros)', amountCOP: totalAbonos - totalGiros }).font =
+        summaryStyle
 
       worksheet.addRow({ description: 'Total Bs', amountBs: totalBs }).font = summaryStyle
       worksheet.addRow({ description: 'Total Ganancias', profit: totalProfit }).font = summaryStyle
@@ -451,7 +454,6 @@ minoristaRouter.get(
 
       const buffer = await workbook.xlsx.writeBuffer()
       res.send(buffer)
-
     } catch (error) {
       logger.error({ error }, 'Error exporting transactions')
       res.status(500).json(ApiResponse.serverError())

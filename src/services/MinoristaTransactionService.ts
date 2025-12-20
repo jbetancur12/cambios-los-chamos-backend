@@ -69,10 +69,7 @@ export class MinoristaTransactionService {
     // 🔒 LOCKING: Use Pessimistic Write Lock to prevent race conditions
     // This serializes access to the minorista record, ensuring strictly sequential balance updates.
     // Must be run inside a transaction (guaranteed by the check above).
-    const minorista = await minoristaRepo.findOne(
-      { id: data.minoristaId },
-      { lockMode: LockMode.PESSIMISTIC_WRITE }
-    )
+    const minorista = await minoristaRepo.findOne({ id: data.minoristaId }, { lockMode: LockMode.PESSIMISTIC_WRITE })
 
     if (!minorista) {
       return { error: 'MINORISTA_NOT_FOUND' }
@@ -330,31 +327,31 @@ export class MinoristaTransactionService {
     options?: { page?: number; limit?: number; startDate?: string; endDate?: string }
   ): Promise<
     | {
-      total: number
-      page: number
-      limit: number
-      startBalance?: number
-      startBalanceInFavor?: number
-      transactions: Array<{
-        id: string
-        amount: number
-        type: MinoristaTransactionType
-        previousBalance: number
-        currentBalance: number
-        previousBalanceInFavor: number
-        currentBalanceInFavor: number
-        balanceInFavorUsed?: number
-        creditUsed?: number
-        externalDebt?: number
-        profitEarned?: number
-        createdBy: {
+        total: number
+        page: number
+        limit: number
+        startBalance?: number
+        startBalanceInFavor?: number
+        transactions: Array<{
           id: string
-          fullName: string
-          email: string
-        }
-        createdAt: Date
-      }>
-    }
+          amount: number
+          type: MinoristaTransactionType
+          previousBalance: number
+          currentBalance: number
+          previousBalanceInFavor: number
+          currentBalanceInFavor: number
+          balanceInFavorUsed?: number
+          creditUsed?: number
+          externalDebt?: number
+          profitEarned?: number
+          createdBy: {
+            id: string
+            fullName: string
+            email: string
+          }
+          createdAt: Date
+        }>
+      }
     | { error: 'MINORISTA_NOT_FOUND' }
   > {
     const minoristaRepo = DI.em.getRepository(Minorista)
@@ -453,27 +450,27 @@ export class MinoristaTransactionService {
    */
   async getTransactionById(transactionId: string): Promise<
     | {
-      id: string
-      amount: number
-      type: MinoristaTransactionType
-      previousBalance: number
-      currentBalance: number
-      minorista: {
         id: string
-        availableCredit: number
-        user: {
+        amount: number
+        type: MinoristaTransactionType
+        previousBalance: number
+        currentBalance: number
+        minorista: {
+          id: string
+          availableCredit: number
+          user: {
+            id: string
+            fullName: string
+            email: string
+          }
+        }
+        createdBy: {
           id: string
           fullName: string
           email: string
         }
+        createdAt: Date
       }
-      createdBy: {
-        id: string
-        fullName: string
-        email: string
-      }
-      createdAt: Date
-    }
     | { error: 'TRANSACTION_NOT_FOUND' }
   > {
     const transactionRepo = DI.em.getRepository(MinoristaTransaction)
@@ -527,7 +524,7 @@ export class MinoristaTransactionService {
 
     const where: FilterQuery<MinoristaTransaction> = {
       minorista: minoristaId,
-      status: MinoristaTransactionStatus.COMPLETED
+      status: MinoristaTransactionStatus.COMPLETED,
     }
 
     if (options?.startDate && options?.endDate) {
@@ -542,7 +539,7 @@ export class MinoristaTransactionService {
     // Fetch ALL matching transactions ordered by date
     const transactions = await transactionRepo.find(where, {
       orderBy: { createdAt: 'DESC', id: 'DESC' },
-      populate: ['createdBy', 'giro']
+      populate: ['createdBy', 'giro'],
     })
 
     console.log(`[Export] Found ${transactions.length} transactions for minorista ${minoristaId}`)
@@ -552,10 +549,7 @@ export class MinoristaTransactionService {
   /**
    * Obtiene datos combinados de Giros (directamente de tabla giros) y Recargas (tabla transacciones)
    */
-  async getCombinedExportData(
-    minoristaId: string,
-    options?: { startDate?: string; endDate?: string }
-  ): Promise<any[]> {
+  async getCombinedExportData(minoristaId: string, options?: { startDate?: string; endDate?: string }): Promise<any[]> {
     const giroRepo = DI.em.getRepository(Giro)
     const transactionRepo = DI.em.getRepository(MinoristaTransaction)
 
@@ -569,48 +563,48 @@ export class MinoristaTransactionService {
     // 1. Fetch COMPLETED Giros
     const giroQuery: any = {
       minorista: minoristaId,
-      status: GiroStatus.COMPLETADO
+      status: GiroStatus.COMPLETADO,
     }
     if (dateFilter.$gte) {
       giroQuery.createdAt = dateFilter
     }
 
     const giros = await giroRepo.find(giroQuery, {
-      orderBy: { createdAt: 'DESC' }
+      orderBy: { createdAt: 'DESC' },
     })
 
     // 2. Fetch RECHARGE Transactions
     const txQuery: any = {
       minorista: minoristaId,
-      type: MinoristaTransactionType.RECHARGE
+      type: MinoristaTransactionType.RECHARGE,
     }
     if (dateFilter.$gte) {
       txQuery.createdAt = dateFilter
     }
 
     const recharges = await transactionRepo.find(txQuery, {
-      orderBy: { createdAt: 'DESC' }
+      orderBy: { createdAt: 'DESC' },
     })
 
     // 3. Map both to common structure
-    const mappedGiros = giros.map(g => ({
+    const mappedGiros = giros.map((g) => ({
       date: g.createdAt,
       type: 'GIRO',
       description: `Giro a ${g.beneficiaryName}`,
       amountCOP: g.amountInput, // Monto Original en COP
-      amountBs: g.amountBs,     // Monto en Bs
-      profit: g.minoristaProfit,// Ganancia del minorista
-      isRecharge: false
+      amountBs: g.amountBs, // Monto en Bs
+      profit: g.minoristaProfit, // Ganancia del minorista
+      isRecharge: false,
     }))
 
-    const mappedRecharges = recharges.map(t => ({
+    const mappedRecharges = recharges.map((t) => ({
       date: t.createdAt,
       type: 'ABONO',
       description: t.description || 'Recarga de Saldo',
       amountCOP: t.amount, // Monto Recarga
       amountBs: 0,
       profit: 0,
-      isRecharge: true
+      isRecharge: true,
     }))
 
     // 4. Merge and Sort

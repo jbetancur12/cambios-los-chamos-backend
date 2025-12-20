@@ -230,7 +230,7 @@ export class GiroService {
 
           // Vincular las transacciones a este giro
           for (const transaction of minoristaTransactions) {
-            ; (transaction as MinoristaTransaction).giro = giro
+            ;(transaction as MinoristaTransaction).giro = giro
             em.persist(transaction)
           }
           await em.flush()
@@ -329,14 +329,14 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error:
-      | 'GIRO_NOT_FOUND'
-      | 'INVALID_STATUS'
-      | 'BANK_ACCOUNT_NOT_FOUND'
-      | 'INSUFFICIENT_BALANCE'
-      | 'UNAUTHORIZED_ACCOUNT'
-      | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
-    }
+        error:
+          | 'GIRO_NOT_FOUND'
+          | 'INVALID_STATUS'
+          | 'BANK_ACCOUNT_NOT_FOUND'
+          | 'INSUFFICIENT_BALANCE'
+          | 'UNAUTHORIZED_ACCOUNT'
+          | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+      }
   > {
     const giro = await DI.giros.findOne(
       { id: giroId },
@@ -820,6 +820,7 @@ export class GiroService {
     userId: string
     userRole: UserRole
     minoristaId?: string
+    transferencistaId?: string
     status?: GiroStatus | GiroStatus[]
     dateFrom?: Date
     dateTo?: Date
@@ -903,9 +904,13 @@ export class GiroService {
     }
     // SUPER_ADMIN/ADMIN: ven todos los giros (sin filtro adicional)
 
-    // Filtros opcionales
     if (options.status) {
       where.status = options.status
+
+      // Si se filtra por transferencistaId (Admin feature), aplicarlo
+      if (options.transferencistaId) {
+        where.transferencista = options.transferencistaId
+      }
 
       // Si el usuario es ADMIN/SUPER_ADMIN y está filtrando por COMPLETADO,
       // Solo mostrar giros creados por el sistema (sin minorista vinculado),
@@ -923,14 +928,6 @@ export class GiroService {
     if (options.search) {
       const search = options.search.toLowerCase()
       const searchTerms = [
-        { beneficiaryName: { $ilike: `%${search}%` } },
-        { beneficiaryId: { $ilike: `%${search}%` } },
-        { bankName: { $ilike: `%${search}%` } },
-        {
-          transferencista: {
-            user: { fullName: { $ilike: `%${search}%` } },
-          },
-        },
         {
           minorista: {
             user: { fullName: { $ilike: `%${search}%` } },
@@ -1019,6 +1016,7 @@ export class GiroService {
     page?: number
     limit?: number
     minoristaId?: string // Deprecated, use userId for minorista context
+    transferencistaId?: string // Optional filter for admins
     showAllTraffic?: boolean // Admin flag to see all traffic including minoristas
   }): Promise<{
     count: number
@@ -1037,14 +1035,6 @@ export class GiroService {
     if (options.search) {
       const search = options.search.toLowerCase()
       const searchTerms = [
-        { beneficiaryName: { $ilike: `%${search}%` } },
-        { beneficiaryId: { $ilike: `%${search}%` } },
-        { bankName: { $ilike: `%${search}%` } },
-        {
-          transferencista: {
-            user: { fullName: { $ilike: `%${search}%` } },
-          },
-        },
         {
           minorista: {
             user: { fullName: { $ilike: `%${search}%` } },
@@ -1083,6 +1073,12 @@ export class GiroService {
 
     // Calcular totales globales usando Knex query builder
     const qb = DI.em.createQueryBuilder(Giro, 'g')
+
+    // Add transferencistaId filter if present (duplicate simple 'where' logic for totals)
+    if (options.transferencistaId) {
+      where.transferencista = options.transferencistaId
+    }
+
     qb.where(where)
 
     // IMPORTANT: Join necessary tables if search involves relations
@@ -1187,13 +1183,13 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error:
-      | 'MINORISTA_NOT_FOUND'
-      | 'NO_TRANSFERENCISTA_ASSIGNED'
-      | 'INSUFFICIENT_BALANCE'
-      | 'OPERATOR_NOT_FOUND'
-      | 'AMOUNT_NOT_FOUND'
-    }
+        error:
+          | 'MINORISTA_NOT_FOUND'
+          | 'NO_TRANSFERENCISTA_ASSIGNED'
+          | 'INSUFFICIENT_BALANCE'
+          | 'OPERATOR_NOT_FOUND'
+          | 'AMOUNT_NOT_FOUND'
+      }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null
@@ -1367,8 +1363,8 @@ export class GiroService {
   ): Promise<
     | Giro
     | {
-      error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
-    }
+        error: 'MINORISTA_NOT_FOUND' | 'NO_TRANSFERENCISTA_ASSIGNED' | 'INSUFFICIENT_BALANCE' | 'BANK_NOT_FOUND'
+      }
   > {
     // Obtener minorista solo si el usuario es MINORISTA
     let minorista: Minorista | null = null

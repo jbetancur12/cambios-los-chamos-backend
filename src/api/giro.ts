@@ -167,6 +167,7 @@ giroRouter.get('/totals', requireAuth(), async (req: Request, res: Response) => 
   }
 
   const minoristaId = req.query.minoristaId as string | undefined
+  const transferencistaId = req.query.transferencistaId as string | undefined
 
   // Parse dates from ISO strings
   let dateFrom: Date | undefined = undefined
@@ -195,6 +196,7 @@ giroRouter.get('/totals', requireAuth(), async (req: Request, res: Response) => 
     userId: user.id,
     userRole: user.role,
     minoristaId,
+    transferencistaId,
     status,
     dateFrom,
     dateTo,
@@ -227,6 +229,7 @@ giroRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
   }
 
   const minoristaId = req.query.minoristaId as string | undefined
+  const transferencistaId = req.query.transferencistaId as string | undefined
   const page = parseInt(req.query.page as string) || 1
   const limit = parseInt(req.query.limit as string) || 100
 
@@ -257,6 +260,7 @@ giroRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
     userId: user.id,
     userRole: user.role,
     minoristaId,
+    transferencistaId,
     status,
     dateFrom,
     dateTo,
