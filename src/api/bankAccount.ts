@@ -152,6 +152,7 @@ bankAccountRouter.get(
     const accounts = await bankAccountRepo.find({}, { populate: ['bank', 'transferencista', 'transferencista.user'] })
 
     // Ordenar cuentas por prioridad: Aurora > Rossana > Ramon > Otros
+    // Si tienen la misma prioridad, ordenar por fecha de creación (más antiguas primero)
     accounts.sort((a, b) => {
       const getPriority = (account: BankAccount) => {
         const searchText = (
@@ -166,7 +167,15 @@ bankAccountRouter.get(
         return 4
       }
 
-      return getPriority(a) - getPriority(b)
+      const priorityA = getPriority(a)
+      const priorityB = getPriority(b)
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB
+      }
+
+      // Secondary sort: Creation date (Ascending)
+      return a.createdAt.getTime() - b.createdAt.getTime()
     })
 
     const formattedAccounts = accounts.map((account) => {
