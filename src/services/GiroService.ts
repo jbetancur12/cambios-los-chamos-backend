@@ -251,7 +251,8 @@ export class GiroService {
         await sendGiroAssignedNotification(assigned.user.id, giro.id, giro.amountBs, giro.executionType)
         logger.info(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
 
-        // Enviar correo electrónico al transferencista
+        // Enviar correo electrónico al transferencista - DESHABILITADO POR SOLICITUD
+        /*
         try {
           const emailSubject = `Nuevo Giro Asignado (${giro.executionType}) - ${giro.amountBs.toFixed(2)} Bs`
           const emailBody = `
@@ -284,6 +285,7 @@ export class GiroService {
           logger.error({ emailError }, '[EMAIL] Error al enviar correo de notificación')
           // No lanzamos error para no revertir la transacción del giro
         }
+        */
 
         return giro
       })
