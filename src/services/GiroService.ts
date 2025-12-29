@@ -1727,6 +1727,79 @@ export class GiroService {
 
     return giro
   }
+
+
+  /**
+   * Reasigna un giro a otro transferencista.
+   */
+  async reassignGiro(
+    giroId: string,
+    newTransferencistaId: string,
+    user: User
+  ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'TRANSFERENCISTA_NOT_FOUND' | 'FORBIDDEN' }> {
+    // Validar permisos si el usuario no es ADMIN/SUPER_ADMIN (aunque el controller ya lo hace, doble check)
+    // El controller permite TRANSFERENCISTA, así que aquí validamos lógica de negocio si fuera necesario.
+
+    const giroRepo = DI.em.getRepository(Giro)
+
+    const giro = await giroRepo.findOne(
+      { id: giroId },
+      {
+        populate: [
+          'minorista',
+          'minorista.user',
+          'transferencista',
+          'transferencista.user',
+          'rateApplied',
+          'createdBy',
+          'bankAccountUsed',
+          'bankAccountUsed.bank',
+        ],
+      }
+    )
+
+    if (!giro) {
+      return { error: 'GIRO_NOT_FOUND' }
+    }
+
+    // Validar estado
+    if (giro.status !== GiroStatus.ASIGNADO && giro.status !== GiroStatus.PROCESANDO) {
+      return { error: 'INVALID_STATUS' }
+    }
+
+    // Validar nuevo transferencista
+    const newTransferencista = await DI.transferencistas.findOne(
+      { id: newTransferencistaId },
+      { populate: ['user'] }
+    )
+
+    if (!newTransferencista) {
+      return { error: 'TRANSFERENCISTA_NOT_FOUND' }
+    }
+
+    // Evitar reasignar al mismo
+    if (giro.transferencista?.id === newTransferencista.id) {
+      // No es un error crítico, pero no hacemos nada
+      return giro
+    }
+
+    // Actualizar giro
+    const oldTransferencistaId = giro.transferencista?.id
+    giro.transferencista = newTransferencista
+    giro.updatedAt = new Date()
+
+    await DI.em.persistAndFlush(giro)
+
+    // Notificar al nuevo transferencista
+    await sendGiroAssignedNotification(newTransferencista.user.id, giro.id, giro.amountBs, giro.executionType)
+
+    // Log
+    logger.info(
+      `[GIRO] Reassigned giro ${giroId} from Transferencista ${oldTransferencistaId} to ${newTransferencista.id} by ${user.email}`
+    )
+
+    return giro
+  }
 }
 
 export const giroService = new GiroService()

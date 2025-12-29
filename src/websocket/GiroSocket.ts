@@ -129,6 +129,19 @@ export class GiroSocketManager {
   }
 
   /**
+   * Emitir evento cuando se reasigna un giro
+   */
+  broadcastGiroAssigned(giro: Giro) {
+    const payload = {
+      giro: this.serializeGiro(giro),
+      timestamp: new Date().toISOString(),
+    }
+
+    // Enviar a TODOS los usuarios conectados
+    this.io.emit('giro:assigned', payload)
+  }
+
+  /**
    * Serializar giro para envío por WebSocket
    * Incluye relaciones populadas
    */
@@ -157,24 +170,24 @@ export class GiroSocketManager {
       minorista: giro.minorista ? { id: giro.minorista.id } : undefined,
       transferencista: giro.transferencista
         ? {
-            id: giro.transferencista.id,
-            user: giro.transferencista.user
-              ? {
-                  id: giro.transferencista.user.id,
-                  fullName: giro.transferencista.user.fullName,
-                }
-              : undefined,
-          }
+          id: giro.transferencista.id,
+          user: giro.transferencista.user
+            ? {
+              id: giro.transferencista.user.id,
+              fullName: giro.transferencista.user.fullName,
+            }
+            : undefined,
+        }
         : undefined,
       rateApplied: giro.rateApplied
         ? {
-            id: giro.rateApplied.id,
-            buyRate: giro.rateApplied.buyRate,
-            sellRate: giro.rateApplied.sellRate,
-            usd: giro.rateApplied.usd,
-            bcv: giro.rateApplied.bcv,
-            isCustom: giro.rateApplied.isCustom,
-          }
+          id: giro.rateApplied.id,
+          buyRate: giro.rateApplied.buyRate,
+          sellRate: giro.rateApplied.sellRate,
+          usd: giro.rateApplied.usd,
+          bcv: giro.rateApplied.bcv,
+          isCustom: giro.rateApplied.isCustom,
+        }
         : undefined,
     }
   }
@@ -275,10 +288,10 @@ export class GiroSocketManager {
       profitEarned: t.profitEarned,
       createdBy: t.createdBy
         ? {
-            id: t.createdBy.id,
-            fullName: t.createdBy.fullName,
-            email: t.createdBy.email,
-          }
+          id: t.createdBy.id,
+          fullName: t.createdBy.fullName,
+          email: t.createdBy.email,
+        }
         : undefined,
       minorista: t.minorista ? { id: t.minorista.id } : undefined,
       createdAt: t.createdAt,
