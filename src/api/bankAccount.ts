@@ -151,6 +151,24 @@ bankAccountRouter.get(
 
     const accounts = await bankAccountRepo.find({}, { populate: ['bank', 'transferencista', 'transferencista.user'] })
 
+    // Ordenar cuentas por prioridad: Aurora > Rossana > Ramon > Otros
+    accounts.sort((a, b) => {
+      const getPriority = (account: BankAccount) => {
+        const searchText = (
+          account.accountHolder +
+          ' ' +
+          (account.transferencista?.user?.fullName || '')
+        ).toLowerCase()
+
+        if (searchText.includes('aurora')) return 1
+        if (searchText.includes('rossana')) return 2
+        if (searchText.includes('ramon') || searchText.includes('ramón')) return 3
+        return 4
+      }
+
+      return getPriority(a) - getPriority(b)
+    })
+
     const formattedAccounts = accounts.map((account) => {
       const formatted: Record<string, unknown> = {
         id: account.id,
