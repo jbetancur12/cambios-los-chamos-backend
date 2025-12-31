@@ -51,9 +51,9 @@ export const userMiddleware = () => {
         return next()
       }
 
+      // PERMITIR session incluso si está inactivo (para que pueda ver dashboard)
       if (!user.isActive) {
-        logger.warn({ email: user.email }, '[AUTH] Token valid but user is inactive')
-        return next()
+        logger.warn({ email: user.email }, '[AUTH] User is inactive but session allowed (View Only mode)')
       }
 
       // 4️⃣ Construir objeto requestUser
