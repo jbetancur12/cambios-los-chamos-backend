@@ -306,6 +306,7 @@ bankAccountRouter.patch(
       reference: 'Recarga manual de saldo',
       fee: 0,
       createdBy: user,
+      allowOverdraft: true, // Permitir saldos negativos en ajustes manuales de Admin
     })
 
     if ('error' in result) {
