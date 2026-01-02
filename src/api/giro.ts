@@ -588,6 +588,88 @@ giroRouter.delete('/:giroId', requireAuth(), async (req: Request, res: Response)
   res.json(ApiResponse.success({ message: 'Giro eliminado exitosamente' }))
 })
 
+// ------------------ REASIGNAR GIRO ------------------
+giroRouter.post(
+  '/:giroId/reassign',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA),
+  async (req: Request, res: Response) => {
+    const { giroId } = req.params
+    const { newTransferencistaId } = req.body
+    const user = req.context?.requestUser?.user
+
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
+    if (!newTransferencistaId) {
+      return res.status(400).json(ApiResponse.validationError([{ field: 'newTransferencistaId', message: 'El ID del nuevo transferencista es requerido' }]))
+    }
+
+    const result = await giroService.reassignGiro(giroId, newTransferencistaId, user)
+
+    if ('error' in result) {
+      switch (result.error) {
+        case 'GIRO_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+        case 'INVALID_STATUS':
+          return res.status(400).json(ApiResponse.badRequest('El giro no está en un estado válido para reasignar'))
+        case 'TRANSFERENCISTA_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Transferencista', newTransferencistaId))
+        case 'FORBIDDEN':
+          return res.status(403).json(ApiResponse.forbidden('No tienes permiso para reasignar este giro'))
+      }
+    }
+
+    // Emitir evento de WebSocket para actualizar listas
+    if (giroSocketManager) {
+      giroSocketManager.broadcastGiroAssigned(result)
+    }
+
+    res.json(ApiResponse.success({ giro: result, message: 'Giro reasignado exitosamente' }))
+  }
+)
+
+// ------------------ REASIGNAR GIRO ------------------
+giroRouter.post(
+  '/:giroId/reassign',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA),
+  async (req: Request, res: Response) => {
+    const { giroId } = req.params
+    const { newTransferencistaId } = req.body
+    const user = req.context?.requestUser?.user
+
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
+    if (!newTransferencistaId) {
+      return res.status(400).json(ApiResponse.validationError([{ field: 'newTransferencistaId', message: 'El ID del nuevo transferencista es requerido' }]))
+    }
+
+    const result = await giroService.reassignGiro(giroId, newTransferencistaId, user)
+
+    if ('error' in result) {
+      switch (result.error) {
+        case 'GIRO_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+        case 'INVALID_STATUS':
+          return res.status(400).json(ApiResponse.badRequest('El giro no está en un estado válido para reasignar'))
+        case 'TRANSFERENCISTA_NOT_FOUND':
+          return res.status(404).json(ApiResponse.notFound('Transferencista', newTransferencistaId))
+        case 'FORBIDDEN':
+          return res.status(403).json(ApiResponse.forbidden('No tienes permiso para reasignar este giro'))
+      }
+    }
+
+    // Emitir evento de WebSocket para actualizar listas
+    if (giroSocketManager) {
+      giroSocketManager.broadcastGiroAssigned(result) // Reutilizamos "Assigned" o creamos uno nuevo "Reassigned" si fuera necesario, Assigned fuerza recarga usualmente
+    }
+
+    res.json(ApiResponse.success({ giro: result, message: 'Giro reasignado exitosamente' }))
+  }
+)
+
 // ------------------ CREAR RECARGA ------------------
 giroRouter.post(
   '/recharge/create',

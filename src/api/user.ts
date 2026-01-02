@@ -226,7 +226,7 @@ userRouter.post('/send-reset-password', validateBody(sendResetPasswordSchema), a
 userRouter.get(
   '/by-role/:role',
   requireAuth(),
-  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA),
   validateParams(getByRoleSchema),
   async (req: Request, res: Response) => {
     const { role } = req.params as { role: UserRole }
