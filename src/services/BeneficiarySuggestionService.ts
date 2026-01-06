@@ -3,6 +3,7 @@ import { FilterQuery } from '@mikro-orm/core'
 import { BeneficiarySuggestion } from '@/entities/BeneficiarySuggestion'
 import { User } from '@/entities/User'
 import { ExecutionType } from '@/entities/Giro'
+import { normalizeText } from '@/utils/textUtils'
 
 export class BeneficiarySuggestionService {
   async saveBeneficiarySuggestion(
@@ -86,26 +87,32 @@ export class BeneficiarySuggestionService {
       return await this.getBeneficiarySuggestions(userId, executionType, limit)
     }
 
-    const searchLower = `%${searchTerm.toLowerCase()}%`
-    const orConditions: FilterQuery<BeneficiarySuggestion>[] = [
-      { beneficiaryName: { $ilike: searchLower } },
-      { beneficiaryId: { $ilike: searchLower } },
-    ]
-    // User requested explicitly NOT to search by phone
+    // Normalize search term to be accent-insensitive
+    const normalizedSearch = normalizeText(searchTerm)
+    const searchPattern = `%${normalizedSearch}%`
 
     const where: FilterQuery<BeneficiarySuggestion> = {
       user: userId,
-      $or: orConditions,
     }
 
     if (executionType) {
       where.executionType = executionType
     }
 
-    return await DI.em.getRepository(BeneficiarySuggestion).find(where, {
+    // Get all suggestions and filter in-memory for accent-insensitive search
+    const allSuggestions = await DI.em.getRepository(BeneficiarySuggestion).find(where, {
       orderBy: { updatedAt: 'DESC' },
-      limit,
     })
+
+    // Filter by normalized name or ID
+    const filtered = allSuggestions.filter(suggestion => {
+      const normalizedName = normalizeText(suggestion.beneficiaryName)
+      const normalizedId = normalizeText(suggestion.beneficiaryId)
+
+      return normalizedName.includes(normalizedSearch) || normalizedId.includes(normalizedSearch)
+    })
+
+    return filtered.slice(0, limit)
   }
 
   async deleteBeneficiarySuggestion(userId: string, suggestionId: string): Promise<boolean> {
