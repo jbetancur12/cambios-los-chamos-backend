@@ -1307,6 +1307,7 @@ export class GiroService {
         logger.info(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
 
         // Enviar correo electrónico al transferencista
+        /*
         try {
           const emailSubject = `Nuevo Giro Asignado (${giro.executionType}) - ${giro.amountBs.toFixed(2)} Bs`
           const emailBody = `
@@ -1338,6 +1339,7 @@ export class GiroService {
           logger.error({ emailError }, '[EMAIL] Error al enviar correo de notificación')
           // No lanzamos error para no revertir la transacción del giro
         }
+        */
 
         return giro
       })
@@ -1482,6 +1484,7 @@ export class GiroService {
         logger.info(`[GIRO-SERVICE] Notificación enviada (o proceso completado) para giro ${giro.id}`)
 
         // Enviar correo electrónico al transferencista
+        /*
         try {
           const emailSubject = `Nuevo Giro Asignado (${giro.executionType}) - ${giro.amountBs.toFixed(2)} Bs`
           const emailBody = `
@@ -1514,6 +1517,7 @@ export class GiroService {
           logger.error({ emailError }, '[EMAIL] Error al enviar correo de notificación')
           // No lanzamos error para no revertir la transacción del giro
         }
+        */
 
         // Guardar sugerencia de beneficiario después de la transacción exitosa
         // Nota: Esto es un side-effect dentro de la transacción, pero es aceptable.
