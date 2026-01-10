@@ -67,6 +67,7 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
           email: user.email,
           role: user.role,
           minoristaId: user.minorista?.id,
+          isActive: user.isActive,
           transferencistaId: user.transferencista?.id,
         },
       })
