@@ -104,12 +104,17 @@ export class BeneficiarySuggestionService {
       orderBy: { updatedAt: 'DESC' },
     })
 
-    // Filter by normalized name or ID
+    // Filter by normalized name, ID or Account Number
     const filtered = allSuggestions.filter(suggestion => {
       const normalizedName = normalizeText(suggestion.beneficiaryName)
       const normalizedId = normalizeText(suggestion.beneficiaryId)
+      const normalizedAccountNumber = normalizeText(suggestion.accountNumber)
 
-      return normalizedName.includes(normalizedSearch) || normalizedId.includes(normalizedSearch)
+      return (
+        normalizedName.startsWith(normalizedSearch) ||
+        normalizedId.startsWith(normalizedSearch) ||
+        normalizedAccountNumber.startsWith(normalizedSearch)
+      )
     })
 
     return filtered.slice(0, limit)
