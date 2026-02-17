@@ -105,16 +105,20 @@ export class UserService {
       }
     })
 
-    // Enviar email de verificación (no bloqueante)
-    // Si falla, el usuario se crea de todas formas pero no podrá iniciar sesión hasta verificar
-    setImmediate(async () => {
-      try {
-        await sendVerificationEmail(user)
-      } catch (error) {
-        logger.error({ error, email: user.email }, '❌ Error enviando correo de verificación')
-        // Log para investigación, pero no afecta la creación del usuario
-      }
-    })
+    // Si el rol es MINORISTA, se verifica automáticamente y no se envía correo
+    if (role === UserRole.MINORISTA) {
+      user.emailVerified = true
+      await DI.em.persistAndFlush(user)
+    } else {
+      // Enviar email de verificación (no bloqueante) para otros roles
+      setImmediate(async () => {
+        try {
+          await sendVerificationEmail(user)
+        } catch (error) {
+          logger.error({ error, email: user.email }, '❌ Error enviando correo de verificación')
+        }
+      })
+    }
 
     const token = generateAccessToken({
       email: user.email,
