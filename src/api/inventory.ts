@@ -102,6 +102,18 @@ router.post('/transactions/sale', async (req, res) => {
     }
 });
 
+router.post('/transactions/bulk-sale', async (req, res) => {
+    try {
+        const userId = req.context?.requestUser?.user?.id;
+        if (!userId) return res.status(401).json(ApiResponse.unauthorized());
+
+        await productTransactionService.createBulkSale({ items: req.body.items, userId });
+        res.status(201).json(ApiResponse.success({ success: true }));
+    } catch (error: any) {
+        res.status(400).json(ApiResponse.badRequest(error.message));
+    }
+});
+
 // Manual Adjustment
 router.post('/transactions/adjustment', requireRole(UserRole.SUPER_ADMIN), async (req, res) => {
     try {

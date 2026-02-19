@@ -57,78 +57,103 @@ class ProductTransactionService {
         sellingPrice?: number;
         userId: string;
     }) {
-        if (data.quantity <= 0) throw new Error('Quantity must be positive');
+        const em = DI.orm.em.fork();
+        return await em.transactional(async (tem) => {
+            await this._processSale(tem, {
+                productId: data.productId,
+                quantity: data.quantity,
+                sellingPrice: data.sellingPrice,
+                userId: data.userId
+            });
+        });
+    }
 
+    async createBulkSale(data: {
+        items: { productId: string; quantity: number; sellingPrice?: number }[];
+        userId: string;
+    }) {
+        if (!data.items || data.items.length === 0) throw new Error('No items to sell');
         const em = DI.orm.em.fork();
 
         return await em.transactional(async (tem) => {
-            const product = await tem.findOne(Product, { id: data.productId }, { lockMode: LockMode.PESSIMISTIC_WRITE });
-            if (!product) throw new Error('Product not found');
-
-            if (product.stock < data.quantity) {
-                throw new Error(`Insufficient stock. Available: ${product.stock}`);
+            for (const item of data.items) {
+                await this._processSale(tem, {
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    sellingPrice: item.sellingPrice,
+                    userId: data.userId
+                });
             }
-
-            const user = await tem.findOne(User, { id: data.userId });
-            if (!user) throw new Error('User not found');
-
-            const finalSellingPrice = data.sellingPrice ?? product.sellingPrice;
-
-            // --- FIFO LOGIC ---
-            let quantityToSell = data.quantity;
-            let totalCost = 0;
-
-            // 1. Fetch available stock batches (FIFO order: Oldest First)
-            const batches = await tem.find(ProductTransaction, {
-                product: product,
-                type: { $in: [ProductTransactionType.PURCHASE, ProductTransactionType.ADJUSTMENT] },
-                remainingQuantity: { $gt: 0 }
-            }, {
-                orderBy: { createdAt: 'ASC' }
-            });
-
-            // 2. Deplete batches
-            for (const batch of batches) {
-                if (quantityToSell <= 0) break;
-
-                const quantityFromBatch = Math.min(batch.remainingQuantity, quantityToSell);
-
-                // Cost for these units
-                totalCost += quantityFromBatch * Number(batch.pricePerUnit);
-
-                // Update batch
-                batch.remainingQuantity -= quantityFromBatch;
-                quantityToSell -= quantityFromBatch;
-            }
-
-            // 3. Handle Remaining Quantity (If we are selling more than we have tracked in batches)
-            // This happens for pre-migration stock or if adjustment logic is loose.
-            // Fallback: Use current product.costPrice for untracked stock.
-            if (quantityToSell > 0) {
-                totalCost += quantityToSell * Number(product.costPrice);
-            }
-
-            // Calculate Profit
-            const totalRevenue = data.quantity * finalSellingPrice;
-            const profit = totalRevenue - totalCost;
-
-            const transaction = tem.create(ProductTransaction, {
-                product,
-                type: ProductTransactionType.SALE,
-                quantity: data.quantity,
-                remainingQuantity: 0, // Sales don't have remaining stock
-                pricePerUnit: finalSellingPrice,
-                totalPrice: totalRevenue,
-                profit: profit,
-                createdBy: user,
-                createdAt: new Date()
-            });
-
-            // Deduct Stock
-            product.stock -= data.quantity;
-
-            tem.persist(transaction);
         });
+    }
+
+    private async _processSale(tem: any, data: { productId: string; quantity: number; sellingPrice?: number; userId: string }) {
+        if (data.quantity <= 0) throw new Error('Quantity must be positive');
+
+        const product = await tem.findOne(Product, { id: data.productId }, { lockMode: LockMode.PESSIMISTIC_WRITE });
+        if (!product) throw new Error('Product not found');
+
+        if (product.stock < data.quantity) {
+            throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
+        }
+
+        const user = await tem.findOne(User, { id: data.userId });
+        if (!user) throw new Error('User not found');
+
+        const finalSellingPrice = data.sellingPrice ?? product.sellingPrice;
+
+        // --- FIFO LOGIC ---
+        let quantityToSell = data.quantity;
+        let totalCost = 0;
+
+        // 1. Fetch available stock batches (FIFO order: Oldest First)
+        const batches = await tem.find(ProductTransaction, {
+            product: product,
+            type: { $in: [ProductTransactionType.PURCHASE, ProductTransactionType.ADJUSTMENT] },
+            remainingQuantity: { $gt: 0 }
+        }, {
+            orderBy: { createdAt: 'ASC' }
+        });
+
+        // 2. Deplete batches
+        for (const batch of batches) {
+            if (quantityToSell <= 0) break;
+
+            const quantityFromBatch = Math.min(batch.remainingQuantity, quantityToSell);
+
+            // Cost for these units
+            totalCost += quantityFromBatch * Number(batch.pricePerUnit);
+
+            // Update batch
+            batch.remainingQuantity -= quantityFromBatch;
+            quantityToSell -= quantityFromBatch;
+        }
+
+        // 3. Handle Remaining Quantity (If we are selling more than we have tracked in batches)
+        if (quantityToSell > 0) {
+            totalCost += quantityToSell * Number(product.costPrice);
+        }
+
+        // Calculate Profit
+        const totalRevenue = data.quantity * finalSellingPrice;
+        const profit = totalRevenue - totalCost;
+
+        const transaction = tem.create(ProductTransaction, {
+            product,
+            type: ProductTransactionType.SALE,
+            quantity: data.quantity,
+            remainingQuantity: 0,
+            pricePerUnit: finalSellingPrice,
+            totalPrice: totalRevenue,
+            profit: profit,
+            createdBy: user,
+            createdAt: new Date()
+        });
+
+        // Deduct Stock
+        product.stock -= data.quantity;
+
+        tem.persist(transaction);
     }
 
     async createAdjustment(data: {
