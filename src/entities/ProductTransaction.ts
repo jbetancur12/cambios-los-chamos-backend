@@ -10,6 +10,13 @@ export enum ProductTransactionType {
     ADJUSTMENT = 'ADJUSTMENT', // Manual fix (Increase or Decrease)
 }
 
+export enum PaymentMethod {
+    CASH = 'CASH',
+    TRANSFER = 'TRANSFER',
+    CARD = 'CARD',
+    CREDIT = 'CREDIT'
+}
+
 @Entity({ tableName: 'product_transactions' })
 export class ProductTransaction {
     @PrimaryKey()
@@ -20,6 +27,9 @@ export class ProductTransaction {
 
     @Enum(() => ProductTransactionType)
     type!: ProductTransactionType;
+
+    @Enum({ items: () => PaymentMethod, nullable: true })
+    paymentMethod?: PaymentMethod;
 
     @Property()
     quantity!: number; // Always positive. Type determines + or - in logic.

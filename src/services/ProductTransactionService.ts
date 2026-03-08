@@ -1,7 +1,7 @@
 
 import { DI } from '../di';
 import { Product } from '../entities/Product';
-import { ProductTransaction, ProductTransactionType } from '../entities/ProductTransaction';
+import { ProductTransaction, ProductTransactionType, PaymentMethod } from '../entities/ProductTransaction';
 import { User } from '../entities/User';
 import { wrap, LockMode } from '@mikro-orm/core';
 
@@ -55,6 +55,7 @@ class ProductTransactionService {
         productId: string;
         quantity: number;
         sellingPrice?: number;
+        paymentMethod?: PaymentMethod;
         userId: string;
     }) {
         const em = DI.orm.em.fork();
@@ -63,6 +64,7 @@ class ProductTransactionService {
                 productId: data.productId,
                 quantity: data.quantity,
                 sellingPrice: data.sellingPrice,
+                paymentMethod: data.paymentMethod,
                 userId: data.userId
             });
         });
@@ -70,6 +72,7 @@ class ProductTransactionService {
 
     async createBulkSale(data: {
         items: { productId: string; quantity: number; sellingPrice?: number }[];
+        paymentMethod?: PaymentMethod;
         userId: string;
     }) {
         if (!data.items || data.items.length === 0) throw new Error('No items to sell');
@@ -81,13 +84,20 @@ class ProductTransactionService {
                     productId: item.productId,
                     quantity: item.quantity,
                     sellingPrice: item.sellingPrice,
+                    paymentMethod: data.paymentMethod,
                     userId: data.userId
                 });
             }
         });
     }
 
-    private async _processSale(tem: any, data: { productId: string; quantity: number; sellingPrice?: number; userId: string }) {
+    private async _processSale(tem: any, data: {
+        productId: string;
+        quantity: number;
+        sellingPrice?: number;
+        paymentMethod?: PaymentMethod;
+        userId: string;
+    }) {
         if (data.quantity <= 0) throw new Error('Quantity must be positive');
 
         const product = await tem.findOne(Product, { id: data.productId }, { lockMode: LockMode.PESSIMISTIC_WRITE });
@@ -146,6 +156,7 @@ class ProductTransactionService {
             pricePerUnit: finalSellingPrice,
             totalPrice: totalRevenue,
             profit: profit,
+            paymentMethod: data.paymentMethod ?? PaymentMethod.CASH, // Default to CASH
             createdBy: user,
             createdAt: new Date()
         });

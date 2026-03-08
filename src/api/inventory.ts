@@ -107,7 +107,11 @@ router.post('/transactions/bulk-sale', async (req, res) => {
         const userId = req.context?.requestUser?.user?.id;
         if (!userId) return res.status(401).json(ApiResponse.unauthorized());
 
-        await productTransactionService.createBulkSale({ items: req.body.items, userId });
+        await productTransactionService.createBulkSale({
+            items: req.body.items,
+            paymentMethod: req.body.paymentMethod, // Extract paymentMethod
+            userId
+        });
         res.status(201).json(ApiResponse.success({ success: true }));
     } catch (error: any) {
         res.status(400).json(ApiResponse.badRequest(error.message));
