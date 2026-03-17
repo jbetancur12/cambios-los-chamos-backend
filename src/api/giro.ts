@@ -15,6 +15,8 @@ import { minioService } from '@/services/MinIOService'
 import { MinoristaTransaction } from '@/entities/MinoristaTransaction'
 import { thermalTicketService } from '@/services/ThermalTicketService'
 import { logger } from '@/lib/logger'
+import { facturacionService } from '@/services/facturacionService'
+import { customerInvoiceDataService } from '@/services/customerInvoiceDataService'
 
 export const giroRouter = express.Router({ mergeParams: true })
 
@@ -1077,3 +1079,120 @@ giroRouter.get('/:giroId/thermal-ticket', requireAuth(), async (req: Request, re
     res.status(500).json(ApiResponse.serverError())
   }
 })
+
+// ------------------ FACTURACIÓN ELECTRÓNICA POS ------------------
+giroRouter.post('/:giroId/facturar', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
+  try {
+    const { giroId } = req.params
+    const { customerIdentification } = req.body
+
+    const giro = await DI.em.getRepository(Giro).findOne({ id: giroId })
+    if (!giro) {
+      return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+    }
+
+    if (giro.status !== GiroStatus.COMPLETADO) {
+      return res.status(400).json(ApiResponse.badRequest('El giro debe estar COMPLETADO para ser facturado.'))
+    }
+
+    if (giro.isFacturado) {
+      return res.status(400).json(ApiResponse.badRequest('El giro ya se encuentra facturado.'))
+    }
+
+    let customer = undefined
+    if (customerIdentification) {
+      const foundCustomer = await customerInvoiceDataService.findByIdentification(customerIdentification)
+      if (foundCustomer) {
+        customer = foundCustomer
+      }
+    }
+
+    // Call Factus API
+    const authResult = await facturacionService.emitirFactura(giro, customer) as any
+    
+    // AuthResult usually gives a bill response
+    // For Facturacion POS we usually extract the 'number' from data
+    const factusBill = authResult.data?.bill || authResult.data
+    giro.isFacturado = true
+    giro.facturaId = factusBill?.number || (authResult.data && authResult.data.number) || 'F-POS'
+    giro.facturaStatus = factusBill?.status || 1 // 1 validated
+    giro.facturaFecha = new Date()
+
+    await DI.em.persistAndFlush(giro)
+
+    return res.status(200).json(ApiResponse.success({ giro, message: 'Factura POS generada exitosamente.' }))
+
+  } catch (error: any) {
+    logger.error({ error }, 'Error generando factura de giro')
+    return res.status(500).json(ApiResponse.serverError(error.message || 'Error en validación con DIAN'))
+  }
+})
+
+giroRouter.get('/:giroId/factura-pdf', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
+  try {
+    const { giroId } = req.params
+    const giro = await DI.em.getRepository(Giro).findOne({ id: giroId })
+    
+    if (!giro || !giro.facturaId) {
+      return res.status(404).json(ApiResponse.notFound('Factura no encontrada para este giro'))
+    }
+
+    const pdfBase64 = await facturacionService.descargarPdf(giro.facturaId)
+    // Send as base64 string
+    return res.status(200).json(ApiResponse.success({ pdfBase64 }))
+  } catch (error: any) {
+    logger.error({ error }, 'Error obteniendo PDF de la factura')
+    return res.status(500).json(ApiResponse.serverError(error.message))
+  }
+})
+
+giroRouter.get('/:giroId/factura-xml', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
+  try {
+    const { giroId } = req.params
+    const giro = await DI.em.getRepository(Giro).findOne({ id: giroId })
+    
+    if (!giro || !giro.facturaId) {
+      return res.status(404).json(ApiResponse.notFound('Factura no encontrada para este giro'))
+    }
+
+    const xmlBase64 = await facturacionService.descargarXml(giro.facturaId)
+    // Send as base64 string
+    return res.status(200).json(ApiResponse.success({ xmlBase64 }))
+  } catch (error: any) {
+    logger.error({ error }, 'Error obteniendo XML de la factura')
+    return res.status(500).json(ApiResponse.serverError(error.message))
+  }
+})
+
+giroRouter.get('/:giroId/factura-ticket', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA, UserRole.MINORISTA), async (req: Request, res: Response) => {
+  try {
+    const { giroId } = req.params
+    const user = req.context?.requestUser?.user
+    
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
+    const giro = await DI.em.getRepository(Giro).findOne({ id: giroId }, { populate: ['createdBy'] })
+    
+    if (!giro) {
+      return res.status(404).json(ApiResponse.notFound('Giro no encontrado'))
+    }
+
+    if (!giro.isFacturado || !giro.facturaId) {
+      return res.status(400).json(ApiResponse.badRequest('Este giro aún no ha sido facturado.'))
+    }
+
+    // Call Factus API to get the detailed bill
+    const facturaData = await facturacionService.getFacturaById(giro.facturaId)
+
+    // Generate ticket data
+    const ticketData = await thermalTicketService.generateFacturaTicketData(giro, facturaData)
+
+    res.json(ApiResponse.success(ticketData))
+  } catch (error: any) {
+    logger.error({ error }, 'Error obteniendo datos del tiquete POS de la factura')
+    return res.status(500).json(ApiResponse.serverError(error.message))
+  }
+})
+

@@ -1,0 +1,154 @@
+{
+  "status": "OK",
+  "message": "Solicitud exitosa",
+  "data": {
+    "data": [
+      {
+        "id": 1524,
+        "document": "Nota Crédito",
+        "prefix": "NC",
+        "from": 0,
+        "to": 16000000,
+        "current": 1,
+        "resolution_number": "",
+        "start_date": "2019-01-19",
+        "end_date": "2030-01-19",
+        "technical_key": null,
+        "is_expired": false,
+        "is_active": true,
+        "deleted_at": null,
+        "created_at": "2026-03-17T11:55:53Z",
+        "updated_at": "2026-03-17T11:55:53Z"
+      },
+      {
+        "id": 1525,
+        "document": "Nota Débito",
+        "prefix": "ND",
+        "from": 0,
+        "to": 16000000,
+        "current": 1,
+        "resolution_number": "",
+        "start_date": "2019-01-19",
+        "end_date": "2030-01-19",
+        "technical_key": null,
+        "is_expired": false,
+        "is_active": true,
+        "deleted_at": null,
+        "created_at": "2026-03-17T11:55:53Z",
+        "updated_at": "2026-03-17T11:55:53Z"
+      },
+      {
+        "id": 1526,
+        "document": "Nota de Ajuste Documento Soporte",
+        "prefix": "NA",
+        "from": 0,
+        "to": 16000000,
+        "current": 1,
+        "resolution_number": "",
+        "start_date": "2019-01-19",
+        "end_date": "2030-01-19",
+        "technical_key": null,
+        "is_expired": false,
+        "is_active": true,
+        "deleted_at": null,
+        "created_at": "2026-03-17T11:55:53Z",
+        "updated_at": "2026-03-17T11:55:53Z"
+      },
+      {
+        "id": 1527,
+        "document": "Nómina",
+        "prefix": "NEF",
+        "from": 0,
+        "to": 16000000,
+        "current": 1,
+        "resolution_number": "",
+        "start_date": "2019-01-19",
+        "end_date": "2030-01-19",
+        "technical_key": null,
+        "is_expired": false,
+        "is_active": true,
+        "deleted_at": null,
+        "created_at": "2026-03-17T11:55:53Z",
+        "updated_at": "2026-03-17T11:55:53Z"
+      },
+      {
+        "id": 1528,
+        "document": "Nota de Ajuste Nómina",
+        "prefix": "NAN",
+        "from": 0,
+        "to": 16000000,
+        "current": 1,
+        "resolution_number": "",
+        "start_date": "2019-01-19",
+        "end_date": "2030-01-19",
+        "technical_key": null,
+        "is_expired": false,
+        "is_active": true,
+        "deleted_at": null,
+        "created_at": "2026-03-17T11:55:53Z",
+        "updated_at": "2026-03-17T11:55:53Z"
+      },
+      {
+        "id": 1529,
+        "document": "Nota de eliminación de nómina",
+        "prefix": "NEN",
+        "from": 0,
+        "to": 16000000,
+        "current": 1,
+        "resolution_number": "",
+        "start_date": "2019-01-19",
+        "end_date": "2030-01-19",
+        "technical_key": null,
+        "is_expired": false,
+        "is_active": true,
+        "deleted_at": null,
+        "created_at": "2026-03-17T11:55:53Z",
+        "updated_at": "2026-03-17T11:55:53Z"
+      },
+      {
+        "id": 1523,
+        "document": "Factura de Venta",
+        "prefix": "SETP",
+        "from": 990000000,
+        "to": 995000000,
+        "current": 990000001,
+        "resolution_number": "18760000001",
+        "start_date": "2019-01-19",
+        "end_date": "2030-01-19",
+        "technical_key": "fc8eac422eba16e22ffd8c6f94b3f40a6e38162c",
+        "is_expired": false,
+        "is_active": true,
+        "deleted_at": null,
+        "created_at": "2026-03-17T11:55:53Z",
+        "updated_at": "2026-03-17T11:57:46Z"
+      }
+    ],
+    "pagination": {
+      "total": 7,
+      "per_page": 10,
+      "current_page": 1,
+      "last_page": 1,
+      "from": 1,
+      "to": 7,
+      "links": [
+        {
+          "url": null,
+          "label": "&laquo; Anterior",
+          "active": false
+        },
+        {
+          "url": "https://api-sandbox.factus.com.co/v1/numbering-ranges?page=1",
+          "label": 1,
+          "active": true,
+          "page": 1
+        },
+        {
+          "url": null,
+          "label": "Siguiente &raquo;",
+          "active": false,
+          "page": 2
+        }
+      ]
+    }
+  }
+}

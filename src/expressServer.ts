@@ -35,6 +35,7 @@ import { notificationRouter } from './api/notification'
 import { beneficiarySuggestionRouter } from '@/api/beneficiarySuggestion'
 import { auditRouter } from '@/api/audit'
 import { logsRouter } from '@/api/logs'
+import { invoiceClientesRouter } from '@/api/invoiceClientes'
 
 import { Server as SocketIOServer } from 'socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
@@ -96,6 +97,7 @@ export const startExpressServer = async () => {
   app.use('/notifications', notificationRouter)
   app.use('/beneficiary-suggestion', beneficiarySuggestionRouter)
   app.use('/audit-transactions', auditRouter)
+  app.use('/invoice-clientes', invoiceClientesRouter)
 
   // Rutas privadas (requieren autenticación)
   privateRoutesRouter.use('/giro', giroRouter)

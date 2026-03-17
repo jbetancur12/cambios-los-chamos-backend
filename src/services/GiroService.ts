@@ -944,14 +944,20 @@ export class GiroService {
       where.$or = searchTerms
     }
 
-    if (options.dateFrom || options.dateTo) {
-      where.createdAt = {}
+    // Determine if we are purely filtering by COMPLETADO
+    // If so, we want to filter dates and sort by completedAt rather than createdAt
+    const isOnlyCompleted = options.status === GiroStatus.COMPLETADO || 
+                           (Array.isArray(options.status) && options.status.length === 1 && options.status[0] === GiroStatus.COMPLETADO)
 
-      if (options.dateFrom) {
-        where.createdAt.$gte = options.dateFrom
-      }
-      if (options.dateTo) {
-        where.createdAt.$lte = options.dateTo
+    if (options.dateFrom || options.dateTo) {
+      if (isOnlyCompleted) {
+        where.completedAt = {}
+        if (options.dateFrom) where.completedAt.$gte = options.dateFrom
+        if (options.dateTo) where.completedAt.$lte = options.dateTo
+      } else {
+        where.createdAt = {}
+        if (options.dateFrom) where.createdAt.$gte = options.dateFrom
+        if (options.dateTo) where.createdAt.$lte = options.dateTo
       }
     }
 
@@ -959,6 +965,9 @@ export class GiroService {
     // Default to DESC (newest first) for history/completed/all
     // Use ASC (oldest first) for active queues (ASIGNADO, PROCESANDO) to ensure FIFO processing
     let sortOrder: 'ASC' | 'DESC' = 'DESC'
+    
+    // Sort field based on whether we search completed or all
+    let sortField: 'createdAt' | 'completedAt' = isOnlyCompleted ? 'completedAt' : 'createdAt'
 
     // Check if we are filtering by a single active status or array containing only active statuses
     // This is a simplification; mostly we care if we are looking at the "To Do" list
@@ -983,7 +992,7 @@ export class GiroService {
     const [giros, total] = await DI.giros.findAndCount(where, {
       limit,
       offset,
-      orderBy: { createdAt: sortOrder },
+      orderBy: { [sortField]: sortOrder },
       populate: [
         'minorista',
         'minorista.user',
@@ -1071,10 +1080,21 @@ export class GiroService {
       }
     }
 
+    // Determine if we are purely filtering by COMPLETADO
+    // If so, we want to filter dates by completedAt rather than createdAt
+    const isOnlyCompleted = options.status === GiroStatus.COMPLETADO || 
+                           (Array.isArray(options.status) && options.status.length === 1 && options.status[0] === GiroStatus.COMPLETADO)
+
     if (options.dateFrom || options.dateTo) {
-      where.createdAt = {}
-      if (options.dateFrom) where.createdAt.$gte = options.dateFrom
-      if (options.dateTo) where.createdAt.$lte = options.dateTo
+      if (isOnlyCompleted) {
+        where.completedAt = {}
+        if (options.dateFrom) where.completedAt.$gte = options.dateFrom
+        if (options.dateTo) where.completedAt.$lte = options.dateTo
+      } else {
+        where.createdAt = {}
+        if (options.dateFrom) where.createdAt.$gte = options.dateFrom
+        if (options.dateTo) where.createdAt.$lte = options.dateTo
+      }
     }
     // --- LOGIC DUPLICATION END ---
 

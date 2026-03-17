@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property, Enum, ManyToOne, Index } from '@mikro-orm/core'
+import { Entity, PrimaryKey, Property, Enum, ManyToOne, Index, Opt } from '@mikro-orm/core'
 import { v4 as uuidv4 } from 'uuid'
 import { User } from './User'
 import { Minorista } from './Minorista'
@@ -110,4 +110,18 @@ export class Giro {
 
   @Property({ nullable: true })
   completedAt?: Date
+
+  // Campos para Facturación Electrónica POS / Factus
+  @Property({ default: false })
+  @Index()
+  isFacturado: boolean & Opt = false
+
+  @Property({ nullable: true })
+  facturaId?: string // El 'number' de la factura devuelto por Factus (e.g. SETT123)
+
+  @Property({ default: 0 })
+  facturaStatus: number & Opt = 0 // El estado retornado por Factus (1 = Validada)
+
+  @Property({ nullable: true })
+  facturaFecha?: Date
 }

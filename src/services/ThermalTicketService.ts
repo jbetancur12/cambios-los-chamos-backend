@@ -150,6 +150,74 @@ export class ThermalTicketService {
 
     return this.generateTicketData(giro)
   }
+
+  /**
+   * Genera los datos formateados para un tiquete térmico de Facturación Electrónica POS
+   */
+  async generateFacturaTicketData(giro: Giro, facturacionData: any): Promise<any> {
+    const createdByUser = giro.createdBy
+    console.log(facturacionData)
+
+    // Usamos los datos de la empresa desde Factus si están disponibles
+    const company = facturacionData.company || {}
+    const establishment = facturacionData.establishment || {}
+    const bill = facturacionData.bill || {}
+    const customer = facturacionData.customer || {}
+    const items = facturacionData.items || []
+
+    return {
+      // Encabezado
+      companyName: 'Inversiones RM',
+      companyNit: company.nit ? `NIT: ${company.nit}-${company.dv || ''}` : '',
+      companyPhone: establishment.phone_number || company.phone || '+57 302 341 4813',
+      //companyAddress: establishment.address || company.direction || 'Cra 21 # 43 - 26 Av, Molinos',
+      companyAddress: 'Cra 21 # 43 - 26 Av, Molinos',
+      companyCity: establishment.municipality_id?.name || company.municipality || 'Dosquebradas, Risaralda',
+      divider: '================================',
+
+      // Info de la Factura
+      facturaNumber: bill.number || `G-${giro.id.substring(0, 8)}`,
+      createdAt: bill.created_at || formatDate(giro.facturaFecha || new Date()),
+
+      // Info del giro original (referencia)
+      giroId: giro.id,
+
+      // Cliente
+      clientName: customer.graphic_representation_name || customer.names || customer.legal_name || giro.beneficiaryName || 'Consumidor Final',
+      clientNit: customer.identification ? `CC/NIT: ${customer.identification}` : '',
+      clientAddress: customer.address || '',
+      clientPhone: customer.phone || '',
+
+      // Items
+      items: items.map((item: any) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: formatCurrency(Number(item.price)),
+        total: formatCurrency(Number(item.total || (item.quantity * item.price)))
+      })),
+
+      // Totales
+      grossValue: formatCurrency(Number(bill.gross_value || giro.amountInput)),
+      taxAmount: formatCurrency(Number(bill.tax_amount || 0)),
+      total: formatCurrency(Number(bill.total || giro.amountInput)),
+
+      // QR / CUFE
+      cufe: facturacionData.cufe || bill.cufe || '',
+      qr: bill.qr_image || bill.qr || '',
+
+      // Creado por
+      createdByName: createdByUser?.fullName || 'Sistema',
+
+      // Footer
+      timestamp: formatDate(new Date()),
+      resolutionPrefix: facturacionData.numbering_range?.prefix || '',
+      resolutionNumber: facturacionData.numbering_range?.resolution_number || '',
+      resolutionFrom: facturacionData.numbering_range?.from || '',
+      resolutionTo: facturacionData.numbering_range?.to || '',
+      resolutionStartDate: facturacionData.numbering_range?.start_date || '',
+      resolutionEndDate: facturacionData.numbering_range?.end_date || '',
+    }
+  }
 }
 
 export const thermalTicketService = new ThermalTicketService()

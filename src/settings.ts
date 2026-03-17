@@ -190,3 +190,10 @@ export const LOG_LEVEL = process.env.LOG_LEVEL || 'warn'
 // PostHog
 export const POSTHOG_API_KEY = process.env.POSTHOG_API_KEY || 'phc_B77mcYC1EycR6bKLgSNzjM9aaeiWXhoeizyriFIxWf2' // it's a public key that can be leaked
 export const POSTHOG_HOST = process.env.POSTHOG_HOST || 'https://us.i.posthog.com'
+
+// API Factus
+export const FACTUS_API_URL = process.env.FACTUS_API_URL || 'https://api-sandbox.factus.com.co'
+export const FACTUS_CLIENT_ID = process.env.FACTUS_CLIENT_ID || ''
+export const FACTUS_CLIENT_SECRET = process.env.FACTUS_CLIENT_SECRET || ''
+export const FACTUS_USERNAME = process.env.FACTUS_USERNAME || ''
+export const FACTUS_PASSWORD = process.env.FACTUS_PASSWORD || ''
