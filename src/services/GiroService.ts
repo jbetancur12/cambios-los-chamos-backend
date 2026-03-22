@@ -778,10 +778,11 @@ export class GiroService {
     errors: number
   }> {
     return await DI.em.transactional(async (em) => {
-      // Encontrar todos los giros pendientes o en proceso del transferencista
+      // Encontrar solo los giros asignados del transferencista
+      // Los giros que ya están en proceso (PROCESANDO) se quedan con el transferencista actual
       const pendingGiros = await em.find(Giro, {
         transferencista: transferencistaId,
-        status: { $in: [GiroStatus.ASIGNADO, GiroStatus.PROCESANDO] },
+        status: GiroStatus.ASIGNADO,
       })
 
       let redistributed = 0
@@ -800,7 +801,7 @@ export class GiroService {
 
           // Reasignar el giro
           giro.transferencista = newTransferencista
-          giro.status = GiroStatus.ASIGNADO // Resetear a ASIGNADO si estaba PROCESANDO
+          giro.status = GiroStatus.ASIGNADO
           giro.updatedAt = new Date()
 
           em.persist(giro)
