@@ -59,7 +59,7 @@ export const facturacionService = {
    * Genera una Factura Electrónica de Venta (Document Type "01") en Factus
    * basándose en la información del giro completado.
    */
-  async emitirFactura(giro: Giro, customer?: CustomerInvoiceData) {
+  async emitirFactura(giro: Giro, customer?: CustomerInvoiceData, billingType: 'STANDARD' | 'MANDATO' = 'STANDARD', mandanteIdentification?: string) {
     const token = await this.getAccessToken()
 
     const todayDate = new Date().toISOString().split('T')[0]
@@ -90,13 +90,70 @@ export const facturacionService = {
         phone: "",
         legal_organization_id: "2",
         tribute_id: "21",
-        identification_document_id: "3",
+        identification_document_id: "3", // Cedula (para consumidor final a veces piden 3, 6, o 13)
         municipality_id: "980"
       }
     }
+    
+    const resolveMandanteIdentification = mandanteIdentification || giro.beneficiaryId || "222222222222"
 
     // Configuración del Payload para Factus 
     const numberingRangeId = parseInt(process.env.FACTUS_NUMBERING_RANGE_ID || '1523', 10)
+
+    let itemsPayload: any[] = []
+    
+    if (billingType === 'MANDATO') {
+      const profit = Number((giro.systemProfit + giro.minoristaProfit).toFixed(2))
+      const thirdPartyAmount = Number((giro.amountInput - profit).toFixed(2))
+      
+      itemsPayload = [
+        {
+          code_reference: "GIRO-CM-01",
+          name: `Comisión por envío de dinero (Ref: ${giro.id.substring(0,8)})`,
+          quantity: 1,
+          discount_rate: 0,
+          price: profit,
+          tax_rate: "0.00",
+          unit_measure_id: 70,
+          standard_code_id: 1,
+          is_excluded: 1,
+          tribute_id: 1,
+          scheme_id: "0" // 0 = Ingreso propio
+        },
+        {
+          code_reference: "GIRO-TR-01",
+          name: `Ingreso para terceros - Envío a ${giro.bankName}`,
+          quantity: 1,
+          discount_rate: 0,
+          price: thirdPartyAmount,
+          tax_rate: "0.00",
+          unit_measure_id: 70,
+          standard_code_id: 1,
+          is_excluded: 1,
+          tribute_id: 1,
+          scheme_id: "1", // 1 = Ingresos recibidos para terceros
+          mandate: {
+            identification_document_id: 3, // Cédula de Ciudadanía por defecto para el beneficiario/remitente empírico
+            identification: resolveMandanteIdentification
+          }
+        }
+      ]
+    } else {
+      itemsPayload = [
+        {
+          code_reference: "GIRO-SV-01",
+          name: `Envío de dinero a ${giro.bankName}`,
+          quantity: 1,
+          discount_rate: 0,
+          price: giro.amountInput,
+          tax_rate: "0.00",
+          unit_measure_id: 70,
+          standard_code_id: 1,
+          is_excluded: 1,
+          tribute_id: 1,
+        }
+      ]
+    }
 
     const payload = {
       // "01" es Factura Electrónica de Venta
@@ -105,21 +162,9 @@ export const facturacionService = {
       reference_code: `G-${giro.id.substring(0, 8)}`,
       observation: `Servicio de giro (Ref: ${giro.id})`,
       payment_method_code: "47",
+      operation_type: billingType === 'MANDATO' ? "11" : "10",
       customer: customerData,
-      items: [
-        {
-          code_reference: "GIRO-SV-01",
-          name: `Envío de dinero a ${giro.bankName}`,
-          quantity: 1,
-          discount_rate: 0,
-          price: giro.amountInput,
-          tax_rate: "0.00", // Asumimos servicio exento/excluido a menos que aplique IVA
-          unit_measure_id: 70, // Unidad genérica
-          standard_code_id: 1,
-          is_excluded: 1, // Excluido de IVA
-          tribute_id: 1, // Debe ser 1 (IVA) si is_excluded es 1
-        }
-      ]
+      items: itemsPayload
     }
 
     logger.info(`[FACTUS] Enviando factura para Giro ${giro.id}`)

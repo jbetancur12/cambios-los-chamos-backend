@@ -1084,7 +1084,7 @@ giroRouter.get('/:giroId/thermal-ticket', requireAuth(), async (req: Request, re
 giroRouter.post('/:giroId/facturar', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
   try {
     const { giroId } = req.params
-    const { customerIdentification } = req.body
+    const { customerIdentification, billingType, mandanteIdentification } = req.body
 
     const giro = await DI.em.getRepository(Giro).findOne({ id: giroId })
     if (!giro) {
@@ -1108,7 +1108,7 @@ giroRouter.post('/:giroId/facturar', requireRole(UserRole.SUPER_ADMIN), async (r
     }
 
     // Call Factus API
-    const authResult = await facturacionService.emitirFactura(giro, customer) as any
+    const authResult = await facturacionService.emitirFactura(giro, customer, billingType, mandanteIdentification) as any
     
     // AuthResult usually gives a bill response
     // For Facturacion POS we usually extract the 'number' from data
