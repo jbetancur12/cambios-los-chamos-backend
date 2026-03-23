@@ -109,7 +109,7 @@ export const facturacionService = {
       itemsPayload = [
         {
           code_reference: "GIRO-CM-01",
-          name: `Comisión por envío de dinero (Ref: ${giro.id.substring(0,8)})`,
+          name: "Comisión por envío de dinero",
           quantity: 1,
           discount_rate: 0,
           price: profit,
@@ -122,7 +122,7 @@ export const facturacionService = {
         },
         {
           code_reference: "GIRO-TR-01",
-          name: `Ingreso para terceros - Envío a ${giro.bankName}`,
+          name: `Ingreso para terceros - ID: ${resolveMandanteIdentification}`,
           quantity: 1,
           discount_rate: 0,
           price: thirdPartyAmount,
@@ -139,13 +139,15 @@ export const facturacionService = {
         }
       ]
     } else {
+      const profit = Number((giro.systemProfit + giro.minoristaProfit).toFixed(2))
+
       itemsPayload = [
         {
-          code_reference: "GIRO-SV-01",
-          name: `Envío de dinero a ${giro.bankName}`,
+          code_reference: "GIRO-CM-01",
+          name: `Comisión por envío de dinero a ${giro.bankName}`,
           quantity: 1,
           discount_rate: 0,
-          price: giro.amountInput,
+          price: profit,
           tax_rate: "0.00",
           unit_measure_id: 70,
           standard_code_id: 1,
