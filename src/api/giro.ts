@@ -1081,7 +1081,7 @@ giroRouter.get('/:giroId/thermal-ticket', requireAuth(), async (req: Request, re
 })
 
 // ------------------ FACTURACIÓN ELECTRÓNICA POS ------------------
-giroRouter.post('/:giroId/facturar', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
+giroRouter.post('/:giroId/facturar', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN), async (req: Request, res: Response) => {
   try {
     const { giroId } = req.params
     const { customerIdentification, billingType, mandanteIdentification } = req.body
@@ -1128,7 +1128,7 @@ giroRouter.post('/:giroId/facturar', requireRole(UserRole.SUPER_ADMIN), async (r
   }
 })
 
-giroRouter.get('/:giroId/factura-pdf', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
+giroRouter.get('/:giroId/factura-pdf', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN), async (req: Request, res: Response) => {
   try {
     const { giroId } = req.params
     const giro = await DI.em.getRepository(Giro).findOne({ id: giroId })
@@ -1146,7 +1146,7 @@ giroRouter.get('/:giroId/factura-pdf', requireRole(UserRole.SUPER_ADMIN), async 
   }
 })
 
-giroRouter.get('/:giroId/factura-xml', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
+giroRouter.get('/:giroId/factura-xml', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN), async (req: Request, res: Response) => {
   try {
     const { giroId } = req.params
     const giro = await DI.em.getRepository(Giro).findOne({ id: giroId })
