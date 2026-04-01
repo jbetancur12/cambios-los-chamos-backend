@@ -293,4 +293,40 @@ router.get('/minorista/giros-trend', requireAuth(), async (req: Request, res: Re
   }
 })
 
+/**
+ * GET /api/reports/facturacion
+ * Get Facturacion report for a date range (SUPER_ADMIN and ADMIN only)
+ */
+router.get('/facturacion', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN), async (req: Request, res: Response) => {
+  try {
+    const dateFromStr = req.query.dateFrom as string
+    const dateToStr = req.query.dateTo as string
+
+    if (!dateFromStr || !dateToStr) {
+      return res.status(400).json({
+        error: 'MISSING_PARAMETERS',
+        message: 'dateFrom and dateTo are required',
+      })
+    }
+
+    const dateFrom = new Date(dateFromStr)
+    const dateTo = new Date(dateToStr)
+
+    if (isNaN(dateFrom.getTime()) || isNaN(dateTo.getTime())) {
+      return res.status(400).json({
+        error: 'INVALID_DATE_FORMAT',
+        message: 'Invalid date format',
+      })
+    }
+
+    dateTo.setHours(23, 59, 59, 999)
+
+    const report = await reportService.getFacturacionReport(dateFrom, dateTo)
+    res.json(ApiResponse.success(report))
+  } catch (error) {
+    logger.error({ error }, 'Error fetching facturacion report')
+    res.status(500).json(ApiResponse.serverError())
+  }
+})
+
 export default router

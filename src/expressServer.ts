@@ -152,7 +152,9 @@ export const startExpressServer = async () => {
   // Configurar Redis adapter para sincronizar WebSockets entre procesos PM2
   try {
     const pubClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' })
+    pubClient.on('error', (err) => logger.error({ err }, 'Redis pubClient Error'))
     const subClient = pubClient.duplicate()
+    subClient.on('error', (err) => logger.error({ err }, 'Redis subClient Error'))
 
     await Promise.all([pubClient.connect(), subClient.connect()])
 

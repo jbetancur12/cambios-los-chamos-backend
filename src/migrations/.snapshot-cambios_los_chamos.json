@@ -1678,6 +1678,36 @@
           "nullable": true,
           "length": 6,
           "mappedType": "datetime"
+        },
+        "factura_type": {
+          "name": "factura_type",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "factura_customer_identification": {
+          "name": "factura_customer_identification",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "factura_mandante_identification": {
+          "name": "factura_mandante_identification",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
         }
       },
       "name": "giros",

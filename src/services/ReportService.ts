@@ -98,6 +98,26 @@ export interface MinoristaGiroTrendReport {
   averageProfitPerGiro: number
 }
 
+export interface FacturacionReportItem {
+  id: string
+  facturaId: string
+  facturaFecha: string
+  facturaType: string
+  customerIdentification: string
+  mandanteIdentification: string
+  plataMia: number
+  montoTercero: number
+  totalFactura: number
+}
+
+export interface FacturacionReport {
+  totalPlataMia: number
+  totalIngresoTerceros: number
+  totalFacturadoGeneral: number
+  totalGirosFacturados: number
+  items: FacturacionReportItem[]
+}
+
 export class ReportService {
   /**
    * Ajusta las fechas de UTC a la zona horaria local del servidor
@@ -399,6 +419,50 @@ export class ReportService {
       totalGiros,
       completedGiros,
       averageProfitPerGiro,
+    }
+  }
+
+  /**
+   * Obtiene reporte de Facturación Electrónica POS dentro de un rango de fechas
+   */
+  async getFacturacionReport(dateFrom: Date, dateTo: Date): Promise<FacturacionReport> {
+    const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
+    const giros = await DI.giros.find({
+      isFacturado: true,
+      facturaFecha: { $gte: adjustedFrom, $lte: adjustedTo },
+    })
+
+    const items: FacturacionReportItem[] = giros.map((g) => {
+      const plataMia = (g.systemProfit || 0) + (g.minoristaProfit || 0)
+      const montoTercero = g.facturaType === 'MANDATO' ? (g.amountInput - plataMia) : 0
+      const totalFactura = g.facturaType === 'MANDATO' ? g.amountInput : plataMia
+
+      return {
+        id: g.id,
+        facturaId: g.facturaId || 'N/A',
+        facturaFecha: g.facturaFecha ? g.facturaFecha.toISOString() : g.createdAt.toISOString(),
+        facturaType: g.facturaType || 'STANDARD',
+        customerIdentification: g.facturaCustomerIdentification || 'No Registrado',
+        mandanteIdentification: g.facturaType === 'MANDATO' ? (g.facturaMandanteIdentification || 'N/A') : 'N/A',
+        plataMia,
+        montoTercero,
+        totalFactura,
+      }
+    })
+
+    // Sort by date descending
+    items.sort((a, b) => new Date(b.facturaFecha).getTime() - new Date(a.facturaFecha).getTime())
+
+    const totalPlataMia = items.reduce((sum, item) => sum + item.plataMia, 0)
+    const totalIngresoTerceros = items.reduce((sum, item) => sum + item.montoTercero, 0)
+    const totalFacturadoGeneral = items.reduce((sum, item) => sum + item.totalFactura, 0)
+
+    return {
+      totalPlataMia,
+      totalIngresoTerceros,
+      totalFacturadoGeneral,
+      totalGirosFacturados: items.length,
+      items,
     }
   }
 }

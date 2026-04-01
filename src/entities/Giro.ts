@@ -124,4 +124,13 @@ export class Giro {
 
   @Property({ nullable: true })
   facturaFecha?: Date
+
+  @Property({ nullable: true })
+  facturaType?: string // 'STANDARD' | 'MANDATO'
+
+  @Property({ nullable: true })
+  facturaCustomerIdentification?: string
+
+  @Property({ nullable: true })
+  facturaMandanteIdentification?: string
 }

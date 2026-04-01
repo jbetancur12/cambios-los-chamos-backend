@@ -1117,6 +1117,11 @@ giroRouter.post('/:giroId/facturar', requireRole(UserRole.SUPER_ADMIN, UserRole.
     giro.facturaId = factusBill?.number || (authResult.data && authResult.data.number) || 'F-POS'
     giro.facturaStatus = factusBill?.status || 1 // 1 validated
     giro.facturaFecha = new Date()
+    
+    // Almacenar metadatos del reporte de la factura localmente
+    giro.facturaType = billingType || 'STANDARD'
+    giro.facturaCustomerIdentification = customerIdentification || '222222222222'
+    giro.facturaMandanteIdentification = billingType === 'MANDATO' ? (mandanteIdentification || giro.beneficiaryId || '222222222222') : undefined
 
     await DI.em.persistAndFlush(giro)
 
