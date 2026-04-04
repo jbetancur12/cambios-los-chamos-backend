@@ -433,9 +433,22 @@ export class ReportService {
     })
 
     const items: FacturacionReportItem[] = giros.map((g) => {
-      const plataMia = (g.systemProfit || 0) + (g.minoristaProfit || 0)
-      const montoTercero = g.facturaType === 'MANDATO' ? (g.amountInput - plataMia) : 0
-      const totalFactura = g.facturaType === 'MANDATO' ? g.amountInput : plataMia
+      const profit = (g.systemProfit || 0) + (g.minoristaProfit || 0)
+      
+      let plataMia = profit
+      let montoTercero = 0
+      let totalFactura = profit
+
+      if (g.facturaType === 'MANDATO') {
+        plataMia = profit
+        montoTercero = g.amountInput - profit
+        totalFactura = g.amountInput
+      } else {
+        // STANDARD - A nombre propio: Todo el dinero se asume como ingreso de la empresa
+        plataMia = g.amountInput || profit
+        montoTercero = 0
+        totalFactura = g.amountInput || profit
+      }
 
       return {
         id: g.id,

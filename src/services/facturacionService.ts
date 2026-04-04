@@ -139,20 +139,22 @@ export const facturacionService = {
         }
       ]
     } else {
-      const profit = Number((giro.systemProfit + giro.minoristaProfit).toFixed(2))
+      // STANDARD: A Nombre Propio -> El total del costo asume todo el dinero en tránsito
+      const fullAmount = Number((giro.amountInput).toFixed(2))
 
       itemsPayload = [
         {
-          code_reference: "GIRO-CM-01",
-          name: `Comisión por envío de dinero a ${giro.bankName}`,
+          code_reference: "GIRO-ST-01",
+          name: `Ingreso propio por servicio de envío de dinero a ${giro.bankName}`,
           quantity: 1,
           discount_rate: 0,
-          price: profit,
+          price: fullAmount,
           tax_rate: "0.00",
           unit_measure_id: 70,
           standard_code_id: 1,
           is_excluded: 1,
           tribute_id: 1,
+          scheme_id: "0" // 0 = Ingreso propio
         }
       ]
     }
