@@ -19,6 +19,8 @@ import { RechargeAmount } from './entities/RechargeAmount'
 import { OperatorAmount } from './entities/OperatorAmount'
 import { UserFcmToken } from './entities/UserFcmToken'
 import { BeneficiarySuggestion } from './entities/BeneficiarySuggestion'
+import { Product } from './entities/Product'
+import { ProductTransaction } from './entities/ProductTransaction'
 
 export const DI = {} as {
   server: http.Server
@@ -42,6 +44,8 @@ export const DI = {} as {
   operatorAmounts: EntityRepository<OperatorAmount>
   userFcmTokens: EntityRepository<UserFcmToken>
   beneficiarySuggestions: EntityRepository<BeneficiarySuggestion>
+  products: EntityRepository<Product>
+  productTransactions: EntityRepository<ProductTransaction>
 }
 
 export const initDI = async (): Promise<typeof DI> => {
@@ -65,6 +69,8 @@ export const initDI = async (): Promise<typeof DI> => {
   DI.operatorAmounts = DI.orm.em.getRepository(OperatorAmount)
   DI.userFcmTokens = DI.orm.em.getRepository(UserFcmToken)
   DI.beneficiarySuggestions = DI.orm.em.getRepository(BeneficiarySuggestion)
+  DI.products = DI.orm.em.getRepository(Product)
+  DI.productTransactions = DI.orm.em.getRepository(ProductTransaction)
 
   return DI
 }

@@ -36,6 +36,7 @@ import { beneficiarySuggestionRouter } from '@/api/beneficiarySuggestion'
 import { auditRouter } from '@/api/audit'
 import { logsRouter } from '@/api/logs'
 import { invoiceClientesRouter } from '@/api/invoiceClientes'
+import { inventoryRouter } from '@/api/inventory'
 
 import { Server as SocketIOServer } from 'socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
@@ -103,6 +104,7 @@ export const startExpressServer = async () => {
   privateRoutesRouter.use('/giro', giroRouter)
   privateRoutesRouter.use('/dashboard', dashboardRouter)
   app.use('/logs', logsRouter)
+  app.use('/inventory', inventoryRouter)
 
   app.use('/', privateRoutesRouter)
 

@@ -329,4 +329,40 @@ router.get('/facturacion', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN), as
   }
 })
 
+/**
+ * GET /api/reports/inventory-profit
+ * Get inventory profit report for a date range (SUPER_ADMIN only)
+ */
+router.get('/inventory-profit', requireRole(UserRole.SUPER_ADMIN), async (req: Request, res: Response) => {
+  try {
+    const dateFromStr = req.query.dateFrom as string
+    const dateToStr = req.query.dateTo as string
+
+    if (!dateFromStr || !dateToStr) {
+      return res.status(400).json({
+        error: 'MISSING_PARAMETERS',
+        message: 'dateFrom and dateTo are required',
+      })
+    }
+
+    const dateFrom = new Date(dateFromStr)
+    const dateTo = new Date(dateToStr)
+
+    if (isNaN(dateFrom.getTime()) || isNaN(dateTo.getTime())) {
+      return res.status(400).json({
+        error: 'INVALID_DATE_FORMAT',
+        message: 'Invalid date format',
+      })
+    }
+
+    dateTo.setHours(23, 59, 59, 999)
+
+    const report = await reportService.getInventoryProfitReport(dateFrom, dateTo)
+    res.json(ApiResponse.success(report))
+  } catch (error) {
+    logger.error({ error }, 'Error fetching inventory profit report')
+    res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' })
+  }
+})
+
 export default router
