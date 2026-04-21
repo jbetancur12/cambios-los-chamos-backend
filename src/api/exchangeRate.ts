@@ -77,6 +77,17 @@ exchangeRateRouter.get('/current', requireAuth(), async (req: Request, res: Resp
   res.json(ApiResponse.success({ rate: result }))
 })
 
+// ------------------ OBTENER TASA ACTUAL PARA LANDING (PUBLICA) ------------------
+exchangeRateRouter.get('/public-current', async (req: Request, res: Response) => {
+  const result = await exchangeRateService.getCurrentRate()
+
+  if ('error' in result) {
+    return res.status(404).json(ApiResponse.notFound('Tasa de cambio actual'))
+  }
+
+  res.json(ApiResponse.success({ rate: result }))
+})
+
 // ------------------ LISTAR TASAS ------------------
 exchangeRateRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
   const page = parseInt(req.query.page as string) || 1

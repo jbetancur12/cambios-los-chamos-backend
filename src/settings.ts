@@ -116,11 +116,14 @@ if (CORS_ORIGINS_ENV) {
     'http://localhost:8000',
     'http://localhost:3000',
     'http://localhost:5173',
+    'http://localhost:4321',
     'http://192.168.40.12:5173',
     'http://192.168.40.15:5173',
   ]
 } else {
   CORS_ALLOWED_ORIGINS = [
+    'https://cambiosloschamo.com',
+    'https://www.cambiosloschamo.com',
     'https://app.cambiosloschamo.com',
     'https://api.useskald.com',
     'https://platform.useskald.com',
