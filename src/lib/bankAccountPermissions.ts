@@ -10,20 +10,19 @@ export const canAccessBankAccount = (bankAccount: BankAccount, user: User): bool
     return true
   }
 
-  // Si es cuenta de Transferencista (sistema nuevo)
-  if (bankAccount.ownerType === BankAccountOwnerType.TRANSFERENCISTA) {
-    // Solo el transferencista propietario puede acceder
+  // Si es cuenta de Transferencista (soporta tanto ownerId como relación antigua)
+  if (
+    bankAccount.ownerType === BankAccountOwnerType.TRANSFERENCISTA ||
+    bankAccount.transferencista
+  ) {
     if (user.role === UserRole.TRANSFERENCISTA) {
       const transferencista = user.transferencista
-      return transferencista?.id === bankAccount.ownerId
+      return (
+        transferencista?.id === bankAccount.ownerId ||
+        transferencista?.id === bankAccount.transferencista?.id
+      )
     }
     return false
-  }
-
-  // Si es cuenta de Transferencista (sistema viejo - relación directa)
-  if (bankAccount.transferencista && user.role === UserRole.TRANSFERENCISTA) {
-    const transferencista = user.transferencista
-    return transferencista?.id === bankAccount.transferencista.id
   }
 
   // Si es cuenta ADMIN compartida, solo Admin/SuperAdmin pueden acceder
@@ -38,34 +37,22 @@ export const canAccessBankAccount = (bankAccount: BankAccount, user: User): bool
  * Verifica si un usuario puede ejecutar un giro usando una cuenta bancaria específica
  */
 export const canExecuteGiroWithAccount = (bankAccount: BankAccount, executingUser: User): boolean => {
-  // Si es cuenta de Transferencista (sistema nuevo)
-  if (bankAccount.ownerType === BankAccountOwnerType.TRANSFERENCISTA) {
-    // Solo el transferencista propietario puede ejecutar con esta cuenta
+  // Si es cuenta de Transferencista (soporta tanto ownerId como relación antigua)
+  if (
+    bankAccount.ownerType === BankAccountOwnerType.TRANSFERENCISTA ||
+    bankAccount.transferencista
+  ) {
     if (executingUser.role !== UserRole.TRANSFERENCISTA) {
       return false
     }
 
     const transferencista = executingUser.transferencista
+    if (!transferencista) return false
 
-    if (!transferencista || transferencista.id !== bankAccount.transferencista?.id) {
-      return false
-    }
-
-    return true
-  }
-
-  // Si es cuenta de Transferencista (sistema viejo - relación directa)
-  if (bankAccount.transferencista) {
-    if (executingUser.role !== UserRole.TRANSFERENCISTA) {
-      return false
-    }
-
-    const transferencista = executingUser.transferencista
-    if (!transferencista || transferencista.id !== bankAccount.transferencista.id) {
-      return false
-    }
-
-    return true
+    return (
+      transferencista.id === bankAccount.ownerId ||
+      transferencista.id === bankAccount.transferencista?.id
+    )
   }
 
   // Si es cuenta ADMIN compartida

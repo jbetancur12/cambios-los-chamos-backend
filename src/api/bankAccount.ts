@@ -339,20 +339,9 @@ bankAccountRouter.get('/:bankAccountId/transactions', requireAuth(), async (req:
     return res.status(404).json(ApiResponse.notFound('Cuenta bancaria'))
   }
 
-  // Verificar permisos según rol
-  if (user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.ADMIN) {
-    // Si es transferencista, debe ser el dueño de la cuenta
-    if (user.role === UserRole.TRANSFERENCISTA) {
-      const transferencista = await DI.transferencistas.findOne({ user: user.id })
-      if (!transferencista || !bankAccount.transferencista || bankAccount.transferencista.id !== transferencista.id) {
-        return res
-          .status(403)
-          .json(ApiResponse.forbidden('No tienes permisos para ver las transacciones de esta cuenta'))
-      }
-    } else {
-      // Otros roles no tienen acceso
-      return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver las transacciones de esta cuenta'))
-    }
+  // Verificar permisos usando la función de validación
+  if (!canAccessBankAccount(bankAccount, user)) {
+    return res.status(403).json(ApiResponse.forbidden('No tienes permisos para ver las transacciones de esta cuenta'))
   }
 
   const page = parseInt(req.query.page as string) || 1
