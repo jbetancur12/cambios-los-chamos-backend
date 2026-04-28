@@ -15,7 +15,8 @@ router.use(requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN));
 
 router.get('/products', async (req, res) => {
     try {
-        const products = await productService.getAllProducts();
+        const includeInactive = req.query.includeInactive === 'true';
+        const products = await productService.getAllProducts(includeInactive);
         res.json(ApiResponse.success(products));
     } catch (error: any) {
         res.status(500).json(ApiResponse.serverError(error.message));

@@ -4,8 +4,9 @@ import { Product } from '../entities/Product';
 import { wrap } from '@mikro-orm/core';
 
 class ProductService {
-    async getAllProducts() {
-        return await DI.products.findAll({ orderBy: { name: 'ASC' } });
+    async getAllProducts(includeInactive = false) {
+        const where = includeInactive ? {} : { isActive: true };
+        return await DI.products.findAll({ where, orderBy: { name: 'ASC' } });
     }
 
     async getProduct(id: string) {
