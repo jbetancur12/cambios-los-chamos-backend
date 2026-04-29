@@ -35,7 +35,11 @@ router.get('/products/:id', async (req, res) => {
 
 router.post('/products', requireRole(UserRole.SUPER_ADMIN), async (req, res) => {
     try {
-        const product = await productService.createProduct(req.body);
+        const userId = req.context?.requestUser?.user?.id;
+        const product = await productService.createProduct({
+            ...req.body,
+            userId
+        });
         res.status(201).json(ApiResponse.success(product));
     } catch (error: any) {
         res.status(400).json(ApiResponse.badRequest(error.message));

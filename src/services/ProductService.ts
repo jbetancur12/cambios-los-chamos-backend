@@ -1,6 +1,8 @@
 
 import { DI } from '../di';
+import { ProductTransaction, ProductTransactionType, TransactionStatus } from '../entities/ProductTransaction';
 import { Product } from '../entities/Product';
+import { User } from '../entities/User';
 import { wrap } from '@mikro-orm/core';
 
 class ProductService {
@@ -22,16 +24,41 @@ class ProductService {
         minStock?: number;
         stock?: number;
         imageUrl?: string;
+        userId?: string;
     }) {
-        const product = new Product();
-        wrap(product).assign({
-            ...data,
-            stock: data.stock ?? 0,
-            isActive: true
+        const { userId, ...productData } = data;
+        const em = DI.orm.em.fork();
+        let product: Product;
+        
+        await em.transactional(async (tem) => {
+            product = new Product();
+            wrap(product).assign({
+                ...productData,
+                stock: data.stock ?? 0,
+                isActive: true
+            });
+            tem.persist(product);
+
+            if (data.stock && data.stock > 0 && data.userId) {
+                const user = await tem.findOne(User, { id: data.userId });
+                if (user) {
+                    const transaction = tem.create(ProductTransaction, {
+                        product,
+                        type: ProductTransactionType.ADJUSTMENT,
+                        status: TransactionStatus.COMPLETED,
+                        quantity: data.stock,
+                        remainingQuantity: data.stock, // First FIFO batch!
+                        pricePerUnit: data.costPrice,
+                        totalPrice: data.stock * data.costPrice,
+                        createdBy: user,
+                        createdAt: new Date()
+                    });
+                    tem.persist(transaction);
+                }
+            }
         });
 
-        await DI.orm.em.persistAndFlush(product);
-        return product;
+        return product!;
     }
 
     async updateProduct(id: string, data: {
