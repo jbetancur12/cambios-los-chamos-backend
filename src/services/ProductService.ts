@@ -20,12 +20,13 @@ class ProductService {
         costPrice: number;
         sellingPrice: number;
         minStock?: number;
+        stock?: number;
         imageUrl?: string;
     }) {
         const product = new Product();
         wrap(product).assign({
             ...data,
-            stock: 0,
+            stock: data.stock ?? 0,
             isActive: true
         });
 

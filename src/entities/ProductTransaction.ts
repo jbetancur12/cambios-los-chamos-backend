@@ -10,6 +10,11 @@ export enum ProductTransactionType {
     ADJUSTMENT = 'ADJUSTMENT', // Manual fix (Increase or Decrease)
 }
 
+export enum TransactionStatus {
+    PENDING = 'PENDING',
+    COMPLETED = 'COMPLETED',
+}
+
 export enum PaymentMethod {
     CASH = 'CASH',
     TRANSFER = 'TRANSFER',
@@ -27,6 +32,9 @@ export class ProductTransaction {
 
     @Enum(() => ProductTransactionType)
     type!: ProductTransactionType;
+
+    @Enum({ items: () => TransactionStatus, default: TransactionStatus.COMPLETED })
+    status: TransactionStatus = TransactionStatus.COMPLETED;
 
     @Enum({ items: () => PaymentMethod, nullable: true })
     paymentMethod?: PaymentMethod;

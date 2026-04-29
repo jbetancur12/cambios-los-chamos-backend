@@ -1,8 +1,8 @@
 
 import { DI } from '../di';
 import { Product } from '../entities/Product';
-import { ProductTransaction, ProductTransactionType, PaymentMethod } from '../entities/ProductTransaction';
-import { User } from '../entities/User';
+import { ProductTransaction, ProductTransactionType, PaymentMethod, TransactionStatus } from '../entities/ProductTransaction';
+import { User, UserRole } from '../entities/User';
 import { wrap, LockMode } from '@mikro-orm/core';
 
 class ProductTransactionService {
@@ -10,45 +10,86 @@ class ProductTransactionService {
     async createPurchase(data: {
         productId: string;
         quantity: number;
-        costPrice: number; // Purchase price
+        costPrice?: number; // Optional if pending
         userId: string;
     }) {
-        // Basic validation
         if (data.quantity <= 0) throw new Error('Quantity must be positive');
-        if (data.costPrice < 0) throw new Error('Cost price cannot be negative');
-
-        const em = DI.orm.em.fork(); // Use fork for atomic transaction logic if needed
+        
+        const em = DI.orm.em.fork();
 
         await em.transactional(async (tem) => {
-            const product = await tem.findOne(Product, { id: data.productId });
+            const product = await tem.findOne(Product, { id: data.productId }, { lockMode: LockMode.PESSIMISTIC_WRITE });
             if (!product) throw new Error('Product not found');
 
             const user = await tem.findOne(User, { id: data.userId });
             if (!user) throw new Error('User not found');
 
-            // Create Transaction
+            const isSuperAdmin = user.role === UserRole.SUPER_ADMIN;
+            const isPending = !isSuperAdmin;
+            
+            // If pending, use current cost as placeholder. If not pending, costPrice is required.
+            const finalCostPrice = isPending ? product.costPrice : (data.costPrice ?? product.costPrice);
+
+            if (finalCostPrice < 0) throw new Error('Cost price cannot be negative');
+
             const transaction = tem.create(ProductTransaction, {
                 product,
                 type: ProductTransactionType.PURCHASE,
+                status: isPending ? TransactionStatus.PENDING : TransactionStatus.COMPLETED,
                 quantity: data.quantity,
-                remainingQuantity: data.quantity, // Initialize FIFO tracking
-                pricePerUnit: data.costPrice,
-                totalPrice: data.quantity * data.costPrice,
+                remainingQuantity: data.quantity,
+                pricePerUnit: finalCostPrice,
+                totalPrice: data.quantity * finalCostPrice,
                 createdBy: user,
-                profit: 0, // Purchases have no profit
+                profit: 0,
                 createdAt: new Date()
             });
 
-            // Update Product Cost Price (Standard Weighted Average would be better, but staying with Last Price for display)
-            // Ideally, the "Cost Price" on the product view becomes "Replacement Cost" or "Last Purchase Cost"
-            product.costPrice = data.costPrice;
+            if (!isPending) {
+                // Update product cost immediately if it's superadmin
+                product.costPrice = finalCostPrice;
+            }
+            
             product.stock += data.quantity;
 
-            // Persist
             tem.persist(transaction);
         });
 
         return { success: true };
+    }
+
+    async resolvePendingPurchase(transactionId: string, actualCostPrice: number) {
+        if (actualCostPrice < 0) throw new Error('Cost price cannot be negative');
+
+        const em = DI.orm.em.fork();
+        await em.transactional(async (tem) => {
+            const transaction = await tem.findOne(ProductTransaction, { id: transactionId }, { populate: ['product'] });
+            if (!transaction) throw new Error('Transaction not found');
+            if (transaction.status === TransactionStatus.COMPLETED) throw new Error('Transaction is already completed');
+            if (transaction.type !== ProductTransactionType.PURCHASE) throw new Error('Only purchases can be resolved this way');
+
+            const product = transaction.product;
+            
+            // Update the transaction
+            transaction.pricePerUnit = actualCostPrice;
+            transaction.totalPrice = transaction.quantity * actualCostPrice;
+            transaction.status = TransactionStatus.COMPLETED;
+
+            // Update the product cost price to the newly resolved price
+            product.costPrice = actualCostPrice;
+
+            tem.persist(transaction);
+            tem.persist(product);
+        });
+        
+        return { success: true };
+    }
+
+    async getPendingPurchases() {
+        return await DI.productTransactions.find(
+            { type: ProductTransactionType.PURCHASE, status: TransactionStatus.PENDING },
+            { populate: ['product', 'createdBy'], orderBy: { createdAt: 'DESC' } }
+        );
     }
 
     async createSale(data: {
@@ -151,6 +192,7 @@ class ProductTransactionService {
         const transaction = tem.create(ProductTransaction, {
             product,
             type: ProductTransactionType.SALE,
+            status: TransactionStatus.COMPLETED,
             quantity: data.quantity,
             remainingQuantity: 0,
             pricePerUnit: finalSellingPrice,
@@ -187,6 +229,7 @@ class ProductTransactionService {
             const transaction = tem.create(ProductTransaction, {
                 product,
                 type: ProductTransactionType.ADJUSTMENT,
+                status: TransactionStatus.COMPLETED,
                 quantity: absQuantity,
                 remainingQuantity: isAddition ? absQuantity : 0, // Additions tracked, subtractions not
                 pricePerUnit: isAddition ? product.costPrice : 0, // Additions valued at current cost

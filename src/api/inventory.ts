@@ -78,7 +78,7 @@ router.get('/transactions', async (req, res) => {
     }
 });
 
-router.post('/transactions/purchase', requireRole(UserRole.SUPER_ADMIN), async (req, res) => {
+router.post('/transactions/purchase', async (req, res) => {
     try {
         // Assuming auth middleware populates req.context.requestUser.user
         const userId = req.context?.requestUser?.user?.id;
@@ -86,6 +86,24 @@ router.post('/transactions/purchase', requireRole(UserRole.SUPER_ADMIN), async (
 
         await productTransactionService.createPurchase({ ...req.body, userId });
         res.status(201).json(ApiResponse.success({ success: true }));
+    } catch (error: any) {
+        res.status(400).json(ApiResponse.badRequest(error.message));
+    }
+});
+
+router.get('/transactions/purchase/pending', requireRole(UserRole.SUPER_ADMIN), async (req, res) => {
+    try {
+        const pending = await productTransactionService.getPendingPurchases();
+        res.json(ApiResponse.success(pending));
+    } catch (error: any) {
+        res.status(500).json(ApiResponse.serverError(error.message));
+    }
+});
+
+router.put('/transactions/purchase/:id/resolve', requireRole(UserRole.SUPER_ADMIN), async (req, res) => {
+    try {
+        await productTransactionService.resolvePendingPurchase(req.params.id, req.body.costPrice);
+        res.json(ApiResponse.success({ success: true }));
     } catch (error: any) {
         res.status(400).json(ApiResponse.badRequest(error.message));
     }
