@@ -142,7 +142,7 @@ router.post('/transactions/bulk-sale', async (req, res) => {
 });
 
 // Manual Adjustment
-router.post('/transactions/adjustment', requireRole(UserRole.SUPER_ADMIN), async (req, res) => {
+router.post('/transactions/adjustment', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN), async (req, res) => {
     try {
         const userId = req.context?.requestUser?.user?.id;
         if (!userId) return res.status(401).json(ApiResponse.unauthorized());
