@@ -126,6 +126,17 @@ class TransferencistaService {
     if (!available && previousAvailability) {
       const redistribution = await giroService.redistributePendingGiros(transferencistaId)
 
+      // Emit WebSocket events for reassigned giros
+      if (redistribution.reassignedGiros && redistribution.reassignedGiros.length > 0) {
+        // Necesitamos importar el socket manager dinámicamente o arriba
+        const { giroSocketManager } = await import('@/websocket')
+        if (giroSocketManager) {
+          for (const giro of redistribution.reassignedGiros) {
+            giroSocketManager.broadcastGiroAssigned(giro)
+          }
+        }
+      }
+
       return {
         success: true,
         available: false,

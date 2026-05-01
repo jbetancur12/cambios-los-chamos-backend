@@ -776,6 +776,7 @@ export class GiroService {
   async redistributePendingGiros(transferencistaId: string): Promise<{
     redistributed: number
     errors: number
+    reassignedGiros: Giro[]
   }> {
     return await DI.em.transactional(async (em) => {
       // Encontrar solo los giros asignados del transferencista
@@ -783,10 +784,13 @@ export class GiroService {
       const pendingGiros = await em.find(Giro, {
         transferencista: transferencistaId,
         status: GiroStatus.ASIGNADO,
+      }, {
+        populate: ['transferencista.user', 'minorista', 'rateApplied', 'createdBy']
       })
 
       let redistributed = 0
       let errors = 0
+      const reassignedGiros: Giro[] = []
 
       for (const giro of pendingGiros) {
         try {
@@ -805,6 +809,7 @@ export class GiroService {
           giro.updatedAt = new Date()
 
           em.persist(giro)
+          reassignedGiros.push(giro)
           redistributed++
         } catch (error) {
           logger.error({ error }, `Error redistribuyendo giro ${giro.id}`)
@@ -817,7 +822,7 @@ export class GiroService {
         await em.flush()
       }
 
-      return { redistributed, errors }
+      return { redistributed, errors, reassignedGiros }
     })
   }
 
