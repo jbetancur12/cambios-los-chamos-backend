@@ -4,6 +4,7 @@ import { User, UserRole } from '@/entities/User'
 import { Transferencista } from '@/entities/Transferencista'
 import { makePassword } from '@/lib/passwordUtils'
 import { giroService } from '@/services/GiroService'
+import { logger } from '@/lib/logger'
 
 class TransferencistaService {
   async createTransferencista(data: { fullName: string; email: string; password: string; available?: boolean }) {
@@ -129,11 +130,14 @@ class TransferencistaService {
       // Emit WebSocket events for reassigned giros
       if (redistribution.reassignedGiros && redistribution.reassignedGiros.length > 0) {
         // Necesitamos importar el socket manager dinámicamente o arriba
-        const { giroSocketManager } = await import('@/websocket')
+        const { giroSocketManager } = await import('@/websocket/GiroSocket')
         if (giroSocketManager) {
+          logger.info(`Broadcasting ${redistribution.reassignedGiros.length} reassigned giros via WebSocket`)
           for (const giro of redistribution.reassignedGiros) {
             giroSocketManager.broadcastGiroAssigned(giro)
           }
+        } else {
+          logger.warn('giroSocketManager is undefined during redistribution broadcast')
         }
       }
 
