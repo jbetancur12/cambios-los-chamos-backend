@@ -12,6 +12,7 @@ export class BeneficiarySuggestionService {
       beneficiaryName: string
       beneficiaryId: string
       phone?: string
+      senderPhone?: string // Teléfono del remitente, opcional
       bankId: string
       accountNumber: string
       executionType: ExecutionType
@@ -36,6 +37,7 @@ export class BeneficiarySuggestionService {
       // Update the existing record with new details (name, phone, bank, etc) and move to recent
       existing.beneficiaryName = data.beneficiaryName
       existing.phone = data.phone
+      existing.senderPhone = data.senderPhone // Actualizar teléfono del remitente
       existing.bankId = data.bankId
       existing.accountNumber = data.accountNumber
       existing.updatedAt = new Date()
@@ -50,6 +52,7 @@ export class BeneficiarySuggestionService {
       beneficiaryName: data.beneficiaryName,
       beneficiaryId: data.beneficiaryId,
       phone: data.phone,
+      senderPhone: data.senderPhone,
       bankId: data.bankId,
       accountNumber: data.accountNumber,
       executionType: data.executionType,

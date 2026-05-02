@@ -21,6 +21,9 @@ export class BeneficiarySuggestion {
   @Property({ type: 'string', nullable: true })
   phone?: string
 
+  @Property({ type: 'string', nullable: true })
+  senderPhone?: string // Teléfono del remitente, para auto-completar en el formulario
+
   @Property({ type: 'string' })
   bankId!: string
 

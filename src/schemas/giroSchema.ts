@@ -8,6 +8,7 @@ export const createGiroSchema = z.object({
   bankId: z.string().uuid('ID de banco inválido'),
   accountNumber: z.string().min(1, 'El número de cuenta es requerido'),
   phone: z.string().optional(),
+  senderPhone: z.string().optional(), // Teléfono del remitente para notificaciones WhatsApp
   amountInput: z.number().positive('La cantidad debe ser un número positivo'),
   currencyInput: z.enum([Currency.COP, Currency.USD, Currency.VES], 'La moneda de entrada es inválida'),
   // Solo SUPER_ADMIN puede hacer override de la tasa pasando valores personalizados

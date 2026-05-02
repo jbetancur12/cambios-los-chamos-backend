@@ -200,3 +200,13 @@ export const FACTUS_CLIENT_ID = process.env.FACTUS_CLIENT_ID || ''
 export const FACTUS_CLIENT_SECRET = process.env.FACTUS_CLIENT_SECRET || ''
 export const FACTUS_USERNAME = process.env.FACTUS_USERNAME || ''
 export const FACTUS_PASSWORD = process.env.FACTUS_PASSWORD || ''
+
+// ---- WhatsApp Business API (Meta Cloud API) ----
+export const WHATSAPP_ENABLED = strToBool(process.env.WHATSAPP_ENABLED, false)
+export const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || ''
+export const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || ''
+export const WHATSAPP_API_VERSION = process.env.WHATSAPP_API_VERSION || 'v21.0'
+export const WHATSAPP_LANGUAGE_CODE = process.env.WHATSAPP_LANGUAGE_CODE || 'es_CO'
+export const WHATSAPP_TEMPLATE_GIRO_CREADO = process.env.WHATSAPP_TEMPLATE_GIRO_CREADO || 'giro_creado'
+export const WHATSAPP_TEMPLATE_GIRO_COMPLETADO = process.env.WHATSAPP_TEMPLATE_GIRO_COMPLETADO || 'giro_completado'
+

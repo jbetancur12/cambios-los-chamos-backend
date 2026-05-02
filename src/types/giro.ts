@@ -10,6 +10,7 @@ export interface CreateGiroInput {
   bankId: string // ID del banco destino para asignar transferencista
   accountNumber: string
   phone: string
+  senderPhone?: string // Teléfono del remitente para notificaciones WhatsApp
   amountInput: number
   currencyInput: Currency
   amountBs: number

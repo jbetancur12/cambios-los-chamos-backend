@@ -36,6 +36,9 @@ export class User {
   @Property({ default: false })
   emailVerified: boolean = false
 
+  @Property({ nullable: true })
+  whatsappPhone?: string // Teléfono del usuario para recibir notificaciones WA (formato E.164 sin +, ej: 573001234567)
+
   @OneToOne(() => Minorista, (minorista) => minorista.user)
   minorista?: Minorista
 

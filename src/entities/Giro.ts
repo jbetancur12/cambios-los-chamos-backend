@@ -57,6 +57,9 @@ export class Giro {
   @Property({ nullable: true })
   phone?: string
 
+  @Property({ nullable: true })
+  senderPhone?: string // Teléfono del remitente (quien envía dinero). Usado para notificaciones WhatsApp.
+
   @Property({ type: 'decimal', precision: 18, scale: 2 })
   amountInput!: number
 

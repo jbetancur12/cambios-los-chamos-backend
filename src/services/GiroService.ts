@@ -22,6 +22,7 @@ import { TransferencistaAssignmentTracker } from '@/entities/TransferencistaAssi
 import { sendEmail } from '@/lib/emailUtils'
 import { notificationService } from '@/services/NotificationService'
 import { logger } from '@/lib/logger'
+import { whatsAppNotificationService } from '@/services/WhatsAppNotificationService'
 
 export class GiroService {
   /**
@@ -196,6 +197,7 @@ export class GiroService {
           bankCode: bank.code,
           accountNumber: data.accountNumber,
           phone: data.phone,
+          senderPhone: data.senderPhone, // Teléfono del remitente (opcional, para WhatsApp)
           rateApplied: data.rateApplied,
           amountInput: data.amountInput,
           currencyInput: data.currencyInput,
@@ -300,6 +302,7 @@ export class GiroService {
             beneficiaryName: data.beneficiaryName,
             beneficiaryId: data.beneficiaryId,
             phone: data.phone || '',
+            senderPhone: data.senderPhone, // Recordar teléfono del remitente para próximos giros
             bankId: data.bankId,
             accountNumber: data.accountNumber,
             executionType: data.executionType || ExecutionType.TRANSFERENCIA,
@@ -308,6 +311,11 @@ export class GiroService {
           // No fallar si no se puede guardar la sugerencia
           logger.warn({ error }, 'Error al guardar sugerencia de beneficiario')
         }
+
+        // Enviar notificación WhatsApp al cliente (fire-and-forget)
+        whatsAppNotificationService.notifyGiroCreated(giro).catch(err =>
+          logger.error({ err }, '[WHATSAPP] Error notificando giro creado')
+        )
 
         return giro
       })
@@ -492,6 +500,11 @@ export class GiroService {
       logger.error({ emailError }, '[EMAIL] Error al enviar correo de completado')
     }
     */
+
+    // Enviar notificación WhatsApp al cliente (fire-and-forget)
+    whatsAppNotificationService.notifyGiroCompleted(giro).catch(err =>
+      logger.error({ err }, '[WHATSAPP] Error notificando giro completado')
+    )
 
     return giro
   }
@@ -1209,6 +1222,7 @@ export class GiroService {
       operatorId: string
       amountBsId: string
       phone: string
+      senderPhone?: string
       contactoEnvia: string
     },
     createdBy: User,
@@ -1301,6 +1315,7 @@ export class GiroService {
           bankCode: operator.code || 0,
           accountNumber: data.phone,
           phone: data.phone,
+          senderPhone: data.senderPhone, // Añadido
           rateApplied: exchangeRate,
           amountInput: amountCop,
           currencyInput: Currency.COP, // COP es el tipo de moneda para recarga
@@ -1390,6 +1405,7 @@ export class GiroService {
       cedula: string
       bankId: string
       phone: string
+      senderPhone?: string
       contactoEnvia?: string // Made optional
       amountCop: number
     },
@@ -1479,6 +1495,7 @@ export class GiroService {
           bankCode: bank.code,
           accountNumber: data.phone,
           phone: data.phone,
+          senderPhone: data.senderPhone, // Añadido
           rateApplied: exchangeRate,
           amountInput: data.amountCop,
           currencyInput: Currency.COP,

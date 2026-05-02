@@ -185,6 +185,7 @@ userRouter.get('/me', requireAuth(), async (req: Request, res: Response) => {
         isActive: user.isActive,
         minoristaId: user.minorista?.id,
         transferencistaId: user.transferencista?.id,
+        whatsappPhone: user.whatsappPhone ?? null,
       },
     })
   )
@@ -277,6 +278,68 @@ userRouter.put(
       )
     } catch {
       res.status(500).json(ApiResponse.error('Error al cambiar el estado del usuario'))
+    }
+  }
+)
+// ------------------ ACTUALIZAR TELÉFONO DE WHATSAPP (propio) ------------------
+userRouter.patch('/me/whatsapp-phone', requireAuth(), async (req: Request, res: Response) => {
+  const user = req.context?.requestUser?.user
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
+  }
+
+  const { whatsappPhone } = req.body
+
+  // Validar: si se envía, debe ser string no vacío; si es null/undefined, lo borramos
+  if (whatsappPhone !== undefined && whatsappPhone !== null && typeof whatsappPhone !== 'string') {
+    return res.status(400).json(ApiResponse.badRequest('El campo whatsappPhone debe ser un texto'))
+  }
+
+  try {
+    const { DI } = await import('@/di')
+    const dbUser = await DI.users.findOneOrFail({ id: user.id })
+    dbUser.whatsappPhone = whatsappPhone ? whatsappPhone.trim() : undefined
+    await DI.em.persistAndFlush(dbUser)
+
+    res.json(ApiResponse.success({
+      message: whatsappPhone ? 'Teléfono de WhatsApp actualizado exitosamente' : 'Teléfono de WhatsApp eliminado',
+      whatsappPhone: dbUser.whatsappPhone ?? null,
+    }))
+  } catch {
+    res.status(500).json(ApiResponse.serverError('Error al actualizar el teléfono de WhatsApp'))
+  }
+})
+
+// ------------------ ACTUALIZAR TELÉFONO DE WHATSAPP (admin sobre otro usuario) ------------------
+userRouter.patch(
+  '/:userId/whatsapp-phone',
+  requireAuth(),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  async (req: Request, res: Response) => {
+    const { userId } = req.params
+    const { whatsappPhone } = req.body
+
+    if (whatsappPhone !== undefined && whatsappPhone !== null && typeof whatsappPhone !== 'string') {
+      return res.status(400).json(ApiResponse.badRequest('El campo whatsappPhone debe ser un texto'))
+    }
+
+    try {
+      const { DI } = await import('@/di')
+      const dbUser = await DI.users.findOne({ id: userId })
+      if (!dbUser) {
+        return res.status(404).json(ApiResponse.notFound('Usuario', userId))
+      }
+
+      dbUser.whatsappPhone = whatsappPhone ? whatsappPhone.trim() : undefined
+      await DI.em.persistAndFlush(dbUser)
+
+      res.json(ApiResponse.success({
+        message: whatsappPhone ? 'Teléfono de WhatsApp actualizado exitosamente' : 'Teléfono de WhatsApp eliminado',
+        userId,
+        whatsappPhone: dbUser.whatsappPhone ?? null,
+      }))
+    } catch {
+      res.status(500).json(ApiResponse.serverError('Error al actualizar el teléfono de WhatsApp'))
     }
   }
 )

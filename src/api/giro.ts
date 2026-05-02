@@ -45,7 +45,7 @@ giroRouter.post(
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
-    const { beneficiaryName, beneficiaryId, bankId, accountNumber, phone, amountInput, currencyInput, customRate } =
+    const { beneficiaryName, beneficiaryId, bankId, accountNumber, phone, senderPhone, amountInput, currencyInput, customRate } =
       req.body
 
     // VALIDACIÓN 1: Solo SUPER_ADMIN puede usar USD
@@ -116,6 +116,7 @@ giroRouter.post(
         bankId,
         accountNumber,
         phone,
+        senderPhone, // Teléfono del remitente para WhatsApp (opcional)
         amountInput,
         currencyInput,
         amountBs,
@@ -682,7 +683,7 @@ giroRouter.post(
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
-    const { operatorId, amountBsId, phone, contactoEnvia } = req.body
+    const { operatorId, amountBsId, phone, senderPhone, contactoEnvia } = req.body
 
     if (!operatorId || !amountBsId || !phone || !contactoEnvia) {
       return res.status(400).json(
@@ -723,6 +724,7 @@ giroRouter.post(
         operatorId,
         amountBsId,
         phone,
+        senderPhone,
         contactoEnvia,
       },
       user,
@@ -763,7 +765,7 @@ giroRouter.post(
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
-    const { cedula, bankId, phone, contactoEnvia = 'NA', amountCop, customRate } = req.body
+    const { cedula, bankId, phone, senderPhone, contactoEnvia = 'NA', amountCop, customRate } = req.body
 
     // Validar customRate
     if (customRate && user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.ADMIN) {
@@ -810,6 +812,7 @@ giroRouter.post(
         cedula,
         bankId,
         phone,
+        senderPhone,
         contactoEnvia,
         amountCop: Number(amountCop),
       },
