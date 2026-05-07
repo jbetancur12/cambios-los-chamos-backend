@@ -132,7 +132,8 @@ router.post('/transactions/bulk-sale', async (req, res) => {
 
         await productTransactionService.createBulkSale({
             items: req.body.items,
-            paymentMethod: req.body.paymentMethod, // Extract paymentMethod
+            paymentMethod: req.body.paymentMethod,
+            clientName: req.body.clientName,
             userId
         });
         res.status(201).json(ApiResponse.success({ success: true }));
