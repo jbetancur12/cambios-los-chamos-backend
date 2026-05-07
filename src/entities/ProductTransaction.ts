@@ -39,6 +39,9 @@ export class ProductTransaction {
     @Enum({ items: () => PaymentMethod, nullable: true })
     paymentMethod?: PaymentMethod;
 
+    @Property({ type: 'varchar', length: 255, nullable: true })
+    clientName?: string;
+
     @Property()
     quantity!: number; // Always positive. Type determines + or - in logic.
 

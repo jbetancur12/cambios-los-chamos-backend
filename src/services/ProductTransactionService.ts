@@ -97,6 +97,7 @@ class ProductTransactionService {
         quantity: number;
         sellingPrice?: number;
         paymentMethod?: PaymentMethod;
+        clientName?: string;
         userId: string;
     }) {
         const em = DI.orm.em.fork();
@@ -106,6 +107,7 @@ class ProductTransactionService {
                 quantity: data.quantity,
                 sellingPrice: data.sellingPrice,
                 paymentMethod: data.paymentMethod,
+                clientName: data.clientName,
                 userId: data.userId
             });
         });
@@ -114,6 +116,7 @@ class ProductTransactionService {
     async createBulkSale(data: {
         items: { productId: string; quantity: number; sellingPrice?: number }[];
         paymentMethod?: PaymentMethod;
+        clientName?: string;
         userId: string;
     }) {
         if (!data.items || data.items.length === 0) throw new Error('No items to sell');
@@ -126,6 +129,7 @@ class ProductTransactionService {
                     quantity: item.quantity,
                     sellingPrice: item.sellingPrice,
                     paymentMethod: data.paymentMethod,
+                    clientName: data.clientName,
                     userId: data.userId
                 });
             }
@@ -137,6 +141,7 @@ class ProductTransactionService {
         quantity: number;
         sellingPrice?: number;
         paymentMethod?: PaymentMethod;
+        clientName?: string;
         userId: string;
     }) {
         if (data.quantity <= 0) throw new Error('Quantity must be positive');
@@ -199,6 +204,7 @@ class ProductTransactionService {
             totalPrice: totalRevenue,
             profit: profit,
             paymentMethod: data.paymentMethod ?? PaymentMethod.CASH, // Default to CASH
+            clientName: data.clientName,
             createdBy: user,
             createdAt: new Date()
         });
