@@ -33,7 +33,7 @@ router.get('/products/:id', async (req, res) => {
     }
 });
 
-router.post('/products', requireRole(UserRole.SUPER_ADMIN), async (req, res) => {
+router.post('/products', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN), async (req, res) => {
     try {
         const userId = req.context?.requestUser?.user?.id;
         const product = await productService.createProduct({
