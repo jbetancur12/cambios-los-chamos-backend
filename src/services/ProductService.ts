@@ -11,6 +11,10 @@ class ProductService {
         return await DI.products.findAll({ where, orderBy: { name: 'ASC' } });
     }
 
+    async getStoreProducts() {
+        return await DI.products.findAll({ where: { isActive: true, showInStore: true }, orderBy: { name: 'ASC' } });
+    }
+
     async getProduct(id: string) {
         return await DI.products.findOne({ id });
     }

@@ -35,6 +35,9 @@ export class Product {
     @Property({ default: true })
     isActive: boolean = true;
 
+    @Property({ default: true })
+    showInStore: boolean = true;
+
     @OneToMany(() => ProductTransaction, (tx) => tx.product)
     transactions = new Array<ProductTransaction>();
 
