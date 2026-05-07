@@ -7,7 +7,26 @@ import { UserRole } from '@/entities/User';
 
 const router = Router();
 
-// Apply auth and role middleware to all inventory routes
+// --- PUBLIC ENDPOINTS (no auth) ---
+
+router.get('/products/public', async (_req, res) => {
+    try {
+        const products = await productService.getAllProducts(false)
+        const mapped = products.map((p) => ({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            sellingPrice: p.sellingPrice,
+            stock: p.stock,
+            imageUrl: p.imageUrl,
+        }))
+        res.json(ApiResponse.success(mapped))
+    } catch (error: any) {
+        res.status(500).json(ApiResponse.serverError(error.message))
+    }
+})
+
+// Apply auth and role middleware to all other inventory routes
 router.use(requireAuth());
 router.use(requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN));
 
