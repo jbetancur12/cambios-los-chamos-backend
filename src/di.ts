@@ -21,6 +21,7 @@ import { UserFcmToken } from './entities/UserFcmToken'
 import { BeneficiarySuggestion } from './entities/BeneficiarySuggestion'
 import { Product } from './entities/Product'
 import { ProductTransaction } from './entities/ProductTransaction'
+import { ProductPresentation } from './entities/ProductPresentation'
 
 export const DI = {} as {
   server: http.Server
@@ -46,6 +47,7 @@ export const DI = {} as {
   beneficiarySuggestions: EntityRepository<BeneficiarySuggestion>
   products: EntityRepository<Product>
   productTransactions: EntityRepository<ProductTransaction>
+  productPresentations: EntityRepository<ProductPresentation>
 }
 
 export const initDI = async (): Promise<typeof DI> => {
@@ -71,6 +73,7 @@ export const initDI = async (): Promise<typeof DI> => {
   DI.beneficiarySuggestions = DI.orm.em.getRepository(BeneficiarySuggestion)
   DI.products = DI.orm.em.getRepository(Product)
   DI.productTransactions = DI.orm.em.getRepository(ProductTransaction)
+  DI.productPresentations = DI.orm.em.getRepository(ProductPresentation)
 
   return DI
 }

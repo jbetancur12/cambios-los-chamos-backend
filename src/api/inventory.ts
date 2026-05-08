@@ -30,14 +30,28 @@ const PRODUCT_BUCKET = 'store'
 router.get('/products/public', async (_req, res) => {
     try {
         const products = await productService.getStoreProducts()
-        const mapped = products.map((p) => ({
-            id: p.id,
-            name: p.name,
-            description: p.description,
-            sellingPrice: p.sellingPrice,
-            stock: p.stock,
-            imageUrl: p.imageUrl ? `/inventory/products/${p.id}/image` : undefined,
-        }))
+        const mapped = products
+            .map((p) => {
+                const allPresentations = p.presentations.getItems()
+                const visiblePresentations = allPresentations.filter((pp) => pp.showInStore)
+                const hasAnyPresentation = allPresentations.length > 0
+                if (hasAnyPresentation && visiblePresentations.length === 0) return null
+                return {
+                    id: p.id,
+                    name: p.name,
+                    description: p.description,
+                    sellingPrice: p.sellingPrice,
+                    stock: p.stock,
+                    imageUrl: p.imageUrl ? `/inventory/products/${p.id}/image` : undefined,
+                    presentations: visiblePresentations.map((pp) => ({
+                        id: pp.id,
+                        name: pp.name,
+                        quantity: pp.quantity,
+                        sellingPrice: Number(pp.sellingPrice),
+                    })),
+                }
+            })
+            .filter(Boolean)
         res.json(ApiResponse.success(mapped))
     } catch (error: any) {
         res.status(500).json(ApiResponse.serverError(error.message))

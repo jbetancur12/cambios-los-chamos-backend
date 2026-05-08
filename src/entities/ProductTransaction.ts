@@ -42,6 +42,12 @@ export class ProductTransaction {
     @Property({ type: 'varchar', length: 255, nullable: true })
     clientName?: string;
 
+    @Property({ nullable: true })
+    presentationId?: string;
+
+    @Property({ nullable: true })
+    presentationName?: string;
+
     @Property()
     quantity!: number; // Always positive. Type determines + or - in logic.
 

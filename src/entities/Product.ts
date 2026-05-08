@@ -1,7 +1,8 @@
 
-import { Entity, PrimaryKey, Property, OneToMany } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, OneToMany, Cascade, Collection } from '@mikro-orm/core';
 import { v4 as uuidv4 } from 'uuid';
 import { ProductTransaction } from './ProductTransaction';
+import { ProductPresentation } from './ProductPresentation';
 
 @Entity({ tableName: 'products' })
 export class Product {
@@ -40,6 +41,9 @@ export class Product {
 
     @OneToMany(() => ProductTransaction, (tx) => tx.product)
     transactions = new Array<ProductTransaction>();
+
+    @OneToMany(() => ProductPresentation, (pp) => pp.product, { cascade: [Cascade.ALL], orphanRemoval: true })
+    presentations = new Collection<ProductPresentation>(this);
 
     @Property({ onCreate: () => new Date() })
     createdAt: Date = new Date();
