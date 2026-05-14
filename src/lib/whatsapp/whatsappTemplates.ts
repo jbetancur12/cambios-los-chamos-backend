@@ -1,4 +1,4 @@
-import { WhatsAppComponent, WhatsAppTextParameter } from './whatsappClient'
+import { WhatsAppComponent, WhatsAppTextParameter, WhatsAppParameter } from './whatsappClient'
 import {
   WHATSAPP_TEMPLATE_GIRO_CREADO,
   WHATSAPP_TEMPLATE_GIRO_COMPLETADO,
@@ -10,8 +10,23 @@ function textParam(value: string): WhatsAppTextParameter {
   return { type: 'text', text: value }
 }
 
-function bodyComponent(parameters: WhatsAppTextParameter[]): WhatsAppComponent {
+function bodyComponent(parameters: WhatsAppParameter[]): WhatsAppComponent {
   return { type: 'body', parameters }
+}
+
+function imageHeaderComponent(imageRef: { link?: string; id?: string }): WhatsAppComponent {
+  return {
+    type: 'header',
+    parameters: [
+      {
+        type: 'image',
+        image: {
+          ...(imageRef.link ? { link: imageRef.link } : {}),
+          ...(imageRef.id ? { id: imageRef.id } : {}),
+        },
+      },
+    ],
+  }
 }
 
 /**
@@ -63,6 +78,8 @@ export interface GiroCompletadoData {
   bankName: string
   executionType?: string
   giroId: string
+  proofUrl?: string
+  proofMediaId?: string
 }
 
 /**
@@ -109,16 +126,24 @@ export function buildGiroCompletadoTemplate(data: GiroCompletadoData): {
   templateName: string
   components: WhatsAppComponent[]
 } {
+  const components: WhatsAppComponent[] = [
+    bodyComponent([
+      textParam(formatAmount(data.amountBs)),
+      textParam(data.beneficiaryName),
+      textParam(data.bankName),
+      textParam(formatExecutionType(data.executionType)),
+      textParam(shortRef(data.giroId)),
+    ]),
+  ]
+
+  if (data.proofMediaId) {
+    components.unshift(imageHeaderComponent({ id: data.proofMediaId }))
+  } else if (data.proofUrl) {
+    components.unshift(imageHeaderComponent({ link: data.proofUrl }))
+  }
+
   return {
     templateName: WHATSAPP_TEMPLATE_GIRO_COMPLETADO,
-    components: [
-      bodyComponent([
-        textParam(formatAmount(data.amountBs)),
-        textParam(data.beneficiaryName),
-        textParam(data.bankName),
-        textParam(formatExecutionType(data.executionType)),
-        textParam(shortRef(data.giroId)),
-      ]),
-    ],
+    components,
   }
 }

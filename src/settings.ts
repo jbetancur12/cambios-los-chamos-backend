@@ -209,4 +209,6 @@ export const WHATSAPP_API_VERSION = process.env.WHATSAPP_API_VERSION || 'v21.0'
 export const WHATSAPP_LANGUAGE_CODE = process.env.WHATSAPP_LANGUAGE_CODE || 'es_CO'
 export const WHATSAPP_TEMPLATE_GIRO_CREADO = process.env.WHATSAPP_TEMPLATE_GIRO_CREADO || 'giro_creado'
 export const WHATSAPP_TEMPLATE_GIRO_COMPLETADO = process.env.WHATSAPP_TEMPLATE_GIRO_COMPLETADO || 'giro_completado'
+export const WHATSAPP_WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'cambios_los_chamos_verify_2026'
+export const WHATSAPP_AUTOREPLY_MESSAGE = process.env.WHATSAPP_AUTOREPLY_MESSAGE || 'Gracias por contactarnos. Este es un canal automatizado para notificaciones de transacciones. Si requiere información sobre nuestros servicios o productos, por favor comuníquese con nuestro equipo de atención al cliente al +57 302 341 4813.'
 

@@ -37,6 +37,7 @@ import { auditRouter } from '@/api/audit'
 import { logsRouter } from '@/api/logs'
 import { invoiceClientesRouter } from '@/api/invoiceClientes'
 import { inventoryRouter } from '@/api/inventory'
+import { whatsappWebhookRouter } from '@/api/whatsappWebhook'
 
 import { Server as SocketIOServer } from 'socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
@@ -105,6 +106,7 @@ export const startExpressServer = async () => {
   privateRoutesRouter.use('/dashboard', dashboardRouter)
   app.use('/logs', logsRouter)
   app.use('/inventory', inventoryRouter)
+  app.use('/whatsapp', whatsappWebhookRouter)
 
   app.use('/', privateRoutesRouter)
 

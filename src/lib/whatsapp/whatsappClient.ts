@@ -4,6 +4,7 @@ import {
   WHATSAPP_API_VERSION,
   WHATSAPP_ENABLED,
   WHATSAPP_LANGUAGE_CODE,
+  WHATSAPP_AUTOREPLY_MESSAGE,
 } from '@/settings'
 import { logger } from '@/lib/logger'
 
@@ -14,9 +15,19 @@ export interface WhatsAppTextParameter {
   text: string
 }
 
+export interface WhatsAppImageParameter {
+  type: 'image'
+  image: {
+    link?: string
+    id?: string
+  }
+}
+
+export type WhatsAppParameter = WhatsAppTextParameter | WhatsAppImageParameter
+
 export interface WhatsAppComponent {
   type: 'header' | 'body' | 'button'
-  parameters: WhatsAppTextParameter[]
+  parameters: WhatsAppParameter[]
   sub_type?: string
   index?: number
 }
@@ -74,6 +85,113 @@ export function normalizePhoneNumber(phone: string): string | null {
 }
 
 // ---- Client ----
+
+/**
+ * Sube un archivo a los servidores de WhatsApp (Meta) y devuelve un Media ID.
+ * Útil para enviar imágenes o documentos en plantillas cuando los archivos no son públicos.
+ * 
+ * @param fileBuffer - El buffer del archivo a subir
+ * @param mimeType - El tipo MIME del archivo (ej: 'image/jpeg')
+ * @returns El ID del medio subido (mediaId) o nulo si falla
+ */
+export async function uploadMediaToWhatsApp(fileBuffer: Buffer, mimeType: string): Promise<string | null> {
+  if (!WHATSAPP_ENABLED || !WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
+    return null
+  }
+
+  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/media`
+  
+  // Usar FormData nativo de Node.js (Node 18+)
+  const formData = new FormData()
+  formData.append('messaging_product', 'whatsapp')
+  
+  // Convertir Buffer a Blob para FormData
+  const fileBlob = new Blob([fileBuffer], { type: mimeType })
+  formData.append('file', fileBlob, 'media.jpg')
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      logger.error({ error: errorData }, '[WHATSAPP] Error subiendo medio a Meta')
+      return null
+    }
+
+    const data = await response.json() as { id: string }
+    return data.id
+  } catch (error) {
+    logger.error({ error }, '[WHATSAPP] Excepción al subir medio a Meta')
+    return null
+  }
+}
+
+/**
+ * Envía un mensaje de texto plano por WhatsApp usando la Meta Cloud API.
+ * Válido dentro de la ventana de 24 horas de conversación iniciada por el usuario.
+ */
+export async function sendTextMessage(
+  to: string,
+  text: string
+): Promise<WhatsAppSendResult> {
+  if (!WHATSAPP_ENABLED) {
+    logger.info(`[WHATSAPP] Deshabilitado. Texto a ${to} no enviado.`)
+    return { success: false, error: 'WHATSAPP_DISABLED' }
+  }
+
+  if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
+    logger.error('[WHATSAPP] Faltan credenciales.')
+    return { success: false, error: 'MISSING_CREDENTIALS' }
+  }
+
+  const normalizedPhone = normalizePhoneNumber(to)
+  if (!normalizedPhone) {
+    logger.warn(`[WHATSAPP] Número inválido: "${to}"`)
+    return { success: false, error: 'INVALID_PHONE_NUMBER' }
+  }
+
+  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`
+
+  const payload = {
+    messaging_product: 'whatsapp',
+    to: normalizedPhone,
+    type: 'text',
+    text: { body: text },
+  }
+
+  try {
+    logger.info(`[WHATSAPP] Enviando texto a ${normalizedPhone}...`)
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as WhatsAppAPIError
+      const errorMsg = errorData?.error?.message || `HTTP ${response.status}`
+      logger.error({ status: response.status, error: errorData }, `[WHATSAPP] Error enviando texto: ${errorMsg}`)
+      return { success: false, error: errorMsg }
+    }
+
+    const data = (await response.json()) as WhatsAppAPIResponse
+    logger.info(`[WHATSAPP] ✅ Texto enviado. ID: ${data.messages?.[0]?.id}, Destino: ${normalizedPhone}`)
+    return { success: true, messageId: data.messages?.[0]?.id }
+  } catch (error) {
+    logger.error({ error }, `[WHATSAPP] Error de red al enviar texto a ${normalizedPhone}`)
+    return { success: false, error: error instanceof Error ? error.message : 'NETWORK_ERROR' }
+  }
+}
 
 /**
  * Envía un mensaje de plantilla por WhatsApp usando la Meta Cloud API.
