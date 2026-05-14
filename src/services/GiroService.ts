@@ -312,11 +312,6 @@ export class GiroService {
           logger.warn({ error }, 'Error al guardar sugerencia de beneficiario')
         }
 
-        // Enviar notificación WhatsApp al cliente (fire-and-forget)
-        whatsAppNotificationService.notifyGiroCreated(giro).catch(err =>
-          logger.error({ err }, '[WHATSAPP] Error notificando giro creado')
-        )
-
         return giro
       })
       .catch((error) => {
