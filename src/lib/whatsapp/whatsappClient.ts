@@ -140,6 +140,11 @@ export async function sendTextMessage(
   to: string,
   text: string
 ): Promise<WhatsAppSendResult> {
+  if (!WHATSAPP_ENABLED) {
+    logger.info(`[WHATSAPP] Deshabilitado. Texto a ${to} no enviado.`)
+    return { success: false, error: 'WHATSAPP_DISABLED' }
+  }
+
   if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
     logger.error('[WHATSAPP] Faltan credenciales.')
     return { success: false, error: 'MISSING_CREDENTIALS' }

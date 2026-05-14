@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { WHATSAPP_WEBHOOK_VERIFY_TOKEN, WHATSAPP_AUTOREPLY_MESSAGE } from '@/settings'
+import { WHATSAPP_WEBHOOK_VERIFY_TOKEN, WHATSAPP_ENABLED, WHATSAPP_AUTOREPLY_MESSAGE } from '@/settings'
 import { sendTextMessage } from '@/lib/whatsapp'
 import { logger } from '@/lib/logger'
 
@@ -27,6 +27,10 @@ router.get('/webhook', (req: Request, res: Response) => {
  * Meta envía una solicitud POST cuando hay un mensaje entrante.
  */
 router.post('/webhook', async (req: Request, res: Response) => {
+  if (!WHATSAPP_ENABLED) {
+    return res.status(200).json({ status: 'ignored', reason: 'WHATSAPP_DISABLED' })
+  }
+
   try {
     const body = req.body
 
