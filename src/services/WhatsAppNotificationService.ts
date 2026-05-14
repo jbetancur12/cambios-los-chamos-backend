@@ -4,7 +4,9 @@ import {
   sendTemplateMessage,
   buildGiroCreadoTemplate,
   buildGiroCompletadoTemplate,
+  uploadMediaToWhatsApp,
 } from '@/lib/whatsapp'
+import { minioService } from '@/services/MinIOService'
 
 /**
  * Servicio de notificaciones WhatsApp para giros.
@@ -59,12 +61,42 @@ export class WhatsAppNotificationService {
       return
     }
 
+    let proofUrl: string | undefined = undefined
+    let proofMediaId: string | undefined = undefined
+
+    if (giro.paymentProofKey) {
+      try {
+        const bucketName = process.env.MINIO_BUCKET_NAME || 'ultrathink'
+        
+        // 1. Intentar subir el archivo directamente a Meta para evitar problemas de URLs locales
+        try {
+          const fileBuffer = await minioService.getFileAsBuffer(bucketName, giro.paymentProofKey)
+          // Asumimos JPEG por defecto, MinIO Service tipicamente guarda como JPG después del procesamiento
+          const mediaId = await uploadMediaToWhatsApp(fileBuffer, 'image/jpeg')
+          if (mediaId) {
+            proofMediaId = mediaId
+          }
+        } catch (uploadError) {
+          logger.warn({ uploadError }, `[WHATSAPP-GIRO] No se pudo subir el archivo a Meta directamente, usando URL de MinIO.`)
+        }
+
+        // 2. Si falló la subida directa, usar URL prefirmada (puede fallar en local si Meta no tiene acceso a localhost)
+        if (!proofMediaId) {
+          proofUrl = await minioService.getPresignedUrl(bucketName, giro.paymentProofKey, 24 * 60 * 60)
+        }
+      } catch (error) {
+        logger.warn({ error }, `[WHATSAPP-GIRO] No se pudo generar URL o ID de medio para el comprobante del giro ${giro.id}`)
+      }
+    }
+
     const { templateName, components } = buildGiroCompletadoTemplate({
       beneficiaryName: giro.beneficiaryName,
       amountBs: Number(giro.amountBs),
       bankName: giro.bankName,
       executionType: giro.executionType,
       giroId: giro.id,
+      proofUrl,
+      proofMediaId,
     })
 
     const result = await sendTemplateMessage(giro.senderPhone, templateName, undefined, components)
