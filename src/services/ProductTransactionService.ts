@@ -157,11 +157,13 @@ class ProductTransactionService {
         let finalSellingPrice = data.sellingPrice
         let presentationId: string | undefined = data.presentationId
         let presentationName: string | undefined
+        let presentationQuantity: number | undefined
 
         if (data.presentationId) {
             const presentation = await tem.findOne(ProductPresentation, { id: data.presentationId })
             if (!presentation) throw new Error('Presentation not found')
             effectiveQuantity = data.quantity * presentation.quantity
+            presentationQuantity = presentation.quantity
             presentationName = presentation.name
             if (!finalSellingPrice) {
                 finalSellingPrice = Number(presentation.sellingPrice)
@@ -173,6 +175,10 @@ class ProductTransactionService {
         }
 
         finalSellingPrice = finalSellingPrice ?? Number(product.sellingPrice)
+
+        const pricePerBaseUnit = presentationQuantity
+            ? finalSellingPrice / presentationQuantity
+            : finalSellingPrice
 
         let quantityToSell = effectiveQuantity
         let totalCost = 0
@@ -200,7 +206,7 @@ class ProductTransactionService {
             totalCost += quantityToSell * Number(product.costPrice)
         }
 
-        const totalRevenue = effectiveQuantity * finalSellingPrice
+        const totalRevenue = effectiveQuantity * pricePerBaseUnit
         const profit = totalRevenue - totalCost
 
         const transaction = tem.create(ProductTransaction, {
@@ -209,7 +215,7 @@ class ProductTransactionService {
             status: TransactionStatus.COMPLETED,
             quantity: effectiveQuantity,
             remainingQuantity: 0,
-            pricePerUnit: finalSellingPrice,
+            pricePerUnit: pricePerBaseUnit,
             totalPrice: totalRevenue,
             profit: profit,
             paymentMethod: data.paymentMethod ?? PaymentMethod.CASH,
