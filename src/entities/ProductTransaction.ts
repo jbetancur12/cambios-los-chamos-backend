@@ -48,6 +48,9 @@ export class ProductTransaction {
     @Property({ nullable: true })
     presentationName?: string;
 
+    @Property({ nullable: true })
+    presentationQuantity?: number;
+
     @Property()
     quantity!: number; // Always positive. Type determines + or - in logic.
 

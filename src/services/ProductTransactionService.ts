@@ -222,6 +222,7 @@ class ProductTransactionService {
             clientName: data.clientName,
             presentationId: presentationId,
             presentationName: presentationName,
+            presentationQuantity: presentationQuantity,
             createdAt: new Date(),
             createdBy: user
         })
