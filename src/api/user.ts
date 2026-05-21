@@ -81,6 +81,10 @@ userRouter.post('/login', validateBody(loginSchema), async (req: Request, res: R
     if (error instanceof Error && error.message.includes('desactivada')) {
       return res.status(403).json(ApiResponse.accountInactive())
     }
+
+    if (error instanceof Error && error.message.includes('archivada')) {
+      return res.status(403).json(ApiResponse.error('Tu cuenta ha sido archivada. Por favor contacta al administrador.'))
+    }
     // Cualquier otro error
     logger.error({ error }, 'Error en login')
     return res.status(500).json(ApiResponse.serverError())
@@ -232,9 +236,10 @@ userRouter.get(
   validateParams(getByRoleSchema),
   async (req: Request, res: Response) => {
     const { role } = req.params as { role: UserRole }
+    const includeArchived = req.query.includeArchived === 'true'
 
     try {
-      const users = await userService.getUsersByRole(role)
+      const users = await userService.getUsersByRole(role, includeArchived)
       const usersResponse = users.map((user) => ({
         id: user.id,
         fullName: user.fullName,
@@ -242,6 +247,7 @@ userRouter.get(
         role: user.role,
         isActive: user.isActive,
         emailVerified: user.emailVerified,
+        deletedAt: user.deletedAt ?? null,
       }))
       res.json(ApiResponse.success({ users: usersResponse }))
     } catch {
@@ -281,6 +287,71 @@ userRouter.put(
     }
   }
 )
+
+// ------------------ ARCHIVAR USUARIO (SOFT DELETE) ------------------
+userRouter.put(
+  '/:userId/archive',
+  requireAuth(),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  async (req: Request, res: Response) => {
+    const { userId } = req.params
+
+    try {
+      const user = await userService.archiveUser(userId)
+      if (!user) {
+        return res.status(404).json(ApiResponse.notFound('Usuario no encontrado o ya archivado'))
+      }
+
+      res.json(
+        ApiResponse.success({
+          message: 'Usuario archivado exitosamente',
+          user: {
+            id: user.id,
+            fullName: user.fullName,
+            email: user.email,
+            role: user.role,
+            isActive: user.isActive,
+            deletedAt: user.deletedAt,
+          },
+        })
+      )
+    } catch {
+      res.status(500).json(ApiResponse.error('Error al archivar el usuario'))
+    }
+  }
+)
+// ------------------ RESTAURAR USUARIO ARCHIVADO ------------------
+userRouter.put(
+  '/:userId/restore',
+  requireAuth(),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  async (req: Request, res: Response) => {
+    const { userId } = req.params
+
+    try {
+      const user = await userService.restoreUser(userId)
+      if (!user) {
+        return res.status(404).json(ApiResponse.notFound('Usuario no encontrado'))
+      }
+
+      res.json(
+        ApiResponse.success({
+          message: 'Usuario restaurado exitosamente',
+          user: {
+            id: user.id,
+            fullName: user.fullName,
+            email: user.email,
+            role: user.role,
+            isActive: user.isActive,
+          },
+        })
+      )
+    } catch {
+      res.status(500).json(ApiResponse.error('Error al restaurar el usuario'))
+    }
+  }
+)
+
 // ------------------ ACTUALIZAR TELÉFONO DE WHATSAPP (propio) ------------------
 userRouter.patch('/me/whatsapp-phone', requireAuth(), async (req: Request, res: Response) => {
   const user = req.context?.requestUser?.user

@@ -29,9 +29,9 @@ export class UserService {
       )
     }
 
-    // if (!user.isActive) {
-    //   throw new Error('Tu cuenta ha sido desactivada. Por favor contacta al administrador.')
-    // }
+    if (user.deletedAt) {
+      throw new Error('Tu cuenta ha sido archivada. Por favor contacta al administrador.')
+    }
 
     const token = generateAccessToken({
       email: user.email,
@@ -221,9 +221,13 @@ export class UserService {
     return userRepo.findOne({ id })
   }
 
-  async getUsersByRole(role: UserRole) {
+  async getUsersByRole(role: UserRole, includeArchived = false) {
     const userRepo = DI.em.getRepository(User)
-    const users = await userRepo.find({ role })
+    const filter: any = { role }
+    if (!includeArchived) {
+      filter.deletedAt = null
+    }
+    const users = await userRepo.find(filter)
     return users
   }
 
@@ -237,6 +241,37 @@ export class UserService {
     }
 
     user.isActive = !user.isActive
+    await DI.em.persistAndFlush(user)
+    return user
+  }
+
+  async archiveUser(userId: string): Promise<User | false> {
+    const userRepo = DI.em.getRepository(User)
+    const user = await userRepo.findOne({ id: userId })
+
+    if (!user) {
+      return false
+    }
+
+    if (user.deletedAt) {
+      return false
+    }
+
+    user.deletedAt = new Date()
+    user.isActive = false
+    await DI.em.persistAndFlush(user)
+    return user
+  }
+
+  async restoreUser(userId: string): Promise<User | false> {
+    const userRepo = DI.em.getRepository(User)
+    const user = await userRepo.findOne({ id: userId })
+
+    if (!user) {
+      return false
+    }
+
+    user.deletedAt = undefined
     await DI.em.persistAndFlush(user)
     return user
   }

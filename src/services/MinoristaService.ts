@@ -118,7 +118,7 @@ export class MinoristaService {
     const minoristaRepo = DI.em.getRepository(Minorista)
 
     const [minoristas, total] = await minoristaRepo.findAndCount(
-      {},
+      { user: { deletedAt: null } },
       {
         limit,
         offset,

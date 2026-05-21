@@ -39,6 +39,9 @@ export class User {
   @Property({ nullable: true })
   whatsappPhone?: string // Teléfono del usuario para recibir notificaciones WA (formato E.164 sin +, ej: 573001234567)
 
+  @Property({ nullable: true })
+  deletedAt?: Date
+
   @OneToOne(() => Minorista, (minorista) => minorista.user)
   minorista?: Minorista
 

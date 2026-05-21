@@ -51,6 +51,12 @@ export const userMiddleware = () => {
         return next()
       }
 
+      // NO autenticar si el usuario está archivado (se tratará como no autenticado)
+      if (user.deletedAt) {
+        logger.warn({ email: user.email }, '[AUTH] User is archived, treating as unauthenticated')
+        return next()
+      }
+
       // PERMITIR session incluso si está inactivo (para que pueda ver dashboard)
       if (!user.isActive) {
         logger.warn({ email: user.email }, '[AUTH] User is inactive but session allowed (View Only mode)')
