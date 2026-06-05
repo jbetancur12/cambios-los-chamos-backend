@@ -9,6 +9,7 @@ import { Minorista } from '@/entities/Minorista'
 import { User } from '@/entities/User'
 import { EntityManager, FilterQuery, LockMode } from '@mikro-orm/core'
 import { giroSocketManager } from '@/websocket'
+import { logger } from '@/lib/logger'
 
 export interface CreateTransactionInput {
   minoristaId: string
@@ -44,6 +45,19 @@ export class MinoristaTransactionService {
 
     transaction.status = status
     await manager.persistAndFlush(transaction)
+
+    // Si pasa de PENDING a COMPLETED, recalcular snapshots posteriores
+    // porque el snapshot original se creó cuando habían PENDINGs activos
+    if (
+      transaction.type === MinoristaTransactionType.DISCOUNT &&
+      status === MinoristaTransactionStatus.COMPLETED
+    ) {
+      try {
+        await this.recalculateSnapshotsAfter(transaction.minorista.id, transaction.createdAt, manager)
+      } catch (err) {
+        logger.error({ err }, '[MINORISTA TX] Error recalculating snapshots after status update')
+      }
+    }
 
     if (giroSocketManager) {
       giroSocketManager.broadcastMinoristaTransactionUpdate(transaction)
@@ -317,6 +331,91 @@ export class MinoristaTransactionService {
     }
 
     return transaction
+  }
+
+  /**
+   * Recalcula los snapshots de balance de todas las COMPLETED posteriores a una fecha,
+   * ignorando el efecto de PENDING/CANCELLED. Se llama cuando se cancela un giro
+   * que tenía una transacción PENDING activa que distorsionaba los snapshots.
+   */
+  async recalculateSnapshotsAfter(
+    minoristaId: string,
+    afterDate: Date,
+    em?: EntityManager
+  ): Promise<void> {
+    const manager = em || DI.em
+    const minorista = await manager.findOne(Minorista, minoristaId)
+    if (!minorista) throw new Error('MINORISTA_NOT_FOUND')
+
+    const limit = Number(minorista.creditLimit)
+    const transactionRepo = manager.getRepository(MinoristaTransaction)
+
+    const lastBefore = await transactionRepo.findOne(
+      {
+        minorista: minoristaId,
+        createdAt: { $lt: afterDate },
+        status: MinoristaTransactionStatus.COMPLETED,
+      },
+      { orderBy: { createdAt: 'DESC' } }
+    )
+
+    let runningAvail = Number(lastBefore?.availableCredit ?? 0)
+    let runningCb = Number(lastBefore?.currentBalanceInFavor ?? 0)
+
+    const subsequentTxs = await transactionRepo.find(
+      {
+        minorista: minoristaId,
+        createdAt: { $gte: afterDate },
+        status: MinoristaTransactionStatus.COMPLETED,
+      },
+      { orderBy: { createdAt: 'ASC' } }
+    )
+
+    for (const tx of subsequentTxs) {
+      const prevAvail = runningAvail
+      const prevCb = runningCb
+      const totalLiquidity = runningAvail + runningCb
+      const amt = Number(tx.amount)
+      const profit = Number(tx.profitEarned) || 0
+      let newTotal = totalLiquidity
+
+      switch (tx.type) {
+        case MinoristaTransactionType.DISCOUNT:
+          newTotal -= amt - profit
+          break
+        case MinoristaTransactionType.RECHARGE:
+        case MinoristaTransactionType.REFUND:
+          newTotal += amt
+          break
+      }
+
+      if (newTotal > limit) {
+        runningAvail = limit
+        runningCb = newTotal - limit
+      } else {
+        runningAvail = Math.max(0, newTotal)
+        runningCb = 0
+      }
+
+      tx.previousAvailableCredit = prevAvail
+      tx.previousBalanceInFavor = prevCb
+      tx.availableCredit = runningAvail
+      tx.currentBalanceInFavor = runningCb
+      tx.accumulatedDebt = runningCb > 0 ? 0 : Math.max(0, limit - runningAvail)
+      tx.remainingBalance = runningCb > 0 ? runningCb : undefined
+
+      if (tx.type === MinoristaTransactionType.DISCOUNT) {
+        const effectiveConsumption = amt - profit
+        const usedFromCb = Math.min(effectiveConsumption, prevCb)
+        const usedFromCredit = effectiveConsumption - usedFromCb
+        tx.balanceInFavorUsed = usedFromCb > 0 ? usedFromCb : undefined
+        tx.creditUsed = usedFromCredit > 0 ? usedFromCredit : undefined
+      }
+    }
+
+    if (subsequentTxs.length > 0) {
+      await manager.persistAndFlush(subsequentTxs)
+    }
   }
 
   /**
