@@ -118,12 +118,22 @@ export interface FacturacionReport {
   items: FacturacionReportItem[]
 }
 
+export interface PaymentMethodBreakdown {
+  paymentMethod: string
+  label: string
+  transactionCount: number
+  totalSales: number
+  totalProfit: number
+  totalItems: number
+}
+
 export interface InventoryProfitReport {
   totalSales: number
   totalCost: number
   totalProfit: number
   totalItemsSold: number
   transactionCount: number
+  salesByPaymentMethod: PaymentMethodBreakdown[]
 }
 
 export class ReportService {
@@ -496,40 +506,49 @@ export class ReportService {
   async getInventoryProfitReport(dateFrom: Date, dateTo: Date): Promise<InventoryProfitReport> {
     const { adjustedFrom, adjustedTo } = this.adjustDatesForTimezone(dateFrom, dateTo)
 
-    // Import dynamically or assume ProductTransaction is available in DI (it wasn't in original file list but usually is)
-    // Actually DI needs to be updated if I use DI.productTransactions? 
-    // Wait, DI.productTransactions was registered in a previous step? 
-    // Let's check DI.ts or just use DI.em.find(ProductTransaction)
-    // ProductTransaction entity import needed.
-
-    // NOTE: Implementation relies on ProductTransaction entity being available.
-    // Since I cannot change imports easily without replace_file at top, I will assume I can add imports.
-    // But replace_file works on range.
-    // I will use DI.em.find('ProductTransaction') or similar if needed, but better to add import.
-
-    // Let's use DI.productTransactions if it exists. 
-    // In previous steps, I didn't see DI.productTransactions in `di.ts`. I saw `DI.products`.
-    // Let's check `di.ts` content from memory/context. 
-    // I made `ProductTransaction` entity. Did I add it to `DI`?
-    // I probably didn't explicitly add `productTransactions` repository to `DI` object in `di.ts`.
-    // I should check `di.ts` or just use `DI.orm.em.find(ProductTransaction, ...)`
-
-    const transactions = await DI.orm.em.find('ProductTransaction', {
+    const transactions: any[] = await DI.orm.em.find('ProductTransaction', {
       createdAt: { $gte: adjustedFrom, $lte: adjustedTo },
-      type: 'SALE' // 'SALE' string or enum if imported
+      type: 'SALE'
     })
 
-    const totalSales = transactions.reduce((sum, t: any) => sum + Number(t.totalPrice || 0), 0) // t:any to avoid type issues if import missing
-    const totalProfit = transactions.reduce((sum, t: any) => sum + Number(t.profit || 0), 0)
-    const totalItemsSold = transactions.reduce((sum, t: any) => sum + Number(t.quantity || 0), 0)
+    const totalSales = transactions.reduce((sum, t) => sum + Number(t.totalPrice || 0), 0)
+    const totalProfit = transactions.reduce((sum, t) => sum + Number(t.profit || 0), 0)
+    const totalItemsSold = transactions.reduce((sum, t) => sum + Number(t.quantity || 0), 0)
     const totalCost = totalSales - totalProfit
+
+    // Group by payment method
+    const pmMap = new Map<string, { transactionCount: number; totalSales: number; totalProfit: number; totalItems: number }>()
+    transactions.forEach((t) => {
+      const pm = t.paymentMethod || 'CASH'
+      const existing = pmMap.get(pm) || { transactionCount: 0, totalSales: 0, totalProfit: 0, totalItems: 0 }
+      pmMap.set(pm, {
+        transactionCount: existing.transactionCount + 1,
+        totalSales: existing.totalSales + Number(t.totalPrice || 0),
+        totalProfit: existing.totalProfit + Number(t.profit || 0),
+        totalItems: existing.totalItems + Number(t.quantity || 0),
+      })
+    })
+
+    const pmLabels: Record<string, string> = {
+      CASH: 'Efectivo',
+      TRANSFER: 'Transferencia',
+      CARD: 'Tarjeta',
+      CREDIT: 'Fiado',
+    }
+
+    const salesByPaymentMethod = Array.from(pmMap.entries()).map(([pm, data]) => ({
+      paymentMethod: pm,
+      label: pmLabels[pm] || pm,
+      ...data,
+    }))
 
     return {
       totalSales,
       totalCost,
       totalProfit,
       totalItemsSold,
-      transactionCount: transactions.length
+      transactionCount: transactions.length,
+      salesByPaymentMethod,
     }
   }
 }

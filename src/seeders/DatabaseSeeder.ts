@@ -7,10 +7,10 @@ import { RealMinoristasSeeder } from './RealMinoristaSeeder'
 import { RealAdminsSeeder } from './RealAdminsSeeder'
 import { RealTransferencistasSeeder } from './RealTransferencistasSeeder'
 import { RealTransferencistaBankAccountsSeeder } from './RealTransferencistaBankAccountsSeeder'
+import { ProductSeeder } from './ProductSeeder'
 
 export class DatabaseSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    // return this.call(em, [BankSeeder, UserSeeder, ExchangeRateSeeder, RechargeSeeder])
     return this.call(em, [
       BankSeeder,
       RealMinoristasSeeder,
@@ -19,6 +19,7 @@ export class DatabaseSeeder extends Seeder {
       RealTransferencistaBankAccountsSeeder,
       RechargeSeeder,
       ExchangeRateSeeder,
+      ProductSeeder,
     ])
   }
 }
