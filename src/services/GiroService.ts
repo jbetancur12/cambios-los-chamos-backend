@@ -578,12 +578,6 @@ export class GiroService {
 
             originalTransaction.status = MinoristaTransactionStatus.CANCELLED
             em.persist(originalTransaction)
-
-            await minoristaTransactionService.recalculateSnapshotsAfter(
-              giro.minorista.id,
-              originalTransaction.createdAt,
-              em
-            )
           } else {
             // Si ya estaba COMPLETED, refund invisible (CANCELLED) según solicitud del usuario
             refundResult = await minoristaTransactionService.createTransaction(
@@ -724,12 +718,6 @@ export class GiroService {
             logger.info(`[GIRO] Hiding original transaction for cancelled giro (txId: ${originalTransaction.id})`)
             originalTransaction.status = MinoristaTransactionStatus.CANCELLED
             em.persist(originalTransaction)
-
-            await minoristaTransactionService.recalculateSnapshotsAfter(
-              giro.minorista.id,
-              originalTransaction.createdAt,
-              em
-            )
           }
         } else if (giro.minorista && giro.status === GiroStatus.DEVUELTO) {
           logger.info(`[GIRO] Skipping refund for cancelled giro because it is already RETURNED (giroId: ${giroId})`)
