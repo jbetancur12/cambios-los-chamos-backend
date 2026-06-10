@@ -423,6 +423,7 @@ export class MinoristaTransactionService {
       currentBalance: t.availableCredit,
       previousBalanceInFavor: t.previousBalanceInFavor ?? 0,
       currentBalanceInFavor: t.currentBalanceInFavor ?? 0,
+      accumulatedDebt: t.accumulatedDebt ?? 0,
       balanceInFavorUsed: t.balanceInFavorUsed,
       creditUsed: t.creditUsed,
       externalDebt: t.externalDebt,
