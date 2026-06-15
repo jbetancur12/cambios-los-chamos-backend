@@ -114,9 +114,9 @@ export class BeneficiarySuggestionService {
       const normalizedAccountNumber = normalizeText(suggestion.accountNumber)
 
       return (
-        normalizedName.startsWith(normalizedSearch) ||
-        normalizedId.startsWith(normalizedSearch) ||
-        normalizedAccountNumber.startsWith(normalizedSearch)
+        normalizedName.includes(normalizedSearch) ||
+        normalizedId.includes(normalizedSearch) ||
+        normalizedAccountNumber.includes(normalizedSearch)
       )
     })
 
