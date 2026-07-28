@@ -112,12 +112,21 @@ class TransferencistaService {
         redistributionErrors?: number
       }
     | { error: 'TRANSFERENCISTA_NOT_FOUND' }
+    | { error: 'LAST_AVAILABLE' }
   > {
     const transferencistaRepo = DI.em.getRepository(Transferencista)
 
     const transferencista = await transferencistaRepo.findOne({ id: transferencistaId })
     if (!transferencista) {
       return { error: 'TRANSFERENCISTA_NOT_FOUND' }
+    }
+
+    // Evitar que todos queden no disponibles
+    if (!available && transferencista.available) {
+      const availableCount = await transferencistaRepo.count({ available: true })
+      if (availableCount <= 1) {
+        return { error: 'LAST_AVAILABLE' }
+      }
     }
 
     const previousAvailability = transferencista.available

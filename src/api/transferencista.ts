@@ -73,6 +73,9 @@ transferencistaRouter.put(
       const result = await transferencistaService.setAvailability(id, isAvailable)
 
       if ('error' in result) {
+        if (result.error === 'LAST_AVAILABLE') {
+          return res.status(409).json(ApiResponse.conflict('Debe haber al menos un transferencista disponible'))
+        }
         return res.status(404).json(ApiResponse.notFound('Transferencista', id))
       }
 
