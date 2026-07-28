@@ -165,7 +165,7 @@ class ProductTransactionService {
             effectiveQuantity = data.quantity * presentation.quantity
             presentationQuantity = presentation.quantity
             presentationName = presentation.name
-            if (!finalSellingPrice) {
+            if (finalSellingPrice === undefined) {
                 finalSellingPrice = Number(presentation.sellingPrice)
             }
         }
@@ -207,7 +207,7 @@ class ProductTransactionService {
         }
 
         const totalRevenue = effectiveQuantity * pricePerBaseUnit
-        const profit = totalRevenue - totalCost
+        const profit = finalSellingPrice === 0 ? 0 : totalRevenue - totalCost
 
         const transaction = tem.create(ProductTransaction, {
             product,
