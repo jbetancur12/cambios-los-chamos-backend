@@ -4,6 +4,19 @@ import { PaymentStatus } from '@/entities/Payment'
 import { CashBalanceStatus } from '@/entities/CashBalance'
 import { creditService } from './CreditService'
 
+export interface MorosoCredit {
+  creditId: string
+  client: string
+  identification: string
+  amount: number
+  balance: number
+  daysOverdue: number
+  severity: string
+  overdueAmount: number
+  frequency: string
+  startDate: string
+}
+
 export class CobranzasDashboardService {
   async getStats(): Promise<{
     credits: Record<string, number>
@@ -160,6 +173,74 @@ export class CobranzasDashboardService {
       monthlyCollected: Array.from(monthMap.entries())
         .map(([month, total]) => ({ month, total }))
         .sort((a, b) => a.month.localeCompare(b.month)),
+    }
+  }
+
+  async getPortfolioReport(): Promise<{
+    counts: Record<string, number>
+    totalFinanced: number
+    outstanding: number
+    overdueAmount: number
+    morosos: MorosoCredit[]
+    byFrequency: { frequency: string; count: number; outstanding: number }[]
+  }> {
+    const credits = await DI.credits.find(
+      {},
+      { populate: ['client'], orderBy: { createdAt: 'DESC' } }
+    )
+
+    const counts: Record<string, number> = {}
+    let totalFinanced = 0
+    let outstanding = 0
+    let overdueAmount = 0
+    const morosos: MorosoCredit[] = []
+    const freqMap = new Map<string, { count: number; outstanding: number }>()
+
+    for (const credit of credits) {
+      counts[credit.status] = (counts[credit.status] ?? 0) + 1
+      totalFinanced += Number(credit.amount)
+
+      const freq = freqMap.get(credit.frequency) ?? { count: 0, outstanding: 0 }
+      freq.count += 1
+      freqMap.set(credit.frequency, freq)
+
+      if (credit.status === CreditStatus.ACTIVE) {
+        const bal = Number(credit.balance)
+        outstanding += bal
+        freq.outstanding += bal
+
+        if (await creditService.getRequiresAttention(credit)) {
+          const od = await creditService.getOverdueAmount(credit)
+          overdueAmount += od
+          morosos.push({
+            creditId: credit.id,
+            client: credit.client.name,
+            identification: credit.client.identification,
+            amount: Number(credit.amount),
+            balance: bal,
+            daysOverdue: await creditService.getDaysOverdue(credit),
+            severity: await creditService.getOverdueSeverity(credit),
+            overdueAmount: od,
+            frequency: credit.frequency,
+            startDate: credit.startDate,
+          })
+        }
+      }
+    }
+
+    morosos.sort((a, b) => b.daysOverdue - a.daysOverdue)
+
+    return {
+      counts,
+      totalFinanced,
+      outstanding,
+      overdueAmount,
+      morosos,
+      byFrequency: Array.from(freqMap.entries()).map(([frequency, v]) => ({
+        frequency,
+        count: v.count,
+        outstanding: v.outstanding,
+      })),
     }
   }
 }

@@ -62,6 +62,11 @@ cobranzasRouter.get('/dashboard/financial-summary', requireSuperAdmin, async (_r
   res.json(ApiResponse.success({ summary }))
 })
 
+cobranzasRouter.get('/dashboard/portfolio-report', requireSuperAdmin, async (_req: Request, res: Response) => {
+  const report = await cobranzasDashboardService.getPortfolioReport()
+  res.json(ApiResponse.success({ report }))
+})
+
 // ============================================================================
 // Clientes
 // ============================================================================
@@ -607,6 +612,24 @@ cobranzasRouter.get('/payments/recent', requireSuperAdmin, async (req: Request, 
   const limit = req.query.limit ? Number(req.query.limit) : 20
   const payments = await paymentService.getRecent(limit)
   res.json(ApiResponse.success({ payments }))
+})
+
+cobranzasRouter.get('/payments/:id/receipt', requireSuperAdmin, async (req: Request, res: Response) => {
+  const payment = await DI.payments.findOne(
+    { id: req.params.id },
+    { populate: ['client', 'credit', 'credit.client', 'receivedBy'] }
+  )
+  if (!payment) {
+    return res.status(404).json(ApiResponse.notFound('Pago', req.params.id))
+  }
+  const receiptNumber = `R-${payment.id.slice(0, 8).toUpperCase()}`
+  res.json(
+    ApiResponse.success({
+      payment,
+      receiptNumber,
+      businessName: 'Inversiones R&M',
+    })
+  )
 })
 
 cobranzasRouter.get('/payments/today-summary', requireSuperAdmin, async (_req: Request, res: Response) => {
