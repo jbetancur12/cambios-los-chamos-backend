@@ -22,6 +22,14 @@ import { BeneficiarySuggestion } from './entities/BeneficiarySuggestion'
 import { Product } from './entities/Product'
 import { ProductTransaction } from './entities/ProductTransaction'
 import { ProductPresentation } from './entities/ProductPresentation'
+import { CobranzaClient } from './entities/CobranzaClient'
+import { ClientCategory } from './entities/ClientCategory'
+import { InterestRate } from './entities/InterestRate'
+import { LoanFrequency } from './entities/LoanFrequency'
+import { CobranzaRoute } from './entities/CobranzaRoute'
+import { Credit } from './entities/Credit'
+import { Payment } from './entities/Payment'
+import { CashBalance } from './entities/CashBalance'
 
 export const DI = {} as {
   server: http.Server
@@ -48,6 +56,14 @@ export const DI = {} as {
   products: EntityRepository<Product>
   productTransactions: EntityRepository<ProductTransaction>
   productPresentations: EntityRepository<ProductPresentation>
+  cobranzaClients: EntityRepository<CobranzaClient>
+  clientCategories: EntityRepository<ClientCategory>
+  interestRates: EntityRepository<InterestRate>
+  loanFrequencies: EntityRepository<LoanFrequency>
+  cobranzaRoutes: EntityRepository<CobranzaRoute>
+  credits: EntityRepository<Credit>
+  payments: EntityRepository<Payment>
+  cashBalances: EntityRepository<CashBalance>
 }
 
 export const initDI = async (): Promise<typeof DI> => {
@@ -74,6 +90,14 @@ export const initDI = async (): Promise<typeof DI> => {
   DI.products = DI.orm.em.getRepository(Product)
   DI.productTransactions = DI.orm.em.getRepository(ProductTransaction)
   DI.productPresentations = DI.orm.em.getRepository(ProductPresentation)
+  DI.cobranzaClients = DI.orm.em.getRepository(CobranzaClient)
+  DI.clientCategories = DI.orm.em.getRepository(ClientCategory)
+  DI.interestRates = DI.orm.em.getRepository(InterestRate)
+  DI.loanFrequencies = DI.orm.em.getRepository(LoanFrequency)
+  DI.cobranzaRoutes = DI.orm.em.getRepository(CobranzaRoute)
+  DI.credits = DI.orm.em.getRepository(Credit)
+  DI.payments = DI.orm.em.getRepository(Payment)
+  DI.cashBalances = DI.orm.em.getRepository(CashBalance)
 
   return DI
 }
