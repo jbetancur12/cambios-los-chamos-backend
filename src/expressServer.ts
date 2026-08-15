@@ -39,6 +39,7 @@ import { invoiceClientesRouter } from '@/api/invoiceClientes'
 import { inventoryRouter } from '@/api/inventory'
 import { whatsappWebhookRouter } from '@/api/whatsappWebhook'
 import { cobranzasRouter } from '@/api/cobranzas'
+import { moraScheduler } from '@/services/cobranzas/MoraScheduler'
 
 import { Server as SocketIOServer } from 'socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
@@ -188,6 +189,7 @@ export const startExpressServer = async () => {
     }
     logger.info(`Express server started at http://${HOST}:${EXPRESS_SERVER_PORT}`)
     logger.info(`Socket.IO listening on http://${HOST}:${EXPRESS_SERVER_PORT}`)
+    moraScheduler.start()
   })
 
   const closeServer = (): Promise<void> =>

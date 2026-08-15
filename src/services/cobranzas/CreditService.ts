@@ -350,6 +350,47 @@ export class CreditService {
     }
   }
 
+  async getWaitingList(): Promise<{
+    pendingApproval: Credit[]
+    waitingDelivery: Credit[]
+    readyToday: Credit[]
+    overdueDelivery: Credit[]
+    counts: { pendingApproval: number; waitingDelivery: number; readyToday: number; overdueDelivery: number }
+  }> {
+    const pendingApproval = await DI.credits.find(
+      { status: CreditStatus.PENDING_APPROVAL },
+      { populate: ['client', 'createdBy'], orderBy: { createdAt: 'ASC' } }
+    )
+
+    const waitingDelivery = await DI.credits.find(
+      { status: CreditStatus.WAITING_DELIVERY },
+      { populate: ['client', 'approvedBy'], orderBy: { scheduledDeliveryDate: 'ASC' } }
+    )
+
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+
+    const readyToday = waitingDelivery.filter(
+      (c) => c.scheduledDeliveryDate && c.scheduledDeliveryDate.getTime() >= todayStart.getTime()
+    )
+    const overdueDelivery = waitingDelivery.filter(
+      (c) => c.scheduledDeliveryDate && c.scheduledDeliveryDate.getTime() < todayStart.getTime()
+    )
+
+    return {
+      pendingApproval,
+      waitingDelivery,
+      readyToday,
+      overdueDelivery,
+      counts: {
+        pendingApproval: pendingApproval.length,
+        waitingDelivery: waitingDelivery.length,
+        readyToday: readyToday.length,
+        overdueDelivery: overdueDelivery.length,
+      },
+    }
+  }
+
   async listCredits(params: {
     status?: CreditStatus
     frequency?: CreditFrequency
@@ -461,10 +502,25 @@ export class CreditService {
     if (data.status !== undefined) credit.status = data.status
     if (data.interestRate !== undefined) credit.interestRate = Number(data.interestRate)
     if (data.totalInstallments !== undefined) credit.totalInstallments = Number(data.totalInstallments) || undefined
+    if (data.downPayment !== undefined) credit.downPayment = data.downPayment ?? undefined
     if (data.description !== undefined) credit.description = data.description
 
     if (data.scheduledDeliveryDate !== undefined) {
       credit.scheduledDeliveryDate = data.scheduledDeliveryDate ? new Date(data.scheduledDeliveryDate) : undefined
+    }
+
+    // Recalcular total/cuota/saldo si cambian monto, interés, anticipo o cuotas antes de la entrega
+    const editable = [CreditStatus.PENDING_APPROVAL, CreditStatus.WAITING_DELIVERY].includes(credit.status)
+    const recompute = ['amount', 'downPayment', 'interestRate', 'totalInstallments', 'frequency'].some((k) => k in data)
+    if (editable && recompute) {
+      const financed = Number(credit.amount) - Number(credit.downPayment ?? 0)
+      const totalAmount = financed + financed * (Number(credit.interestRate ?? 0) / 100)
+      const installments = Number(credit.totalInstallments ?? 0)
+      credit.totalAmount = totalAmount
+      credit.installmentAmount = installments > 0 ? totalAmount / installments : totalAmount
+      if (data.balance === undefined) {
+        credit.balance = totalAmount
+      }
     }
 
     await DI.em.persistAndFlush(credit)

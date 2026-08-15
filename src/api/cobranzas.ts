@@ -444,6 +444,11 @@ cobranzasRouter.get('/credits/counts', requireSuperAdmin, async (_req: Request, 
   res.json(ApiResponse.success({ counts }))
 })
 
+cobranzasRouter.get('/credits/waiting-list', requireSuperAdmin, async (_req: Request, res: Response) => {
+  const waitingList = await creditService.getWaitingList()
+  res.json(ApiResponse.success({ waitingList }))
+})
+
 cobranzasRouter.get('/credits/:id', requireSuperAdmin, async (req: Request, res: Response) => {
   const result = await creditService.getCreditDetail(req.params.id)
   if ('error' in result) {
