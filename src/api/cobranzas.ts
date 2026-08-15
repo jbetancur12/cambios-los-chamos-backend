@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express'
+import { z } from 'zod'
 import { requireRole } from '@/middleware/authMiddleware'
 import { ApiResponse } from '@/lib/apiResponse'
 import { validateBody } from '@/lib/zodUtils'
@@ -93,7 +94,8 @@ cobranzasRouter.get('/clients/:id', requireSuperAdmin, async (req: Request, res:
   }
   const activeCredits = await cobranzaClientService.getActiveCredits(client.id)
   const paymentHistory = await cobranzaClientService.getPaymentHistory(client.id)
-  res.json(ApiResponse.success({ client, activeCredits, paymentHistory }))
+  const statement = await creditService.getClientStatement(client.id)
+  res.json(ApiResponse.success({ client, activeCredits, paymentHistory, statement }))
 })
 
 cobranzasRouter.post(
@@ -447,6 +449,43 @@ cobranzasRouter.get('/credits/counts', requireSuperAdmin, async (_req: Request, 
 cobranzasRouter.get('/credits/waiting-list', requireSuperAdmin, async (_req: Request, res: Response) => {
   const waitingList = await creditService.getWaitingList()
   res.json(ApiResponse.success({ waitingList }))
+})
+
+// Cobrar hoy: cuotas que vencen hoy o están atrasadas en créditos activos
+cobranzasRouter.get('/collections/today', requireSuperAdmin, async (_req: Request, res: Response) => {
+  const collections = await creditService.getTodayCollections()
+  res.json(ApiResponse.success({ collections }))
+})
+
+// Seguimiento de mora
+cobranzasRouter.get('/credits/:id/follow-ups', requireSuperAdmin, async (req: Request, res: Response) => {
+  const followUps = await creditService.listFollowUps(req.params.id)
+  res.json(ApiResponse.success({ followUps }))
+})
+
+cobranzasRouter.post(
+  '/credits/:id/follow-ups',
+  requireSuperAdmin,
+  validateBody(z.object({ note: z.string().min(1, 'Nota requerida') })),
+  async (req: Request, res: Response) => {
+    const userId = req.context?.requestUser?.user?.id
+    if (!userId) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+    const result = await creditService.addFollowUp(req.params.id, req.body.note, userId)
+    if ('error' in result) {
+      return res.status(404).json(ApiResponse.notFound('Crédito', req.params.id))
+    }
+    res.status(201).json(ApiResponse.success({ followUp: result, message: 'Seguimiento guardado' }))
+  }
+)
+
+cobranzasRouter.delete('/credits/:id/follow-ups/:followUpId', requireSuperAdmin, async (req: Request, res: Response) => {
+  const result = await creditService.removeFollowUp(req.params.followUpId)
+  if (typeof result === 'object' && result !== null && 'error' in result) {
+    return res.status(404).json(ApiResponse.notFound('Seguimiento', req.params.followUpId))
+  }
+  res.json(ApiResponse.success({ message: 'Seguimiento eliminado' }))
 })
 
 cobranzasRouter.get('/credits/:id', requireSuperAdmin, async (req: Request, res: Response) => {

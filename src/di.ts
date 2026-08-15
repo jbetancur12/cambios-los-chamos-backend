@@ -30,6 +30,7 @@ import { CobranzaRoute } from './entities/CobranzaRoute'
 import { Credit } from './entities/Credit'
 import { Payment } from './entities/Payment'
 import { CashBalance } from './entities/CashBalance'
+import { CreditFollowUp } from './entities/CreditFollowUp'
 
 export const DI = {} as {
   server: http.Server
@@ -64,6 +65,7 @@ export const DI = {} as {
   credits: EntityRepository<Credit>
   payments: EntityRepository<Payment>
   cashBalances: EntityRepository<CashBalance>
+  creditFollowUps: EntityRepository<CreditFollowUp>
 }
 
 export const initDI = async (): Promise<typeof DI> => {
@@ -98,6 +100,7 @@ export const initDI = async (): Promise<typeof DI> => {
   DI.credits = DI.orm.em.getRepository(Credit)
   DI.payments = DI.orm.em.getRepository(Payment)
   DI.cashBalances = DI.orm.em.getRepository(CashBalance)
+  DI.creditFollowUps = DI.orm.em.getRepository(CreditFollowUp)
 
   return DI
 }

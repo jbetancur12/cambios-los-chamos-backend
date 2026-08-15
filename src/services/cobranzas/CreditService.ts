@@ -1,6 +1,7 @@
 import { DI } from '@/di'
 import { Credit, CreditFrequency, CreditStatus } from '@/entities/Credit'
 import { PaymentStatus } from '@/entities/Payment'
+import { CreditFollowUp } from '@/entities/CreditFollowUp'
 export interface CreateCreditInput {
   clientId: string
   cobradorId?: string | null
@@ -725,6 +726,130 @@ export class CreditService {
     }
 
     await DI.em.persistAndFlush(credit)
+  }
+
+  // ------------------------------------------------------------------
+  // Cobrar hoy
+  // ------------------------------------------------------------------
+
+  async getTodayCollections(): Promise<
+    {
+      creditId: string
+      client: string
+      identification: string
+      dueDate: string
+      amount: number
+      paidAmount: number
+      balance: number
+      daysLate: number
+      frequency: CreditFrequency
+    }[]
+  > {
+    const active = await DI.credits.find({ status: CreditStatus.ACTIVE }, { populate: ['client'] })
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const items: Awaited<ReturnType<typeof this.getTodayCollections>> = []
+
+    for (const credit of active) {
+      const schedule = await this.getPaymentSchedule(credit)
+      const next = schedule.find((s) => !s.is_paid)
+      if (!next) continue
+
+      const due = new Date(`${next.due_date}T00:00:00`)
+      if (due.getTime() <= today.getTime()) {
+        items.push({
+          creditId: credit.id,
+          client: credit.client.name,
+          identification: credit.client.identification,
+          dueDate: next.due_date,
+          amount: next.amount,
+          paidAmount: next.paid_amount,
+          balance: Number(credit.balance),
+          daysLate: Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86400000)),
+          frequency: credit.frequency,
+        })
+      }
+    }
+
+    items.sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+    return items
+  }
+
+  async getClientStatement(clientId: string): Promise<{
+    totalDebt: number
+    totalFinanced: number
+    totalPaid: number
+    paidCreditsCount: number
+    nextPayments: { creditId: string; dueDate: string; amount: number }[]
+  } | null> {
+    const active = await DI.credits.find(
+      { client: clientId, status: { $nin: [CreditStatus.PAID_OFF, CreditStatus.CANCELLED, CreditStatus.DEFAULTED] } },
+      { orderBy: { createdAt: 'DESC' } }
+    )
+
+    const allPayments = await DI.payments.find({
+      client: clientId,
+      status: { $in: [PaymentStatus.COMPLETED, PaymentStatus.PARTIAL] },
+    })
+
+    const totalDebt = active.reduce((s, c) => s + Number(c.balance), 0)
+    const totalFinanced = active.reduce((s, c) => s + Number(c.amount), 0)
+    const totalPaid = allPayments.reduce((s, p) => s + Number(p.amount), 0)
+    const paidCreditsCount = await DI.credits.count({ client: clientId, status: CreditStatus.PAID_OFF })
+
+    const nextPayments: { creditId: string; dueDate: string; amount: number }[] = []
+    for (const credit of active) {
+      const schedule = await this.getPaymentSchedule(credit)
+      const next = schedule.find((s) => !s.is_paid)
+      if (next) {
+        nextPayments.push({ creditId: credit.id, dueDate: next.due_date, amount: next.amount })
+      }
+    }
+    nextPayments.sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+
+    return {
+      totalDebt,
+      totalFinanced,
+      totalPaid,
+      paidCreditsCount,
+      nextPayments,
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Seguimiento de mora
+  // ------------------------------------------------------------------
+
+  async listFollowUps(creditId: string): Promise<CreditFollowUp[]> {
+    return DI.creditFollowUps.find(
+      { credit: creditId },
+      { populate: ['createdBy'], orderBy: { createdAt: 'DESC' } }
+    )
+  }
+
+  async addFollowUp(creditId: string, note: string, userId: string): Promise<CreditFollowUp | { error: 'CREDIT_NOT_FOUND' }> {
+    const credit = await DI.credits.findOne({ id: creditId })
+    if (!credit) {
+      return { error: 'CREDIT_NOT_FOUND' }
+    }
+    const followUp = DI.creditFollowUps.create({
+      credit,
+      note,
+      createdBy: DI.users.getReference(userId),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    await DI.em.persistAndFlush(followUp)
+    return followUp
+  }
+
+  async removeFollowUp(followUpId: string): Promise<boolean | { error: 'FOLLOW_UP_NOT_FOUND' }> {
+    const followUp = await DI.creditFollowUps.findOne({ id: followUpId })
+    if (!followUp) {
+      return { error: 'FOLLOW_UP_NOT_FOUND' }
+    }
+    await DI.em.removeAndFlush(followUp)
+    return true
   }
 }
 
