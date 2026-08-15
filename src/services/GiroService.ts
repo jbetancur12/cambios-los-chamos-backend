@@ -298,15 +298,17 @@ export class GiroService {
         }
 
         try {
-          await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
-            beneficiaryName: data.beneficiaryName,
-            beneficiaryId: data.beneficiaryId,
-            phone: data.phone || '',
-            senderPhone: data.senderPhone, // Recordar teléfono del remitente para próximos giros
-            bankId: data.bankId,
-            accountNumber: data.accountNumber,
-            executionType: data.executionType || ExecutionType.TRANSFERENCIA,
-          })
+          if (!data.skipBeneficiarySuggestionSave) {
+            await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
+              beneficiaryName: data.beneficiaryName,
+              beneficiaryId: data.beneficiaryId,
+              phone: data.phone || '',
+              senderPhone: data.senderPhone, // Recordar teléfono del remitente para próximos giros
+              bankId: data.bankId,
+              accountNumber: data.accountNumber,
+              executionType: data.executionType || ExecutionType.TRANSFERENCIA,
+            })
+          }
         } catch (error) {
           // No fallar si no se puede guardar la sugerencia
           logger.warn({ error }, 'Error al guardar sugerencia de beneficiario')

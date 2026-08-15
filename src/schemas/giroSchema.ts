@@ -21,6 +21,7 @@ export const createGiroSchema = z.object({
     })
     .optional(),
   // amountBs se calcula en el backend basado en la tasa del día o customRate
+  skipBeneficiarySuggestionSave: z.boolean().optional(), // Frontend gestiona guardado de sugerencia
 })
 
 export const updateGiroRateSchema = z.object({

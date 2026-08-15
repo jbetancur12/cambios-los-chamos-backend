@@ -15,4 +15,5 @@ export interface CreateGiroInput {
   currencyInput: Currency
   amountBs: number
   executionType: ExecutionType
+  skipBeneficiarySuggestionSave?: boolean // Cuando true, el frontend gestiona el guardado de la sugerencia
 }

@@ -45,7 +45,7 @@ giroRouter.post(
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
-    const { beneficiaryName, beneficiaryId, bankId, accountNumber, phone, senderPhone, amountInput, currencyInput, customRate } =
+    const { beneficiaryName, beneficiaryId, bankId, accountNumber, phone, senderPhone, amountInput, currencyInput, customRate, skipBeneficiarySuggestionSave } =
       req.body
 
     // VALIDACIÓN 1: Solo SUPER_ADMIN puede usar USD
@@ -122,6 +122,7 @@ giroRouter.post(
         amountBs,
         rateApplied,
         executionType: ExecutionType.TRANSFERENCIA,
+        skipBeneficiarySuggestionSave,
       },
       user
     )

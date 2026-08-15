@@ -16,12 +16,32 @@ export class BeneficiarySuggestionService {
       bankId: string
       accountNumber: string
       executionType: ExecutionType
+      suggestionId?: string
     }
   ): Promise<BeneficiarySuggestion> {
     // Get user from the same EntityManager context
     const user = await DI.em.getRepository(User).findOne({ id: userId })
     if (!user) {
       throw new Error('User not found')
+    }
+
+    const repo = DI.em.getRepository(BeneficiarySuggestion)
+
+    // If a specific suggestion id is provided, update that row in place (allows fixing the cedula too)
+    if (data.suggestionId) {
+      const byId = await repo.findOne({ id: data.suggestionId, user: userId })
+      if (byId) {
+        byId.beneficiaryName = data.beneficiaryName
+        byId.beneficiaryId = data.beneficiaryId
+        byId.phone = data.phone
+        byId.senderPhone = data.senderPhone
+        byId.bankId = data.bankId
+        byId.accountNumber = data.accountNumber
+        byId.executionType = data.executionType
+        byId.updatedAt = new Date()
+        await DI.em.persistAndFlush(byId)
+        return byId
+      }
     }
 
     // Check if this beneficiary already exists for this user and execution type using CEDULA as unique key
@@ -31,7 +51,7 @@ export class BeneficiarySuggestionService {
       executionType: data.executionType,
     }
 
-    const existing = await DI.em.getRepository(BeneficiarySuggestion).findOne(whereClause)
+    const existing = await repo.findOne(whereClause)
 
     if (existing) {
       // Update the existing record with new details (name, phone, bank, etc) and move to recent
@@ -46,7 +66,6 @@ export class BeneficiarySuggestionService {
     }
 
     // Create new beneficiary suggestion using repo.create() for proper ORM registration
-    const repo = DI.em.getRepository(BeneficiarySuggestion)
     const suggestion = repo.create({
       user,
       beneficiaryName: data.beneficiaryName,

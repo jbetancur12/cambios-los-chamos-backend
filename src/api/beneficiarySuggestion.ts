@@ -14,7 +14,7 @@ beneficiarySuggestionRouter.post('/save', requireAuth(), async (req: Request, re
     return res.status(401).json(ApiResponse.unauthorized())
   }
 
-  const { beneficiaryName, beneficiaryId, phone, senderPhone, bankId, accountNumber, executionType } = req.body
+  const { beneficiaryName, beneficiaryId, phone, senderPhone, bankId, accountNumber, executionType, suggestionId } = req.body
 
   const isMobilePayment = executionType === ExecutionType.PAGO_MOVIL
   const missingAccountNumber = !isMobilePayment && !accountNumber
@@ -40,6 +40,7 @@ beneficiarySuggestionRouter.post('/save', requireAuth(), async (req: Request, re
       bankId,
       accountNumber,
       executionType: type,
+      suggestionId,
     })
 
     res.json(ApiResponse.success({ suggestion, message: 'Beneficiario guardado exitosamente' }))
