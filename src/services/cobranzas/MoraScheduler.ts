@@ -1,4 +1,5 @@
 import { DI } from '@/di'
+import { RequestContext } from '@mikro-orm/postgresql'
 import { CreditStatus } from '@/entities/Credit'
 import { creditService } from './CreditService'
 import { logger } from '@/lib/logger'
@@ -20,9 +21,13 @@ export class MoraScheduler {
     }
 
     const run = (): void => {
-      this.checkOverdue().catch((err) => {
-        logger.error({ err }, 'cobranzas-mora: error en chequeo de mora')
-      })
+      // Fuera de un request HTTP no hay RequestContext activo. Se crea uno propio
+      // para que el EM global y los repos de DI puedan usarse dentro del cron.
+      RequestContext.create(DI.orm.em, () =>
+        this.checkOverdue().catch((err) => {
+          logger.error({ err }, 'cobranzas-mora: error en chequeo de mora')
+        })
+      )
     }
 
     run()
