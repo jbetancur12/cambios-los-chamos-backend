@@ -53,9 +53,11 @@ export class MoraScheduler {
 
     for (const credit of relevant) {
       const expected = await creditService.getExpectedInstallments(credit)
-      const completed = await creditService.getCompletedInstallmentsCount(credit)
+      const expectedAmount = expected * Number(credit.installmentAmount ?? 0)
+      const totalPaid = Number(credit.totalPaid ?? 0)
       const daysOverdue = await creditService.getDaysOverdue(credit)
-      const isBehind = completed < expected
+      // "Al día" = pagó al menos todo lo vencido hasta hoy (robusto a pagos de varias cuotas)
+      const isBehind = totalPaid < expectedAmount - 0.001
 
       if (credit.status === CreditStatus.ACTIVE && isBehind && daysOverdue >= graceDays) {
         credit.status = CreditStatus.DEFAULTED

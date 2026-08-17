@@ -726,9 +726,11 @@ export class CreditService {
       credit.status = CreditStatus.PAID_OFF
       credit.completedAt = new Date()
     } else if (credit.status === CreditStatus.DEFAULTED) {
-      // Si un crédito en mora se pone al día (sin cuotas atrasadas), vuelve a activo
+      // Si un crédito en mora se pone al día (pagó al menos todas las cuotas vencidas), vuelve a activo.
+      // Se compara dinero pagado vs dinero vencido (robusto a pagos que cubren varias cuotas).
       const expected = await this.getExpectedInstallments(credit)
-      if (completedInstallments >= expected) {
+      const expectedAmount = expected * Number(credit.installmentAmount ?? 0)
+      if (totalPaid >= expectedAmount - 0.001) {
         credit.status = CreditStatus.ACTIVE
         credit.completedAt = undefined
       }
