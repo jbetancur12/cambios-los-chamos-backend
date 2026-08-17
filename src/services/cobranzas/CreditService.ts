@@ -120,6 +120,11 @@ export class CreditService {
       { populate: ['receivedBy'], orderBy: { paymentDate: 'ASC' } }
     )
 
+    // Pago acumulado: un pago puede cubrir varias cuotas.
+    // La cuota i está pagada si el total pagado alcanza i × monto de cuota.
+    const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0)
+    const lastPayment = payments[payments.length - 1]
+
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -131,11 +136,11 @@ export class CreditService {
       const installmentNumber = i + 1
       const currentDueDate = new Date(startDate.getTime() + i * periodDays * 86400000)
 
-      const forInstallment = payments.filter((p) => p.installmentNumber === installmentNumber)
-      const paidAmount = forInstallment.reduce((sum, p) => sum + Number(p.amount), 0)
+      const coveredBy = Math.min(Number(installmentAmount), Math.max(0, totalPaid - i * Number(installmentAmount)))
+      const paidAmount = coveredBy
       const remaining = Number(installmentAmount) - paidAmount
-      const isPaid = paidAmount >= Number(installmentAmount)
-      const isPartial = paidAmount > 0 && paidAmount < Number(installmentAmount)
+      const isPaid = paidAmount >= Number(installmentAmount) - 0.001
+      const isPartial = paidAmount > 0.001 && paidAmount < Number(installmentAmount) - 0.001
 
       let status: ScheduleItem['status'] = 'pending'
       if (isPaid) {
@@ -146,8 +151,6 @@ export class CreditService {
         status = 'overdue'
       }
 
-      const lastPayment = forInstallment[forInstallment.length - 1]
-
       schedule.push({
         installment_number: installmentNumber,
         due_date: this.toDateStr(currentDueDate),
@@ -157,7 +160,7 @@ export class CreditService {
         is_paid: isPaid,
         is_partial: isPartial,
         status,
-        payment_count: forInstallment.length,
+        payment_count: payments.length,
         last_payment_date: lastPayment ? lastPayment.paymentDate.toISOString() : null,
         payment_method: lastPayment ? lastPayment.paymentMethod : null,
         received_by_name: lastPayment?.receivedBy ? lastPayment.receivedBy.fullName : null,
