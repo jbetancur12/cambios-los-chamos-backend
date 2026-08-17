@@ -42,21 +42,22 @@ export class MoraScheduler {
     }
   }
 
-  async checkOverdue(): Promise<{ marked: number; checked: number }> {
+  async checkOverdue(): Promise<{ marked: number; reverted: number; checked: number }> {
     const graceDays = Number(process.env.COBRANZAS_MORA_GRACE_DAYS ?? 1)
 
-    const active = await DI.credits.find({ status: CreditStatus.ACTIVE })
+    const relevant = await DI.credits.find({
+      status: { $in: [CreditStatus.ACTIVE, CreditStatus.DEFAULTED] },
+    })
     let marked = 0
+    let reverted = 0
 
-    for (const credit of active) {
+    for (const credit of relevant) {
       const expected = await creditService.getExpectedInstallments(credit)
       const completed = await creditService.getCompletedInstallmentsCount(credit)
-      if (completed >= expected) {
-        continue
-      }
-
       const daysOverdue = await creditService.getDaysOverdue(credit)
-      if (daysOverdue >= graceDays) {
+      const isBehind = completed < expected
+
+      if (credit.status === CreditStatus.ACTIVE && isBehind && daysOverdue >= graceDays) {
         credit.status = CreditStatus.DEFAULTED
         await DI.em.persistAndFlush(credit)
         marked++
@@ -64,14 +65,21 @@ export class MoraScheduler {
           { creditId: credit.id, client: credit.client.name, daysOverdue },
           'cobranzas-mora: crédito marcado como vencido'
         )
+      } else if (credit.status === CreditStatus.DEFAULTED && !isBehind) {
+        // Se puso al día → vuelve a activo
+        credit.status = CreditStatus.ACTIVE
+        credit.completedAt = undefined
+        await DI.em.persistAndFlush(credit)
+        reverted++
+        logger.info({ creditId: credit.id, client: credit.client.name }, 'cobranzas-mora: crédito vuelto a activo')
       }
     }
 
-    if (marked > 0) {
-      logger.info({ checked: active.length, marked }, 'cobranzas-mora: resumen')
+    if (marked > 0 || reverted > 0) {
+      logger.info({ checked: relevant.length, marked, reverted }, 'cobranzas-mora: resumen')
     }
 
-    return { marked, checked: active.length }
+    return { marked, reverted, checked: relevant.length }
   }
 }
 

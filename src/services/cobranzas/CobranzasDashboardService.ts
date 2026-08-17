@@ -204,12 +204,15 @@ export class CobranzasDashboardService {
       freq.count += 1
       freqMap.set(credit.frequency, freq)
 
-      if (credit.status === CreditStatus.ACTIVE) {
+      if (credit.status === CreditStatus.ACTIVE || credit.status === CreditStatus.DEFAULTED) {
         const bal = Number(credit.balance)
         outstanding += bal
         freq.outstanding += bal
 
-        if (await creditService.getRequiresAttention(credit)) {
+        const isMoroso =
+          credit.status === CreditStatus.DEFAULTED || (await creditService.getRequiresAttention(credit))
+
+        if (isMoroso) {
           const od = await creditService.getOverdueAmount(credit)
           overdueAmount += od
           morosos.push({

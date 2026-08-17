@@ -596,9 +596,11 @@ export class CreditService {
 
     const deliveredAt = new Date()
 
-    // El primer pago siempre vence al inicio del siguiente periodo tras la entrega
+    // Base de la entrega: la fecha programada definida al crear (puede ser pasada = retrasada),
+    // o el momento real si no se definió. El primer pago vence al siguiente periodo tras la entrega.
+    const deliveryBase = credit.scheduledDeliveryDate ? new Date(credit.scheduledDeliveryDate) : deliveredAt
     const periodDays = this.getPeriodDays(credit.frequency)
-    const startDate = new Date(deliveredAt.getTime() + periodDays * 86400000)
+    const startDate = new Date(deliveryBase.getTime() + periodDays * 86400000)
 
     const endDate = this.calculateEndDate(startDate, credit)
 
@@ -723,6 +725,13 @@ export class CreditService {
     if (newBalance <= 0.001 && totalPaid >= totalAmount - 0.001) {
       credit.status = CreditStatus.PAID_OFF
       credit.completedAt = new Date()
+    } else if (credit.status === CreditStatus.DEFAULTED) {
+      // Si un crédito en mora se pone al día (sin cuotas atrasadas), vuelve a activo
+      const expected = await this.getExpectedInstallments(credit)
+      if (completedInstallments >= expected) {
+        credit.status = CreditStatus.ACTIVE
+        credit.completedAt = undefined
+      }
     }
 
     await DI.em.persistAndFlush(credit)
@@ -745,7 +754,10 @@ export class CreditService {
       frequency: CreditFrequency
     }[]
   > {
-    const active = await DI.credits.find({ status: CreditStatus.ACTIVE }, { populate: ['client'] })
+    const active = await DI.credits.find(
+      { status: { $in: [CreditStatus.ACTIVE, CreditStatus.DEFAULTED] } },
+      { populate: ['client'] }
+    )
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const items: Awaited<ReturnType<typeof this.getTodayCollections>> = []
