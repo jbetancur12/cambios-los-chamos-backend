@@ -136,7 +136,9 @@ export class CreditService {
       const installmentNumber = i + 1
       const currentDueDate = new Date(startDate.getTime() + i * periodDays * 86400000)
 
-      const coveredBy = Math.min(Number(installmentAmount), Math.max(0, totalPaid - i * Number(installmentAmount)))
+      let coveredBy = Math.min(Number(installmentAmount), Math.max(0, totalPaid - i * Number(installmentAmount)))
+      // Residuo de redondeo (< 1 unidad): no es un pago real sobre esta cuota
+      if (coveredBy < 1) coveredBy = 0
       const paidAmount = coveredBy
       const remaining = Number(installmentAmount) - paidAmount
       const isPaid = paidAmount >= Number(installmentAmount) - 0.001
@@ -282,8 +284,11 @@ export class CreditService {
 
     const interestRate = input.interestRate ?? freqConfig.interestRate ?? 0
     const financedAmount = Number(input.amount) - Number(input.downPayment ?? 0)
-    const totalAmount = financedAmount + financedAmount * (interestRate / 100)
-    const installmentAmount = Number(totalInstallments) > 0 ? totalAmount / Number(totalInstallments) : totalAmount
+    const totalAmountRaw = financedAmount + financedAmount * (interestRate / 100)
+    // Cuotas enteras: redondear cada cuota y ajustar el total a cuotas × cuota (evita fracciones y residuos)
+    const installmentAmount =
+      Number(totalInstallments) > 0 ? Math.round(totalAmountRaw / Number(totalInstallments)) : Math.round(totalAmountRaw)
+    const totalAmount = Number(totalInstallments) > 0 ? installmentAmount * Number(totalInstallments) : installmentAmount
 
     // Auto-calcular fecha de finalización si no viene (según frecuencia + cuotas, omitiendo domingos)
     let endDate = input.endDate
@@ -518,10 +523,13 @@ export class CreditService {
     const recompute = ['amount', 'downPayment', 'interestRate', 'totalInstallments', 'frequency'].some((k) => k in data)
     if (editable && recompute) {
       const financed = Number(credit.amount) - Number(credit.downPayment ?? 0)
-      const totalAmount = financed + financed * (Number(credit.interestRate ?? 0) / 100)
+      const totalAmountRaw = financed + financed * (Number(credit.interestRate ?? 0) / 100)
       const installments = Number(credit.totalInstallments ?? 0)
+      // Cuotas enteras (redondeadas), total ajustado a cuotas × cuota
+      const installmentAmount = installments > 0 ? Math.round(totalAmountRaw / installments) : Math.round(totalAmountRaw)
+      const totalAmount = installments > 0 ? installmentAmount * installments : installmentAmount
       credit.totalAmount = totalAmount
-      credit.installmentAmount = installments > 0 ? totalAmount / installments : totalAmount
+      credit.installmentAmount = installmentAmount
       if (data.balance === undefined) {
         credit.balance = totalAmount
       }
