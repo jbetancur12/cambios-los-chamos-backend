@@ -16,7 +16,9 @@ const registerSchema = z.object({
   address: z.string().min(1, 'La dirección es requerida'),
   municipality_id: z.number().optional(),
   municipality_name: z.string().optional(),
-  tribute_id: z.number().optional()
+  tribute_id: z.number().optional(),
+  identification_document_id: z.string().optional(),
+  legal_organization_id: z.string().optional()
 })
 
 const registerCustomerInvoiceData: RequestHandler = async (req: Request, res: Response): Promise<void> => {
@@ -53,6 +55,40 @@ router.get('/municipios', async (req: Request, res: Response): Promise<void> => 
 // Protected endpoint to fetch all customers
 import { requireAuth, requireRole } from '../middleware/authMiddleware'
 import { UserRole } from '../entities/User'
+
+// Protected endpoint to create (without id) or update (with id) a customer from the admin panel
+router.post(
+  '/admin/save',
+  requireAuth(),
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id, ...data } = req.body
+      if (id) {
+        const updated = await customerInvoiceDataService.updateById(id, data)
+        if (!updated) {
+          res.status(404).json({ success: false, message: 'Cliente no encontrado' })
+          return
+        }
+        res.status(200).json({ success: true, data: updated, message: 'Cliente actualizado exitosamente' })
+        return
+      }
+      const result = await customerInvoiceDataService.registerOrUpdate(data)
+      res.status(200).json({ success: true, data: result, message: 'Cliente creado exitosamente' })
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ success: false, message: 'Validación fallida', errors: error.issues })
+        return
+      }
+      if (error instanceof Error && error.message.includes('unique')) {
+        res.status(409).json({ success: false, message: 'Ya existe un cliente con esa identificación' })
+        return
+      }
+      logger.error({ error }, 'Error saving customer invoice data (admin)')
+      res.status(500).json({ success: false, message: 'Error interno del servidor' })
+    }
+  }
+)
 
 router.get('/all', requireAuth(), requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN), async (req: Request, res: Response): Promise<void> => {
   try {

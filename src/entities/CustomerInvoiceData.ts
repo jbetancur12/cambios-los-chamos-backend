@@ -34,6 +34,12 @@ export class CustomerInvoiceData {
   @Property({ default: 21 })
   tribute_id: number & Opt = 21
 
+  @Property({ default: '3' })
+  identification_document_id: string & Opt = '3' // 3=CC, 4=CE, 6=NIT
+
+  @Property({ default: '2' })
+  legal_organization_id: string & Opt = '2' // 2=Persona Natural, 1=Persona Jurídica
+
   @Property({ onCreate: () => new Date() })
   createdAt: Date & Opt = new Date()
 

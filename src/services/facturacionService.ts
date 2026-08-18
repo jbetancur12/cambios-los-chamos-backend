@@ -64,34 +64,67 @@ export const facturacionService = {
 
     const todayDate = new Date().toISOString().split('T')[0]
 
-    // Construir el objeto cliente
-    let customerData
+    // Construir el objeto cliente (API V1). Campos _id, identificación como
+    // entero (3=CC, 4=CE, 6=NIT) y tributo de cliente "21" (IVA) según el ejemplo V1.
+    let customerData: any
+    const validDocIds = [3, 4, 5, 6] // CC, Tarjeta extranjería, Cédula extranjería, NIT
+    const buildCustomer = (c: {
+      identification: string
+      dv?: string
+      names: string
+      address: string
+      email: string
+      phone: string
+      legalOrganization?: string
+      identificationDocument?: string
+      municipalityId?: number
+      tributeId?: number
+    }) => {
+      const legalOrg = c.legalOrganization || '2'
+      const parsedDoc = parseInt(c.identificationDocument || '', 10)
+      const docId = validDocIds.includes(parsedDoc) ? parsedDoc : 3
+      // V1: tributos de cliente 18=IVA, 21=No aplica
+      const tributeId = c.tributeId?.toString() === '18' ? '18' : '21'
+      return {
+        identification: c.identification,
+        dv: c.dv || '',
+        names: c.names,
+        address: c.address,
+        email: c.email,
+        phone: c.phone,
+        legal_organization_id: legalOrg,
+        tribute_id: tributeId,
+        identification_document_id: docId,
+        municipality_id: (c.municipalityId || 980).toString(),
+      }
+    }
+
     if (customer) {
-      customerData = {
+      customerData = buildCustomer({
         identification: customer.identification,
-        dv: customer.dv || "",
+        dv: customer.dv || '',
         names: customer.names,
         address: customer.address,
         email: customer.email,
         phone: customer.phone,
-        legal_organization_id: "2", // Persona Natural por defecto
-        tribute_id: customer.tribute_id?.toString() || "21",
-        identification_document_id: "3", // Cédula de Ciudadanía
-        municipality_id: customer.municipality_id?.toString() || "980" // Bogotá
-      }
+        legalOrganization: customer.legal_organization_id || '2',
+        identificationDocument: customer.identification_document_id || '3',
+        municipalityId: customer.municipality_id || 980,
+        tributeId: customer.tribute_id,
+      })
     } else {
       // Consumidor Final
       customerData = {
-        identification: "222222222222",
-        dv: "",
-        names: "Consumidor Final",
-        address: "",
-        email: "",
-        phone: "",
-        legal_organization_id: "2",
-        tribute_id: "21",
-        identification_document_id: "3", // Cedula (para consumidor final a veces piden 3, 6, o 13)
-        municipality_id: "980"
+        identification: '222222222222',
+        dv: '',
+        names: 'Consumidor Final',
+        address: '',
+        email: '',
+        phone: '',
+        legal_organization_id: '2',
+        tribute_id: '21',
+        identification_document_id: 3,
+        municipality_id: '980',
       }
     }
     
