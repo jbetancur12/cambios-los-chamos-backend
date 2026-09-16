@@ -23,6 +23,7 @@ const formatDate = (date: Date): string => {
 export interface ThermalTicketData {
   // Encabezado
   companyName: string
+  companyNit: string
   companyPhone: string
   companyAddress: string
   companyCity: string
@@ -84,7 +85,8 @@ export class ThermalTicketService {
 
     return {
       // Encabezado
-      companyName: 'CAMBIOS LOS CHAMOS',
+      companyName: 'INVERSIOENS R&M',
+      companyNit: 'NIT: 700204790-6',
       companyPhone: '+57 302 341 4813', // Actualizar con número real
       companyAddress: 'Cra 21 # 43 - 26 Av, Molinos',
       companyCity: 'Dosquebradas, Risaralda',
@@ -107,7 +109,7 @@ export class ThermalTicketService {
       currencyInput: giro.currencyInput,
       amountBs: formatCurrency(giro.amountBs),
       commission,
-      bcvApplied: formatCurrency(giro.rateApplied.bcv),
+      bcvApplied: formatCurrency(giro.rateApplied.sellRate),
 
       // Ganancias
       systemProfit: formatCurrency(giro.systemProfit),
