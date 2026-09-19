@@ -33,6 +33,7 @@ export interface ThermalTicketData {
   giroId: string
   createdAt: string
   completedAt?: string
+  status: string
 
   // Beneficiario
   beneficiaryName: string
@@ -96,6 +97,7 @@ export class ThermalTicketService {
       giroId: giro.id,
       createdAt: formatDate(giro.createdAt),
       completedAt: giro.completedAt ? formatDate(giro.completedAt) : undefined,
+      status: giro.status,
 
       // Beneficiario
       beneficiaryName: giro.beneficiaryName,
