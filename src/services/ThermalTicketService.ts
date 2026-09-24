@@ -86,7 +86,7 @@ export class ThermalTicketService {
 
     return {
       // Encabezado
-      companyName: 'INVERSIOENS R&M',
+      companyName: 'INVERSIONES R&M',
       companyNit: 'NIT: 700204790-6',
       companyPhone: '+57 302 341 4813', // Actualizar con número real
       companyAddress: 'Cra 21 # 43 - 26 Av, Molinos',
