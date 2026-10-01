@@ -111,56 +111,97 @@ describe('giro permissions (HTTP)', () => {
       assert.equal(res.status, FORBIDDEN)
     })
 
-    dbTest(
-      'another minorista cannot edit it',
-      async () => {
-        const w = await world()
-        const res = await app.request('PATCH', `/giro/${w.giro.id}`, {
-          as: w.b.user,
-          body: { accountNumber: '99990000' },
-        })
-        assert.equal(res.status, FORBIDDEN)
-        assert.notEqual((await readFresh(Giro, w.giro.id)).accountNumber, '99990000', 'the account was not changed')
-      },
-      { todo: 'Known hole (report): PATCH /giro/:id does not check that the giro belongs to the caller' }
-    )
+    dbTest('another minorista cannot edit it', async () => {
+      const w = await world()
+      const res = await app.request('PATCH', `/giro/${w.giro.id}`, {
+        as: w.b.user,
+        body: { accountNumber: '99990000' },
+      })
+      assert.equal(res.status, FORBIDDEN)
+      assert.notEqual((await readFresh(Giro, w.giro.id)).accountNumber, '99990000', 'the account was not changed')
+    })
 
-    dbTest(
-      'another minorista cannot resend a returned giro and charge its owner',
-      async () => {
-        const w = await world()
-        await giroService.returnGiro(w.giro.id, 'Devuelto', w.admin)
-        assert.equal(await available(w.a.minorista.id), 100_000)
+    dbTest('another minorista cannot resend a returned giro and charge its owner', async () => {
+      const w = await world()
+      await giroService.returnGiro(w.giro.id, 'Devuelto', w.admin)
+      assert.equal(await available(w.a.minorista.id), 100_000)
 
-        await app.request('PATCH', `/giro/${w.giro.id}`, { as: w.b.user, body: { beneficiaryName: 'x' } })
+      await app.request('PATCH', `/giro/${w.giro.id}`, { as: w.b.user, body: { beneficiaryName: 'x' } })
 
-        assert.equal(await status(w.giro.id), GiroStatus.DEVUELTO, 'the giro stays returned')
-        assert.equal(await available(w.a.minorista.id), 100_000, "A's credit was not charged")
-      },
-      { todo: "Known hole (report): any minorista can reactivate another minorista's returned giro" }
-    )
+      assert.equal(await status(w.giro.id), GiroStatus.DEVUELTO, 'the giro stays returned')
+      assert.equal(await available(w.a.minorista.id), 100_000, "A's credit was not charged")
+    })
 
-    dbTest(
-      'a completed giro cannot be edited',
-      async () => {
-        const w = await world()
-        await giroService.executeGiro(w.giro.id, w.account1.id, ExecutionType.TRANSFERENCIA, 10, w.t1.user)
-        assert.equal(await status(w.giro.id), GiroStatus.COMPLETADO)
+    dbTest('a completed giro cannot be edited', async () => {
+      const w = await world()
+      await giroService.executeGiro(w.giro.id, w.account1.id, ExecutionType.TRANSFERENCIA, 10, w.t1.user)
+      assert.equal(await status(w.giro.id), GiroStatus.COMPLETADO)
 
-        const res = await app.request('PATCH', `/giro/${w.giro.id}`, {
-          as: w.a.user,
-          body: { accountNumber: '99990000' },
-        })
+      const res = await app.request('PATCH', `/giro/${w.giro.id}`, {
+        as: w.a.user,
+        body: { accountNumber: '99990000' },
+      })
 
-        assert.notEqual(res.status, OK)
-        assert.notEqual(
-          (await readFresh(Giro, w.giro.id)).accountNumber,
-          '99990000',
-          'the destination account was not changed'
-        )
-      },
-      { todo: 'Known hole (report): updateGiro does not look at the status, so a paid giro can be redirected' }
-    )
+      assert.notEqual(res.status, OK)
+      assert.notEqual(
+        (await readFresh(Giro, w.giro.id)).accountNumber,
+        '99990000',
+        'the destination account was not changed'
+      )
+    })
+  })
+
+  describe('editing a giro: who and when', () => {
+    dbTest('an admin can edit an assigned giro', async () => {
+      const w = await world()
+      const res = await app.request('PATCH', `/giro/${w.giro.id}`, {
+        as: w.admin,
+        body: { beneficiaryName: 'Corregido por admin' },
+      })
+      assert.equal(res.status, OK)
+      assert.equal((await readFresh(Giro, w.giro.id)).beneficiaryName, 'Corregido por admin')
+    })
+
+    dbTest('a giro being processed cannot be edited', async () => {
+      const w = await world()
+      await giroService.markAsProcessing(w.giro.id)
+
+      const res = await app.request('PATCH', `/giro/${w.giro.id}`, {
+        as: w.a.user,
+        body: { accountNumber: '99990000' },
+      })
+
+      assert.equal(res.status, 400)
+      assert.notEqual((await readFresh(Giro, w.giro.id)).accountNumber, '99990000')
+    })
+
+    dbTest('a cancelled giro cannot be edited', async () => {
+      const w = await world()
+      await giroService.deleteGiro(w.giro.id, w.a.user)
+
+      const res = await app.request('PATCH', `/giro/${w.giro.id}`, {
+        as: w.a.user,
+        body: { accountNumber: '99990000' },
+      })
+
+      assert.equal(res.status, 400)
+      assert.equal(await status(w.giro.id), GiroStatus.CANCELADO)
+    })
+
+    dbTest('the owner can correct and resend a returned giro, which is charged again', async () => {
+      const w = await world()
+      await giroService.returnGiro(w.giro.id, 'Cuenta inválida', w.admin)
+      assert.equal(await available(w.a.minorista.id), 100_000)
+
+      const res = await app.request('PATCH', `/giro/${w.giro.id}`, {
+        as: w.a.user,
+        body: { accountNumber: '01029999' },
+      })
+
+      assert.equal(res.status, OK)
+      assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
+      assert.equal(await available(w.a.minorista.id), 24_000)
+    })
   })
 
   describe('executing a giro: POST /giro/:id/execute', () => {

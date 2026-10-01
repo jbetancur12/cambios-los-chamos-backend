@@ -1635,6 +1635,21 @@ export class GiroService {
       throw new Error('GIRO_NOT_FOUND')
     }
 
+    // Only the minorista who owns the giro, or an admin, can edit it
+    const isAdmin = user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN
+    const isOwner = user.role === UserRole.MINORISTA && giro.minorista?.user.id === user.id
+    if (!isAdmin && !isOwner) {
+      logger.warn(`[GIRO] Update denied: FORBIDDEN (giroId: ${giroId}, user: ${user.id}, role: ${user.role})`)
+      throw new Error('FORBIDDEN')
+    }
+
+    // A giro being processed, paid, or cancelled can no longer be edited or redirected
+    const editableStatuses = [GiroStatus.PENDIENTE, GiroStatus.ASIGNADO, GiroStatus.DEVUELTO]
+    if (!editableStatuses.includes(giro.status)) {
+      logger.warn(`[GIRO] Update denied: INVALID_STATUS (giroId: ${giroId}, status: ${giro.status}, user: ${user.id})`)
+      throw new Error('INVALID_STATUS')
+    }
+
     let bank: Bank | null = null
     if (data.bankId) {
       bank = await DI.banks.findOne({ id: data.bankId })

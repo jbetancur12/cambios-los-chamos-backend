@@ -391,6 +391,14 @@ giroRouter.patch(
       if (error instanceof Error && error.message === 'GIRO_NOT_FOUND') {
         return res.status(404).json(ApiResponse.notFound('Giro', giroId))
       }
+      if (error instanceof Error && error.message === 'FORBIDDEN') {
+        return res.status(403).json(ApiResponse.forbidden('No puedes editar este giro'))
+      }
+      if (error instanceof Error && error.message === 'INVALID_STATUS') {
+        return res
+          .status(400)
+          .json(ApiResponse.badRequest('Solo se pueden editar giros en estado PENDIENTE, ASIGNADO o DEVUELTO'))
+      }
       if (error instanceof Error && error.message === 'INSUFFICIENT_BALANCE') {
         return res.status(400).json(ApiResponse.badRequest('Balance insuficiente para reactivar el giro'))
       }
