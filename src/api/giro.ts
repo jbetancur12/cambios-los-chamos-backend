@@ -415,13 +415,20 @@ giroRouter.post(
   requireRole(UserRole.TRANSFERENCISTA, UserRole.SUPER_ADMIN),
   async (req: Request, res: Response) => {
     const { giroId } = req.params
+    const user = req.context?.requestUser?.user
 
-    const result = await giroService.markAsProcessing(giroId)
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
+    const result = await giroService.markAsProcessing(giroId, user)
 
     if ('error' in result) {
       switch (result.error) {
         case 'GIRO_NOT_FOUND':
           return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+        case 'FORBIDDEN':
+          return res.status(403).json(ApiResponse.forbidden('Este giro no está asignado a ti'))
         case 'INVALID_STATUS':
           return res.status(400).json(ApiResponse.badRequest('El giro no está en estado válido para ser procesado'))
       }
@@ -506,6 +513,8 @@ giroRouter.post(
       switch (result.error) {
         case 'GIRO_NOT_FOUND':
           return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+        case 'FORBIDDEN':
+          return res.status(403).json(ApiResponse.forbidden('Este giro no está asignado a ti'))
         case 'INVALID_STATUS':
           return res.status(400).json(ApiResponse.badRequest('El giro no está en estado válido para ser ejecutado'))
         case 'BANK_ACCOUNT_NOT_FOUND':
@@ -554,6 +563,8 @@ giroRouter.post(
       switch (result.error) {
         case 'GIRO_NOT_FOUND':
           return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+        case 'FORBIDDEN':
+          return res.status(403).json(ApiResponse.forbidden('Este giro no está asignado a ti'))
         case 'INVALID_STATUS':
           return res.status(400).json(ApiResponse.badRequest('El giro no está en estado válido para ser devuelto'))
       }

@@ -3,8 +3,10 @@ import assert from 'node:assert/strict'
 import { DI } from '@/di'
 import { ExecutionType, Giro, GiroStatus } from '@/entities/Giro'
 import { Minorista } from '@/entities/Minorista'
+import { MinoristaTransaction } from '@/entities/MinoristaTransaction'
 import { UserRole } from '@/entities/User'
 import { giroService } from '@/services/GiroService'
+import { transferencistaService } from '@/services/TransferencistaService'
 import { whatsAppNotificationService } from '@/services/WhatsAppNotificationService'
 import { setupTestDb, resetTestDb, closeTestDb, dbTest, readFresh } from './helpers/db'
 import { startTestApp, type TestApp } from './helpers/http'
@@ -164,7 +166,7 @@ describe('giro permissions (HTTP)', () => {
 
     dbTest('a giro being processed cannot be edited', async () => {
       const w = await world()
-      await giroService.markAsProcessing(w.giro.id)
+      await giroService.markAsProcessing(w.giro.id, w.t1.user)
 
       const res = await app.request('PATCH', `/giro/${w.giro.id}`, {
         as: w.a.user,
@@ -240,9 +242,6 @@ describe('giro permissions (HTTP)', () => {
         })
         assert.equal(res.status, FORBIDDEN)
         assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
-      },
-      {
-        todo: 'Known hole (report): executeGiro only checks the account owner, not that the giro is assigned to the caller',
       }
     )
   })
@@ -278,8 +277,7 @@ describe('giro permissions (HTTP)', () => {
         const res = await app.request('POST', `/giro/${w.giro.id}/return`, { as: w.t2.user, body: { reason: 'x' } })
         assert.equal(res.status, FORBIDDEN)
         assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
-      },
-      { todo: 'Known hole (report): returnGiro does not check that the giro is assigned to the caller' }
+      }
     )
 
     dbTest(
@@ -289,8 +287,7 @@ describe('giro permissions (HTTP)', () => {
         const res = await app.request('POST', `/giro/${w.giro.id}/mark-processing`, { as: w.t2.user })
         assert.equal(res.status, FORBIDDEN)
         assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
-      },
-      { todo: 'Known hole (report): mark-processing does not check that the giro is assigned to the caller' }
+      }
     )
   })
 
@@ -323,8 +320,7 @@ describe('giro permissions (HTTP)', () => {
       async () => {
         const w = await world()
         assert.equal((await app.request('GET', `/minorista/${w.a.minorista.id}`, { as: w.b.user })).status, FORBIDDEN)
-      },
-      { todo: 'Known hole (report): GET /minorista/:id only requires a session' }
+      }
     )
 
     dbTest(
@@ -335,9 +331,99 @@ describe('giro permissions (HTTP)', () => {
           as: w.b.user,
         })
         assert.equal(res.status, FORBIDDEN)
-      },
-      { todo: 'Known hole (report): GET /minorista-transaction/by-minorista/:id only requires a session' }
+      }
     )
+  })
+
+  describe('reassigning a giro changes who may act on it', () => {
+    const executeBody = (accountId: string) => ({ bankAccountId: accountId, executionType: 'TRANSFERENCIA', fee: 10 })
+
+    dbTest('after an admin reassigns it, the new transferencista can execute it and the previous one cannot', async () => {
+      const w = await world()
+      const reassigned = await giroService.reassignGiro(w.giro.id, w.t2.transferencista.id, w.admin)
+      assert.ok(!('error' in reassigned), `unexpected error: ${JSON.stringify(reassigned)}`)
+
+      const previous = await app.request('POST', `/giro/${w.giro.id}/execute`, {
+        as: w.t1.user,
+        body: executeBody(w.account1.id),
+      })
+      assert.equal(previous.status, FORBIDDEN)
+      assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
+
+      const current = await app.request('POST', `/giro/${w.giro.id}/execute`, {
+        as: w.t2.user,
+        body: executeBody(w.account2.id),
+      })
+      assert.equal(current.status, OK)
+      assert.equal(await status(w.giro.id), GiroStatus.COMPLETADO)
+    })
+
+    dbTest('when a transferencista is disabled their giros move to another one, who can then act on them', async () => {
+      const w = await world()
+
+      const disabled = await transferencistaService.setAvailability(w.t1.transferencista.id, false)
+      assert.ok('success' in disabled, `unexpected result: ${JSON.stringify(disabled)}`)
+
+      const moved = await DI.orm.em.fork().findOneOrFail(Giro, { id: w.giro.id }, { populate: ['transferencista'] })
+      assert.equal(moved.transferencista?.id, w.t2.transferencista.id, 'the giro was reassigned to the available one')
+
+      const previous = await app.request('POST', `/giro/${w.giro.id}/return`, { as: w.t1.user, body: { reason: 'x' } })
+      assert.equal(previous.status, FORBIDDEN)
+      const current = await app.request('POST', `/giro/${w.giro.id}/return`, { as: w.t2.user, body: { reason: 'x' } })
+      assert.equal(current.status, OK)
+    })
+
+    dbTest('the super admin can take a giro that is assigned to anyone', async () => {
+      const w = await world()
+      const res = await app.request('POST', `/giro/${w.giro.id}/mark-processing`, { as: w.superAdmin })
+      assert.equal(res.status, OK)
+      assert.equal(await status(w.giro.id), GiroStatus.PROCESANDO)
+    })
+
+    dbTest('the assigned transferencista can take their own giro', async () => {
+      const w = await world()
+      const res = await app.request('POST', `/giro/${w.giro.id}/mark-processing`, { as: w.t1.user })
+      assert.equal(res.status, OK)
+      assert.equal(await status(w.giro.id), GiroStatus.PROCESANDO)
+    })
+  })
+
+  describe('minorista data: who can read it', () => {
+    dbTest('an admin can read any minorista, their movements and the minorista list', async () => {
+      const w = await world()
+      const transaction = await DI.orm.em.fork().findOneOrFail(MinoristaTransaction, { giro: w.giro.id })
+
+      assert.equal((await app.request('GET', `/minorista/${w.a.minorista.id}`, { as: w.admin })).status, OK)
+      assert.equal(
+        (await app.request('GET', `/minorista-transaction/by-minorista/${w.a.minorista.id}`, { as: w.admin })).status,
+        OK
+      )
+      assert.equal((await app.request('GET', `/minorista-transaction/${transaction.id}`, { as: w.admin })).status, OK)
+      assert.equal((await app.request('GET', '/minorista/list', { as: w.admin })).status, OK)
+    })
+
+    dbTest('a transferencista cannot read minorista balances or movements', async () => {
+      const w = await world()
+      assert.equal((await app.request('GET', `/minorista/${w.a.minorista.id}`, { as: w.t1.user })).status, FORBIDDEN)
+      assert.equal(
+        (await app.request('GET', `/minorista-transaction/by-minorista/${w.a.minorista.id}`, { as: w.t1.user })).status,
+        FORBIDDEN
+      )
+    })
+
+    dbTest('a minorista can read their own transaction but not another minorista one', async () => {
+      const w = await world()
+      const transaction = await DI.orm.em.fork().findOneOrFail(MinoristaTransaction, { giro: w.giro.id })
+
+      assert.equal((await app.request('GET', `/minorista-transaction/${transaction.id}`, { as: w.a.user })).status, OK)
+      assert.equal((await app.request('GET', `/minorista-transaction/${transaction.id}`, { as: w.b.user })).status, FORBIDDEN)
+    })
+
+    dbTest('only admins can list all the minoristas', async () => {
+      const w = await world()
+      assert.equal((await app.request('GET', '/minorista/list', { as: w.a.user })).status, FORBIDDEN)
+      assert.equal((await app.request('GET', '/minorista/list', { as: w.t1.user })).status, FORBIDDEN)
+    })
   })
 
   describe('other routes', () => {

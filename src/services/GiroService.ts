@@ -26,6 +26,18 @@ import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionSe
 
 export class GiroService {
   /**
+   * Admins act on any giro; a transferencista only on the giro currently assigned to them.
+   * Reassigning a giro (manually or when a transferencista is disabled) changes giro.transferencista,
+   * so the new transferencista gains the right and the previous one loses it.
+   * Requires giro.transferencista.user to be populated.
+   */
+  private canActOnAssignedGiro(giro: Giro, user: User): boolean {
+    if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) return true
+    if (user.role === UserRole.TRANSFERENCISTA) return giro.transferencista?.user?.id === user.id
+    return false
+  }
+
+  /**
    * Guarda la sugerencia de beneficiario; un fallo aquí nunca debe afectar al giro ya creado.
    */
   private async saveBeneficiarySuggestionSafe(
@@ -355,6 +367,7 @@ export class GiroService {
       | 'INSUFFICIENT_BALANCE'
       | 'UNAUTHORIZED_ACCOUNT'
       | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+      | 'FORBIDDEN'
     }
   > {
     const giro = await DI.giros.findOne(
@@ -375,6 +388,11 @@ export class GiroService {
 
     if (!giro) {
       return { error: 'GIRO_NOT_FOUND' }
+    }
+
+    // A transferencista can only execute the giro assigned to them
+    if (executingUser && !this.canActOnAssignedGiro(giro, executingUser)) {
+      return { error: 'FORBIDDEN' }
     }
 
     // Solo giros ASIGNADOS o PROCESANDO pueden ejecutarse
@@ -517,7 +535,7 @@ export class GiroService {
     giroId: string,
     reason: string,
     createdBy: User
-  ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' }> {
+  ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'FORBIDDEN' }> {
     try {
       const giroRepo = DI.em.getRepository(Giro)
 
@@ -540,6 +558,12 @@ export class GiroService {
       if (!giro) {
         logger.warn(`[GIRO] Return failed: GIRO_NOT_FOUND (giroId: ${giroId}, user: ${createdBy.id})`)
         return { error: 'GIRO_NOT_FOUND' }
+      }
+
+      // A transferencista can only return the giro assigned to them
+      if (!this.canActOnAssignedGiro(giro, createdBy)) {
+        logger.warn(`[GIRO] Return denied: FORBIDDEN (giroId: ${giroId}, user: ${createdBy.id}, role: ${createdBy.role})`)
+        return { error: 'FORBIDDEN' }
       }
 
       // Solo giros ASIGNADOS o PROCESANDO pueden ser devueltos
@@ -751,7 +775,10 @@ export class GiroService {
   /**
    * Permite al transferencista marcar un giro como en proceso
    */
-  async markAsProcessing(giroId: string): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' }> {
+  async markAsProcessing(
+    giroId: string,
+    user: User
+  ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'FORBIDDEN' }> {
     const giroRepo = DI.em.getRepository(Giro)
 
     const giro = await giroRepo.findOne(
@@ -772,6 +799,11 @@ export class GiroService {
 
     if (!giro) {
       return { error: 'GIRO_NOT_FOUND' }
+    }
+
+    // A transferencista can only take the giro assigned to them
+    if (!this.canActOnAssignedGiro(giro, user)) {
+      return { error: 'FORBIDDEN' }
     }
 
     if (giro.status !== GiroStatus.ASIGNADO) {

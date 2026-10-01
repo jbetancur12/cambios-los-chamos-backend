@@ -110,7 +110,7 @@ describe('giroService lifecycle', () => {
       const w = await world()
       const giro = await adminGiro(w)
 
-      await giroService.markAsProcessing(giro.id)
+      await giroService.markAsProcessing(giro.id, w.transferencista.user)
       assert.equal((await readFresh(Giro, giro.id)).status, GiroStatus.PROCESANDO)
 
       const result = await execute(w, giro)

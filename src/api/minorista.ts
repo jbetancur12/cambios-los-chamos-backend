@@ -10,6 +10,7 @@ import { DI } from '@/di'
 import { Minorista } from '@/entities/Minorista'
 import { MinoristaTransaction } from '@/entities/MinoristaTransaction'
 import { logger } from '@/lib/logger'
+import { canAccessMinorista } from '@/lib/minoristaAccess'
 
 export const minoristaRouter = express.Router()
 
@@ -69,7 +70,7 @@ minoristaRouter.get('/me', requireRole(UserRole.MINORISTA), async (req: Request,
 })
 
 // ------------------ LISTAR MINORISTAS ------------------
-minoristaRouter.get('/list', requireAuth(), async (req: Request, res: Response) => {
+minoristaRouter.get('/list', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN), async (req: Request, res: Response) => {
   const page = parseInt(req.query.page as string) || 1
   const limit = parseInt(req.query.limit as string) || 50
 
@@ -81,6 +82,16 @@ minoristaRouter.get('/list', requireAuth(), async (req: Request, res: Response) 
 // ------------------ OBTENER MINORISTA POR ID ------------------
 minoristaRouter.get('/:minoristaId', requireAuth(), async (req: Request, res: Response) => {
   const { minoristaId } = req.params
+  const user = req.context?.requestUser?.user
+
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
+  }
+
+  // A minorista only sees their own data; admins see any
+  if (!(await canAccessMinorista(user, minoristaId))) {
+    return res.status(403).json(ApiResponse.forbidden('No tienes permiso para ver este minorista'))
+  }
 
   const result = await minoristaService.getMinoristaById(minoristaId)
 
