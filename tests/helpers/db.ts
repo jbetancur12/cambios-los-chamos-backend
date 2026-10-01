@@ -24,9 +24,28 @@ const ensureTestDatabase = async () => {
   }
 }
 
+// Two test runs against the same database would drop each other's tables, so runs queue on a PostgreSQL
+// advisory lock held by a dedicated connection. If a run crashes, PostgreSQL releases the lock by itself.
+const TEST_RUN_LOCK = 727001
+let lockClient: Client | undefined
+
+const acquireTestRunLock = async () => {
+  lockClient = new Client({ host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASSWORD, database: 'postgres' })
+  await lockClient.connect()
+  await lockClient.query('SELECT pg_advisory_lock($1)', [TEST_RUN_LOCK])
+}
+
+const releaseTestRunLock = async () => {
+  if (!lockClient) return
+  await lockClient.query('SELECT pg_advisory_unlock($1)', [TEST_RUN_LOCK])
+  await lockClient.end()
+  lockClient = undefined
+}
+
 /** Creates the test database if needed and builds the schema from the entities. Call in `before`. */
 export const setupTestDb = async () => {
   await ensureTestDatabase()
+  await acquireTestRunLock()
   await initDI()
   await DI.orm.getSchemaGenerator().refreshDatabase()
 }
@@ -43,6 +62,7 @@ export const resetTestDb = async () => {
 
 export const closeTestDb = async () => {
   await DI.orm.close(true)
+  await releaseTestRunLock()
 }
 
 /** Runs `fn` inside its own MikroORM request context, like one HTTP request would. */

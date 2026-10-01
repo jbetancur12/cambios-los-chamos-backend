@@ -201,7 +201,7 @@ describe('giroService lifecycle', () => {
       // After the giro: 1,000,000 - 100,000 + 5,000 = 905,000
       assert.equal((await minoristaState(minorista.id)).available, 905_000)
 
-      const result = await giroService.returnGiro(giro.id, 'Cuenta inválida', user)
+      const result = await giroService.returnGiro(giro.id, 'Cuenta inválida', w.admin)
 
       assert.ok(!('error' in result), `unexpected error: ${JSON.stringify(result)}`)
       const saved = await readFresh(Giro, giro.id)
@@ -228,7 +228,7 @@ describe('giroService lifecycle', () => {
       // 50,000 came from the balance in favor and 30,000 from the credit: 1,000,000 - 30,000 + 4,000
       assert.deepEqual(await minoristaState(m.minorista.id), { available: 974_000, inFavor: 0 })
 
-      await giroService.returnGiro((created as Giro).id, 'Devuelto', m.user)
+      await giroService.returnGiro((created as Giro).id, 'Devuelto', w.admin)
 
       // Back to what they had before the giro: full credit and the 50,000 in favor
       assert.deepEqual(await minoristaState(m.minorista.id), { available: 1_000_000, inFavor: 50_000 })
@@ -251,7 +251,7 @@ describe('giroService lifecycle', () => {
       await execute(w, giro)
       const before = await minoristaState(minorista.id)
 
-      const result = await giroService.returnGiro(giro.id, 'Tarde', user)
+      const result = await giroService.returnGiro(giro.id, 'Tarde', w.admin)
 
       assert.deepEqual(result, { error: 'INVALID_STATUS' })
       assert.deepEqual(await minoristaState(minorista.id), before)
@@ -271,8 +271,8 @@ describe('giroService lifecycle', () => {
         const { giro, minorista, user } = await minoristaGiro(w)
 
         await Promise.allSettled([
-          inContext(() => giroService.returnGiro(giro.id, 'a', user)),
-          inContext(() => giroService.returnGiro(giro.id, 'b', user)),
+          inContext(() => giroService.returnGiro(giro.id, 'a', w.admin)),
+          inContext(() => giroService.returnGiro(giro.id, 'b', w.admin)),
         ])
 
         // One refund brings the credit back to the 1,000,000 limit; a second one would overflow into the balance in favor
@@ -292,7 +292,7 @@ describe('giroService lifecycle', () => {
         m.user
       )
       assert.ok(!('error' in created), `unexpected error: ${JSON.stringify(created)}`)
-      await giroService.returnGiro((created as Giro).id, 'Devuelto', m.user)
+      await giroService.returnGiro((created as Giro).id, 'Devuelto', w.admin)
       assert.deepEqual(await minoristaState(m.minorista.id), { available: 100_000, inFavor: 0 })
       return { w, giro: created as Giro, ...m }
     }
@@ -385,7 +385,7 @@ describe('giroService lifecycle', () => {
     dbTest('an admin can cancel a returned giro without refunding twice', async () => {
       const w = await world()
       const { giro, minorista, user } = await minoristaGiro(w)
-      await giroService.returnGiro(giro.id, 'Devuelto', user)
+      await giroService.returnGiro(giro.id, 'Devuelto', w.admin)
       const afterReturn = await minoristaState(minorista.id)
 
       const result = await giroService.deleteGiro(giro.id, w.admin)
