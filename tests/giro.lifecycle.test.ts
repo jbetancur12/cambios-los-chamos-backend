@@ -282,6 +282,82 @@ describe('giroService lifecycle', () => {
     )
   })
 
+  describe('giroService.updateGiro: resending a returned giro', () => {
+    /** A minorista with a 100,000 credit whose 80,000 giro was returned, so the credit is full again. */
+    const returnedGiro = async () => {
+      const w = await world()
+      const m = await createMinorista({ creditLimit: 100_000 })
+      const created = await giroService.createGiro(
+        giroInput(w.bank, w.rate, { amountBs: AMOUNT_BS, amountInput: 80_000, minoristaId: m.minorista.id }),
+        m.user
+      )
+      assert.ok(!('error' in created), `unexpected error: ${JSON.stringify(created)}`)
+      await giroService.returnGiro((created as Giro).id, 'Devuelto', m.user)
+      assert.deepEqual(await minoristaState(m.minorista.id), { available: 100_000, inFavor: 0 })
+      return { w, giro: created as Giro, ...m }
+    }
+
+    const spendElsewhere = async (r: Awaited<ReturnType<typeof returnedGiro>>, amountInput: number) => {
+      const other = await giroService.createGiro(
+        giroInput(r.w.bank, r.w.rate, { amountBs: AMOUNT_BS, amountInput, minoristaId: r.minorista.id }),
+        r.user
+      )
+      assert.ok(!('error' in other), `unexpected error: ${JSON.stringify(other)}`)
+    }
+
+    dbTest('resending a returned giro charges the minorista again', async () => {
+      const r = await returnedGiro()
+
+      await giroService.updateGiro(r.giro.id, { beneficiaryName: 'Corregido' }, r.user)
+
+      assert.equal((await readFresh(Giro, r.giro.id)).status, GiroStatus.ASIGNADO)
+      // 100,000 - 80,000 + 4,000 (5% profit)
+      assert.deepEqual(await minoristaState(r.minorista.id), { available: 24_000, inFavor: 0 })
+    })
+
+    dbTest('cannot resend a returned giro after spending that credit on another giro', async () => {
+      const r = await returnedGiro()
+      await spendElsewhere(r, 90_000)
+      // 100,000 - 90,000 + 4,500 = 14,500 left, not enough for the 80,000 giro
+      assert.deepEqual(await minoristaState(r.minorista.id), { available: 14_500, inFavor: 0 })
+
+      await assert.rejects(
+        giroService.updateGiro(r.giro.id, { beneficiaryName: 'Corregido' }, r.user),
+        /INSUFFICIENT_BALANCE/
+      )
+
+      assert.equal((await readFresh(Giro, r.giro.id)).status, GiroStatus.DEVUELTO, 'the giro stays returned')
+      assert.deepEqual(await minoristaState(r.minorista.id), { available: 14_500, inFavor: 0 })
+    })
+
+    dbTest('a returned giro can be resent only once', async () => {
+      const r = await returnedGiro()
+      await giroService.updateGiro(r.giro.id, { beneficiaryName: 'Primera' }, r.user)
+      await giroService.updateGiro(r.giro.id, { beneficiaryName: 'Segunda' }, r.user)
+
+      // The second edit does not charge again: the giro is no longer returned
+      assert.deepEqual(await minoristaState(r.minorista.id), { available: 24_000, inFavor: 0 })
+    })
+
+    dbTest(
+      'resending requires the full amount, like creating a giro does',
+      async () => {
+        const r = await returnedGiro()
+        await spendElsewhere(r, 22_000)
+        // 100,000 - 22,000 + 1,100 = 79,100: less than the 80,000 giro, so creating it would be rejected
+        assert.equal((await minoristaState(r.minorista.id)).available, 79_100)
+
+        await assert.rejects(
+          giroService.updateGiro(r.giro.id, { beneficiaryName: 'Corregido' }, r.user),
+          /INSUFFICIENT_BALANCE/
+        )
+      },
+      {
+        todo: 'Inconsistency: createGiro rejects availableCredit < amount, but resending tolerates a shortfall up to the 5% profit',
+      }
+    )
+  })
+
   describe('giroService.deleteGiro', () => {
     dbTest('the creator can cancel an assigned giro and gets the money back', async () => {
       const w = await world()
