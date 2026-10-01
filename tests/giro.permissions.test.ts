@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { DI } from '@/di'
 import { ExecutionType, Giro, GiroStatus } from '@/entities/Giro'
 import { Minorista } from '@/entities/Minorista'
+import { UserFcmToken } from '@/entities/UserFcmToken'
 import { MinoristaTransaction } from '@/entities/MinoristaTransaction'
 import { UserRole } from '@/entities/User'
 import { giroService } from '@/services/GiroService'
@@ -415,19 +416,52 @@ describe('Permisos de giros (HTTP)', () => {
   })
 
   describe('Otras rutas', () => {
-    dbTest(
-      'guardar un token push exige una sesión',
-      async () => {
-        const w = await world()
-        const res = await app.request('POST', '/notifications/save-token', {
-          body: { userId: w.a.user.id, token: 'fcm-token' },
-        })
-        assert.equal(res.status, 401)
-      },
-      {
-        todo: 'Hueco conocido (informe): POST /notifications/save-token no tiene requireAuth y confía en el userId del cuerpo',
+    dbTest('guardar un token push exige una sesión', async () => {
+      const w = await world()
+      const res = await app.request('POST', '/notifications/save-token', {
+        body: { userId: w.a.user.id, token: 'fcm-token' },
+      })
+      assert.equal(res.status, 401)
+      assert.equal(await DI.orm.em.fork().count(UserFcmToken), 0, 'no se guardó ningún token')
+    })
+
+    dbTest('el token push se guarda bajo el usuario de la sesión', async () => {
+      const w = await world()
+      const res = await app.request('POST', '/notifications/save-token', {
+        as: w.a.user,
+        body: { userId: w.a.user.id, token: 'fcm-token-a' },
+      })
+      assert.equal(res.status, OK)
+
+      const saved = await DI.orm.em
+        .fork()
+        .findOneOrFail(UserFcmToken, { fcmToken: 'fcm-token-a' }, { populate: ['user'] })
+      assert.equal(saved.user.id, w.a.user.id)
+    })
+
+    dbTest('el userId del cuerpo se ignora: no se puede registrar un dispositivo bajo otra persona', async () => {
+      const w = await world()
+      // B inicia sesión pero dice ser A para recibir sus notificaciones
+      const res = await app.request('POST', '/notifications/save-token', {
+        as: w.b.user,
+        body: { userId: w.a.user.id, token: 'fcm-token-b' },
+      })
+      assert.equal(res.status, OK)
+
+      const saved = await DI.orm.em
+        .fork()
+        .findOneOrFail(UserFcmToken, { fcmToken: 'fcm-token-b' }, { populate: ['user'] })
+      assert.equal(saved.user.id, w.b.user.id, 'el token quedó bajo B, no bajo A')
+      assert.equal(await DI.orm.em.fork().count(UserFcmToken, { user: w.a.user.id }), 0, 'A no recibe ningún token')
+    })
+
+    dbTest('guardar un token vacío o inválido se rechaza', async () => {
+      const w = await world()
+      for (const body of [{}, { token: '' }, { token: 123 }]) {
+        const res = await app.request('POST', '/notifications/save-token', { as: w.a.user, body })
+        assert.equal(res.status, 400, JSON.stringify(body))
       }
-    )
+    })
 
     dbTest('el registro de auditoría de beneficiarios es solo del SUPER_ADMIN', async () => {
       const w = await world()
