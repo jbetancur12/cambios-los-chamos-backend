@@ -45,7 +45,7 @@ giroRouter.post(
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
-    const { beneficiaryName, beneficiaryId, bankId, accountNumber, phone, senderPhone, amountInput, currencyInput, customRate, skipBeneficiarySuggestionSave } =
+    const { beneficiaryName, beneficiaryId, bankId, accountNumber, phone, senderPhone, amountInput, currencyInput, customRate, suggestionId } =
       req.body
 
     // VALIDACIÓN 1: Solo SUPER_ADMIN puede usar USD
@@ -122,7 +122,7 @@ giroRouter.post(
         amountBs,
         rateApplied,
         executionType: ExecutionType.TRANSFERENCIA,
-        skipBeneficiarySuggestionSave,
+        suggestionId,
       },
       user
     )
@@ -766,7 +766,7 @@ giroRouter.post(
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
-    const { cedula, bankId, phone, senderPhone, contactoEnvia = 'NA', amountCop, customRate } = req.body
+    const { cedula, bankId, phone, senderPhone, contactoEnvia = 'NA', amountCop, customRate, suggestionId } = req.body
 
     // Validar customRate
     if (customRate && user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.ADMIN) {
@@ -816,6 +816,7 @@ giroRouter.post(
         senderPhone,
         contactoEnvia,
         amountCop: Number(amountCop),
+        suggestionId,
       },
       user,
       rateApplied

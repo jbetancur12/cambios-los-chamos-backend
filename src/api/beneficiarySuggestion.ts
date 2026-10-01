@@ -1,5 +1,9 @@
 import express, { Request, Response } from 'express'
-import { requireAuth } from '@/middleware/authMiddleware'
+import { FilterQuery, wrap } from '@mikro-orm/core'
+import { requireAuth, requireRole } from '@/middleware/authMiddleware'
+import { User, UserRole } from '@/entities/User'
+import { BeneficiarySuggestionLog } from '@/entities/BeneficiarySuggestionLog'
+import { DI } from '@/di'
 import { ApiResponse } from '@/lib/apiResponse'
 import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionService'
 import { ExecutionType } from '@/entities/Giro'
@@ -52,6 +56,60 @@ beneficiarySuggestionRouter.post('/save', requireAuth(), async (req: Request, re
     res.status(500).json(ApiResponse.serverError())
   }
 })
+
+// Audit log of suggestion changes (who created / changed what). SUPER_ADMIN only.
+// Filters: user (email, partial), beneficiaryId (partial), beneficiary (name or phone, partial), action, executionType, from, to (YYYY-MM-DD)
+beneficiarySuggestionRouter.get(
+  '/audit',
+  requireRole(UserRole.SUPER_ADMIN),
+  async (req: Request, res: Response) => {
+    const { user, beneficiaryId, beneficiary, action, executionType, from, to } = req.query as Record<
+      string,
+      string | undefined
+    >
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 200)
+    const offset = Math.max(parseInt(req.query.offset as string) || 0, 0)
+
+    const where: FilterQuery<BeneficiarySuggestionLog> = {}
+    if (user?.trim()) where.userEmail = { $ilike: `%${user.trim()}%` }
+    if (beneficiaryId?.trim()) where.beneficiaryId = { $like: `%${beneficiaryId.trim()}%` }
+    // Beneficiary name (transfer) or contact name / phone (mobile payment)
+    if (beneficiary?.trim()) {
+      const term = `%${beneficiary.trim()}%`
+      where.$or = [{ beneficiaryName: { $ilike: term } }, { phone: { $like: term } }]
+    }
+    if (action) where.action = action as BeneficiarySuggestionLog['action']
+    if (executionType) where.executionType = executionType
+
+    const fromDate = from ? new Date(`${from}T00:00:00`) : undefined
+    const toDate = to ? new Date(`${to}T23:59:59.999`) : undefined
+    if (fromDate && !isNaN(fromDate.getTime()) && toDate && !isNaN(toDate.getTime())) {
+      where.createdAt = { $gte: fromDate, $lte: toDate }
+    } else if (fromDate && !isNaN(fromDate.getTime())) {
+      where.createdAt = { $gte: fromDate }
+    } else if (toDate && !isNaN(toDate.getTime())) {
+      where.createdAt = { $lte: toDate }
+    }
+
+    try {
+      const [entries, total] = await DI.em.findAndCount(BeneficiarySuggestionLog, where, {
+        orderBy: { createdAt: 'DESC' },
+        limit,
+        offset,
+      })
+      // Owner's full name for the page (the log only stores id, email and role)
+      const userIds = [...new Set(entries.map((e) => e.userId))]
+      const owners = userIds.length > 0 ? await DI.em.find(User, { id: { $in: userIds } }) : []
+      const nameById = new Map(owners.map((u) => [u.id, u.fullName]))
+      const rows = entries.map((e) => ({ ...wrap(e).toObject(), userName: nameById.get(e.userId) ?? null }))
+
+      res.json(ApiResponse.success({ entries: rows, total, limit, offset }))
+    } catch (error) {
+      logger.error({ error }, 'Error fetching beneficiary suggestion audit log')
+      res.status(500).json(ApiResponse.serverError())
+    }
+  }
+)
 
 // Search beneficiary suggestions
 beneficiarySuggestionRouter.get('/search', requireAuth(), async (req: Request, res: Response) => {

@@ -14,7 +14,6 @@ import { bankAccountTransactionService } from '@/services/BankAccountTransaction
 import { BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 import { sendGiroAssignedNotification } from '@/lib/notification_sender'
 import { exchangeRateService } from '@/services/ExchangeRateService'
-import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionService'
 import { ExchangeRate } from '@/entities/ExchangeRate'
 import { Currency, Bank } from '@/entities/Bank'
 import { EntityManager, LockMode, FilterQuery } from '@mikro-orm/core'
@@ -23,8 +22,23 @@ import { sendEmail } from '@/lib/emailUtils'
 import { notificationService } from '@/services/NotificationService'
 import { logger } from '@/lib/logger'
 import { whatsAppNotificationService } from '@/services/WhatsAppNotificationService'
+import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionService'
 
 export class GiroService {
+  /**
+   * Guarda la sugerencia de beneficiario; un fallo aquí nunca debe afectar al giro ya creado.
+   */
+  private async saveBeneficiarySuggestionSafe(
+    userId: string,
+    data: Parameters<typeof beneficiarySuggestionService.saveBeneficiarySuggestion>[1]
+  ): Promise<void> {
+    try {
+      await beneficiarySuggestionService.saveBeneficiarySuggestion(userId, data)
+    } catch (error) {
+      logger.warn({ error }, 'Error al guardar sugerencia de beneficiario')
+    }
+  }
+
   /**
    * Encuentra el siguiente transferencista disponible usando distribución round-robin
    * Distribuye los giros equitativamente entre TODOS los transferencistas disponibles
@@ -292,28 +306,21 @@ export class GiroService {
         return giro
       })
       .then(async (giro) => {
-        // Guardar sugerencia de beneficiario DESPUÉS de la transacción exitosa
+        // Único punto de guardado de la sugerencia: después del commit y sin romper el giro si falla
         if ('error' in giro) {
           return giro
         }
-
-        try {
-          if (!data.skipBeneficiarySuggestionSave) {
-            await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
-              beneficiaryName: data.beneficiaryName,
-              beneficiaryId: data.beneficiaryId,
-              phone: data.phone || '',
-              senderPhone: data.senderPhone, // Recordar teléfono del remitente para próximos giros
-              bankId: data.bankId,
-              accountNumber: data.accountNumber,
-              executionType: data.executionType || ExecutionType.TRANSFERENCIA,
-            })
-          }
-        } catch (error) {
-          // No fallar si no se puede guardar la sugerencia
-          logger.warn({ error }, 'Error al guardar sugerencia de beneficiario')
-        }
-
+        await this.saveBeneficiarySuggestionSafe(createdBy.id, {
+          beneficiaryName: data.beneficiaryName,
+          beneficiaryId: data.beneficiaryId,
+          phone: data.phone || '',
+          senderPhone: data.senderPhone,
+          bankId: data.bankId,
+          accountNumber: data.accountNumber,
+          executionType: data.executionType || ExecutionType.TRANSFERENCIA,
+          suggestionId: data.suggestionId,
+          giroId: giro.id,
+        })
         return giro
       })
       .catch((error) => {
@@ -1405,6 +1412,7 @@ export class GiroService {
       senderPhone?: string
       contactoEnvia?: string // Made optional
       amountCop: number
+      suggestionId?: string // Sugerencia a actualizar; sin ella se crea o reutiliza por destino
     },
     createdBy: User,
     exchangeRate: ExchangeRate
@@ -1559,23 +1567,25 @@ export class GiroService {
         }
         */
 
-        // Guardar sugerencia de beneficiario después de la transacción exitosa
-        // Nota: Esto es un side-effect dentro de la transacción, pero es aceptable.
-        // Si falla, no aborta la transacción principal (try-catch interno).
-        try {
-          await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
-            beneficiaryName: data.phone, // Para pago móvil, usar teléfono como nombre
-            beneficiaryId: data.cedula,
-            phone: data.phone,
-            bankId: data.bankId,
-            accountNumber: data.phone, // Para pago móvil, usar teléfono como account number
-            executionType: ExecutionType.PAGO_MOVIL,
-          })
-        } catch (error) {
-          // No fallar si no se puede guardar la sugerencia
-          logger.warn({ error }, 'Error al guardar sugerencia de beneficiario')
+        return giro
+      })
+      .then(async (giro) => {
+        // Único punto de guardado de la sugerencia: después del commit y sin romper el giro si falla
+        if ('error' in giro) {
+          return giro
         }
-
+        const contact = data.contactoEnvia?.trim()
+        await this.saveBeneficiarySuggestionSafe(createdBy.id, {
+          beneficiaryName: contact && contact !== 'NA' ? contact : data.phone,
+          beneficiaryId: data.cedula,
+          phone: data.phone,
+          senderPhone: data.senderPhone,
+          bankId: data.bankId,
+          accountNumber: '',
+          executionType: ExecutionType.PAGO_MOVIL,
+          suggestionId: data.suggestionId,
+          giroId: giro.id,
+        })
         return giro
       })
       .catch((error) => {
