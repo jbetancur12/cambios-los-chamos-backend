@@ -22,6 +22,8 @@
     "format": "prettier --write \"src/**/*.{ts,js,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
     "ts-check": "tsc --noEmit",
+    "test": "node tests/run.js",
+    "test:check": "tsc -p tsconfig.test.json",
     "build": "tsc && tsc-alias"
   },
   "keywords": [],
