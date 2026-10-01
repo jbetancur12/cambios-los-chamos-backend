@@ -844,44 +844,6 @@ giroRouter.post(
   }
 )
 
-// ------------------ ELIMINAR GIRO ------------------
-giroRouter.delete('/:giroId', requireRole(UserRole.MINORISTA), async (req: Request, res: Response) => {
-  const user = req.context?.requestUser?.user
-  if (!user) {
-    return res.status(401).json(ApiResponse.unauthorized())
-  }
-
-  const { giroId } = req.params
-
-  try {
-    // Eliminar el giro
-    const result = await giroService.deleteGiro(giroId, user)
-
-    if ('error' in result) {
-      switch (result.error) {
-        case 'GIRO_NOT_FOUND':
-          return res.status(404).json(ApiResponse.notFound('Giro'))
-        case 'FORBIDDEN':
-          return res.status(403).json(ApiResponse.forbidden('No puedes eliminar este giro'))
-        case 'INVALID_STATUS':
-          return res
-            .status(400)
-            .json(ApiResponse.badRequest('Solo se pueden eliminar giros en estado PENDIENTE, ASIGNADO o DEVUELTO'))
-      }
-    }
-
-    // Emitir evento de WebSocket
-    if (giroSocketManager) {
-      giroSocketManager.broadcastGiroDeleted(giroId)
-    }
-
-    res.json(ApiResponse.success({ message: 'Giro eliminado exitosamente' }))
-  } catch (error) {
-    logger.error({ error }, 'Error eliminando giro')
-    res.status(500).json(ApiResponse.serverError())
-  }
-})
-
 // ------------------ UPLOAD PAYMENT PROOF ------------------
 giroRouter.post(
   '/:giroId/payment-proof/upload',

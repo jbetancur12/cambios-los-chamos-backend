@@ -8,3 +8,9 @@ temp/
 artillery_report*.json
 stress_test_report.html
 logs/
+
+# Credentials and generated output
+users.csv
+stress_test.log
+lint_*.txt
+inspection_output*.txt

@@ -7,7 +7,7 @@
     "create:superadmin": "ts-node src/scripts/createSuperAdmin.ts",
     "dev": "nodemon --exec ts-node src/index.ts",
     "start": "node dist/index.js",
-    "migrate": "tsx src/migrate.ts migrate",
+    "migrate": "mikro-orm migration:up",
     "migration:create": "mikro-orm migration:create",
     "migration:up": "mikro-orm migration:up",
     "migration:down": "mikro-orm migration:down",
