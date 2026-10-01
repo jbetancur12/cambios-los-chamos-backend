@@ -41,7 +41,7 @@ const world = async () => {
 
 const adminGiro = async (w: Awaited<ReturnType<typeof world>>) => {
   const result = await giroService.createGiro(giroInput(w.bank, w.rate, { amountBs: AMOUNT_BS }), w.admin)
-  assert.ok(!('error' in result), `unexpected error: ${JSON.stringify(result)}`)
+  assert.ok(!('error' in result), `error inesperado: ${JSON.stringify(result)}`)
   return result as Giro
 }
 
@@ -51,7 +51,7 @@ const minoristaGiro = async (w: Awaited<ReturnType<typeof world>>) => {
     giroInput(w.bank, w.rate, { amountBs: AMOUNT_BS, minoristaId: m.minorista.id }),
     m.user
   )
-  assert.ok(!('error' in result), `unexpected error: ${JSON.stringify(result)}`)
+  assert.ok(!('error' in result), `error inesperado: ${JSON.stringify(result)}`)
   return { giro: result as Giro, ...m }
 }
 
@@ -67,7 +67,7 @@ const minoristaState = async (id: string) => {
 
 const transactionsOf = (giroId: string) => DI.orm.em.fork().find(MinoristaTransaction, { giro: giroId })
 
-describe('giroService lifecycle', () => {
+describe('Ciclo de vida del giro', () => {
   before(async () => {
     // Never call the real WhatsApp API from a test
     mock.method(whatsAppNotificationService, 'notifyGiroCompleted', async () => undefined)
@@ -79,22 +79,22 @@ describe('giroService lifecycle', () => {
     await closeTestDb()
   })
 
-  describe('giroService.executeGiro', () => {
-    dbTest('completes the giro and withdraws the amount plus the fee from the account', async () => {
+  describe('Ejecutar giro', () => {
+    dbTest('completa el giro y retira de la cuenta el monto más la comisión', async () => {
       const w = await world()
       const giro = await adminGiro(w)
 
       const result = await execute(w, giro)
 
-      assert.ok(!('error' in result), `unexpected error: ${JSON.stringify(result)}`)
+      assert.ok(!('error' in result), `error inesperado: ${JSON.stringify(result)}`)
       const saved = await readFresh(Giro, giro.id)
       assert.equal(saved.status, GiroStatus.COMPLETADO)
       assert.equal(Number(saved.commission), FEE)
-      assert.ok(saved.completedAt, 'completedAt is set')
+      assert.ok(saved.completedAt, 'completedAt queda definido')
       assert.equal(await accountBalance(w.account.id), ACCOUNT_BALANCE - AMOUNT_BS - FEE)
     })
 
-    dbTest('moves the minorista transaction from on hold to completed without touching the balance', async () => {
+    dbTest('pasa la transacción del minorista de en espera a completada sin tocar el saldo', async () => {
       const w = await world()
       const { giro, minorista } = await minoristaGiro(w)
       const before = await minoristaState(minorista.id)
@@ -106,7 +106,7 @@ describe('giroService lifecycle', () => {
       assert.deepEqual(await minoristaState(minorista.id), before)
     })
 
-    dbTest('a giro that is being processed can still be executed', async () => {
+    dbTest('un giro en procesamiento todavía se puede ejecutar', async () => {
       const w = await world()
       const giro = await adminGiro(w)
 
@@ -118,7 +118,7 @@ describe('giroService lifecycle', () => {
       assert.equal((await readFresh(Giro, giro.id)).status, GiroStatus.COMPLETADO)
     })
 
-    dbTest('rejects an account that belongs to another transferencista', async () => {
+    dbTest('rechaza una cuenta que pertenece a otro transferencista', async () => {
       const w = await world()
       const giro = await adminGiro(w)
       const other = await createTransferencista()
@@ -137,7 +137,7 @@ describe('giroService lifecycle', () => {
       assert.equal(await accountBalance(otherAccount.id), ACCOUNT_BALANCE)
     })
 
-    dbTest('an admin cannot execute a giro with a transferencista account', async () => {
+    dbTest('un admin no puede ejecutar un giro con una cuenta de transferencista', async () => {
       const w = await world()
       const giro = await adminGiro(w)
 
@@ -147,7 +147,7 @@ describe('giroService lifecycle', () => {
       assert.equal(await accountBalance(w.account.id), ACCOUNT_BALANCE)
     })
 
-    dbTest('a completed giro cannot be executed again', async () => {
+    dbTest('un giro completado no se puede ejecutar de nuevo', async () => {
       const w = await world()
       const giro = await adminGiro(w)
       await execute(w, giro)
@@ -158,11 +158,11 @@ describe('giroService lifecycle', () => {
       assert.equal(
         await accountBalance(w.account.id),
         ACCOUNT_BALANCE - AMOUNT_BS - FEE,
-        'the account is debited only once'
+        'la cuenta se descuenta una sola vez'
       )
     })
 
-    dbTest('reports an unknown giro and an unknown account', async () => {
+    dbTest('informa cuando el giro o la cuenta no existen', async () => {
       const w = await world()
       const giro = await adminGiro(w)
       const missing = '00000000-0000-4000-8000-000000000000'
@@ -178,7 +178,7 @@ describe('giroService lifecycle', () => {
     })
 
     dbTest(
-      'two simultaneous executions debit the account only once',
+      'dos ejecuciones simultáneas descuentan la cuenta una sola vez',
       async () => {
         const w = await world()
         const giro = await adminGiro(w)
@@ -187,15 +187,15 @@ describe('giroService lifecycle', () => {
 
         // With the race both runs record a withdrawal (and overwrite each other's balance), so count the movements
         const withdrawals = await DI.orm.em.fork().count(BankAccountTransaction, { bankAccount: w.account.id })
-        assert.equal(withdrawals, 1, 'only one withdrawal should be recorded')
+        assert.equal(withdrawals, 1, 'debe registrarse un solo retiro')
         assert.equal(await accountBalance(w.account.id), ACCOUNT_BALANCE - AMOUNT_BS - FEE)
       },
-      { todo: 'Known bug (report): executeGiro checks the status outside any lock, so both executions withdraw' }
+      { todo: 'Bug conocido (informe): executeGiro revisa el estado sin bloqueo, así que las dos ejecuciones retiran' }
     )
   })
 
-  describe('giroService.returnGiro', () => {
-    dbTest('marks the giro as returned and gives the minorista the money back', async () => {
+  describe('Devolver giro', () => {
+    dbTest('marca el giro como devuelto y le devuelve el dinero al minorista', async () => {
       const w = await world()
       const { giro, minorista, user } = await minoristaGiro(w)
       // After the giro: 1,000,000 - 100,000 + 5,000 = 905,000
@@ -203,7 +203,7 @@ describe('giroService lifecycle', () => {
 
       const result = await giroService.returnGiro(giro.id, 'Cuenta inválida', w.admin)
 
-      assert.ok(!('error' in result), `unexpected error: ${JSON.stringify(result)}`)
+      assert.ok(!('error' in result), `error inesperado: ${JSON.stringify(result)}`)
       const saved = await readFresh(Giro, giro.id)
       assert.equal(saved.status, GiroStatus.DEVUELTO)
       assert.equal(saved.returnReason, 'Cuenta inválida')
@@ -214,17 +214,17 @@ describe('giroService lifecycle', () => {
       const discount = transactions.find((t) => t.type === MinoristaTransactionType.DISCOUNT)
       const refund = transactions.find((t) => t.type === MinoristaTransactionType.REFUND)
       assert.equal(discount?.status, MinoristaTransactionStatus.CANCELLED)
-      assert.ok(refund, 'a refund transaction exists')
+      assert.ok(refund, 'existe una transacción de reembolso')
     })
 
-    dbTest('returning a giro paid partly with balance in favor restores every peso the minorista had', async () => {
+    dbTest('devolver un giro pagado en parte con saldo a favor restituye todo lo que tenía el minorista', async () => {
       const w = await world()
       const m = await createMinorista({ creditBalance: 50_000 })
       const created = await giroService.createGiro(
         giroInput(w.bank, w.rate, { amountBs: AMOUNT_BS, amountInput: 80_000, minoristaId: m.minorista.id }),
         m.user
       )
-      assert.ok(!('error' in created), `unexpected error: ${JSON.stringify(created)}`)
+      assert.ok(!('error' in created), `error inesperado: ${JSON.stringify(created)}`)
       // 50,000 came from the balance in favor and 30,000 from the credit: 1,000,000 - 30,000 + 4,000
       assert.deepEqual(await minoristaState(m.minorista.id), { available: 974_000, inFavor: 0 })
 
@@ -234,7 +234,7 @@ describe('giroService lifecycle', () => {
       assert.deepEqual(await minoristaState(m.minorista.id), { available: 1_000_000, inFavor: 50_000 })
     })
 
-    dbTest('a returned admin giro touches no minorista and no account', async () => {
+    dbTest('un giro de admin devuelto no toca ningún minorista ni ninguna cuenta', async () => {
       const w = await world()
       const giro = await adminGiro(w)
 
@@ -245,7 +245,7 @@ describe('giroService lifecycle', () => {
       assert.equal(await accountBalance(w.account.id), ACCOUNT_BALANCE)
     })
 
-    dbTest('a completed giro cannot be returned and the minorista keeps the same balance', async () => {
+    dbTest('un giro completado no se puede devolver y el minorista conserva su saldo', async () => {
       const w = await world()
       const { giro, minorista, user } = await minoristaGiro(w)
       await execute(w, giro)
@@ -257,7 +257,7 @@ describe('giroService lifecycle', () => {
       assert.deepEqual(await minoristaState(minorista.id), before)
     })
 
-    dbTest('reports an unknown giro', async () => {
+    dbTest('informa cuando el giro no existe', async () => {
       const w = await world()
       assert.deepEqual(await giroService.returnGiro('00000000-0000-4000-8000-000000000000', 'x', w.admin), {
         error: 'GIRO_NOT_FOUND',
@@ -265,7 +265,7 @@ describe('giroService lifecycle', () => {
     })
 
     dbTest(
-      'two simultaneous returns refund the minorista only once',
+      'dos devoluciones simultáneas reembolsan al minorista una sola vez',
       async () => {
         const w = await world()
         const { giro, minorista, user } = await minoristaGiro(w)
@@ -278,11 +278,13 @@ describe('giroService lifecycle', () => {
         // One refund brings the credit back to the 1,000,000 limit; a second one would overflow into the balance in favor
         assert.deepEqual(await minoristaState(minorista.id), { available: 1_000_000, inFavor: 0 })
       },
-      { todo: 'Known bug (report): returnGiro validates the status before opening the transaction, so both refund' }
+      {
+        todo: 'Bug conocido (informe): returnGiro valida el estado antes de abrir la transacción, así que las dos reembolsan',
+      }
     )
   })
 
-  describe('giroService.updateGiro: resending a returned giro', () => {
+  describe('Editar giro: reenviar un giro devuelto', () => {
     /** A minorista with a 100,000 credit whose 80,000 giro was returned, so the credit is full again. */
     const returnedGiro = async () => {
       const w = await world()
@@ -291,7 +293,7 @@ describe('giroService lifecycle', () => {
         giroInput(w.bank, w.rate, { amountBs: AMOUNT_BS, amountInput: 80_000, minoristaId: m.minorista.id }),
         m.user
       )
-      assert.ok(!('error' in created), `unexpected error: ${JSON.stringify(created)}`)
+      assert.ok(!('error' in created), `error inesperado: ${JSON.stringify(created)}`)
       await giroService.returnGiro((created as Giro).id, 'Devuelto', w.admin)
       assert.deepEqual(await minoristaState(m.minorista.id), { available: 100_000, inFavor: 0 })
       return { w, giro: created as Giro, ...m }
@@ -302,10 +304,10 @@ describe('giroService lifecycle', () => {
         giroInput(r.w.bank, r.w.rate, { amountBs: AMOUNT_BS, amountInput, minoristaId: r.minorista.id }),
         r.user
       )
-      assert.ok(!('error' in other), `unexpected error: ${JSON.stringify(other)}`)
+      assert.ok(!('error' in other), `error inesperado: ${JSON.stringify(other)}`)
     }
 
-    dbTest('resending a returned giro charges the minorista again', async () => {
+    dbTest('reenviar un giro devuelto le cobra de nuevo al minorista', async () => {
       const r = await returnedGiro()
 
       await giroService.updateGiro(r.giro.id, { beneficiaryName: 'Corregido' }, r.user)
@@ -315,7 +317,7 @@ describe('giroService lifecycle', () => {
       assert.deepEqual(await minoristaState(r.minorista.id), { available: 24_000, inFavor: 0 })
     })
 
-    dbTest('cannot resend a returned giro after spending that credit on another giro', async () => {
+    dbTest('no se puede reenviar un giro devuelto después de gastar ese crédito en otro giro', async () => {
       const r = await returnedGiro()
       await spendElsewhere(r, 90_000)
       // 100,000 - 90,000 + 4,500 = 14,500 left, not enough for the 80,000 giro
@@ -326,11 +328,11 @@ describe('giroService lifecycle', () => {
         /INSUFFICIENT_BALANCE/
       )
 
-      assert.equal((await readFresh(Giro, r.giro.id)).status, GiroStatus.DEVUELTO, 'the giro stays returned')
+      assert.equal((await readFresh(Giro, r.giro.id)).status, GiroStatus.DEVUELTO, 'el giro sigue devuelto')
       assert.deepEqual(await minoristaState(r.minorista.id), { available: 14_500, inFavor: 0 })
     })
 
-    dbTest('a returned giro can be resent only once', async () => {
+    dbTest('un giro devuelto solo se puede reenviar una vez', async () => {
       const r = await returnedGiro()
       await giroService.updateGiro(r.giro.id, { beneficiaryName: 'Primera' }, r.user)
       await giroService.updateGiro(r.giro.id, { beneficiaryName: 'Segunda' }, r.user)
@@ -340,7 +342,7 @@ describe('giroService lifecycle', () => {
     })
 
     dbTest(
-      'resending requires the full amount, like creating a giro does',
+      'reenviar exige el monto completo, igual que crear un giro',
       async () => {
         const r = await returnedGiro()
         await spendElsewhere(r, 22_000)
@@ -353,24 +355,24 @@ describe('giroService lifecycle', () => {
         )
       },
       {
-        todo: 'Inconsistency: createGiro rejects availableCredit < amount, but resending tolerates a shortfall up to the 5% profit',
+        todo: 'Inconsistencia: createGiro rechaza availableCredit menor al monto, pero reenviar tolera un faltante de hasta el 5% de ganancia',
       }
     )
   })
 
-  describe('giroService.deleteGiro', () => {
-    dbTest('the creator can cancel an assigned giro and gets the money back', async () => {
+  describe('Cancelar giro', () => {
+    dbTest('quien lo creó puede cancelar un giro asignado y recupera el dinero', async () => {
       const w = await world()
       const { giro, minorista, user } = await minoristaGiro(w)
 
       const result = await giroService.deleteGiro(giro.id, user)
 
-      assert.ok(!('error' in result), `unexpected error: ${JSON.stringify(result)}`)
+      assert.ok(!('error' in result), `error inesperado: ${JSON.stringify(result)}`)
       assert.equal((await readFresh(Giro, giro.id)).status, GiroStatus.CANCELADO)
       assert.deepEqual(await minoristaState(minorista.id), { available: 1_000_000, inFavor: 0 })
     })
 
-    dbTest('another user cannot cancel the giro', async () => {
+    dbTest('otro usuario no puede cancelar el giro', async () => {
       const w = await world()
       const { giro, minorista } = await minoristaGiro(w)
       const stranger = await createMinorista()
@@ -382,7 +384,7 @@ describe('giroService lifecycle', () => {
       assert.equal((await minoristaState(minorista.id)).available, 905_000)
     })
 
-    dbTest('an admin can cancel a returned giro without refunding twice', async () => {
+    dbTest('un admin puede cancelar un giro devuelto sin reembolsar dos veces', async () => {
       const w = await world()
       const { giro, minorista, user } = await minoristaGiro(w)
       await giroService.returnGiro(giro.id, 'Devuelto', w.admin)
@@ -390,12 +392,12 @@ describe('giroService lifecycle', () => {
 
       const result = await giroService.deleteGiro(giro.id, w.admin)
 
-      assert.ok(!('error' in result), `unexpected error: ${JSON.stringify(result)}`)
+      assert.ok(!('error' in result), `error inesperado: ${JSON.stringify(result)}`)
       assert.equal((await readFresh(Giro, giro.id)).status, GiroStatus.CANCELADO)
       assert.deepEqual(await minoristaState(minorista.id), afterReturn)
     })
 
-    dbTest('a completed giro cannot be cancelled', async () => {
+    dbTest('un giro completado no se puede cancelar', async () => {
       const w = await world()
       const { giro, minorista, user } = await minoristaGiro(w)
       await execute(w, giro)

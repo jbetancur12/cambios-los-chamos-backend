@@ -30,7 +30,7 @@ import {
 const FORBIDDEN = 403
 const OK = 200
 
-describe('giro permissions (HTTP)', () => {
+describe('Permisos de giros (HTTP)', () => {
   let app: TestApp
 
   before(async () => {
@@ -65,7 +65,7 @@ describe('giro permissions (HTTP)', () => {
       giroInput(bank, rate, { minoristaId: a.minorista.id, amountInput: 80_000, amountBs: 1_000 }),
       a.user
     )
-    assert.ok(!('error' in created), `unexpected error: ${JSON.stringify(created)}`)
+    assert.ok(!('error' in created), `error inesperado: ${JSON.stringify(created)}`)
     const giro = created as Giro
 
     const t2 = await createTransferencista()
@@ -76,28 +76,28 @@ describe('giro permissions (HTTP)', () => {
   const status = async (id: string) => (await readFresh(Giro, id)).status
   const available = async (id: string) => Number((await readFresh(Minorista, id)).availableCredit)
 
-  describe('reading a giro: GET /giro/:id', () => {
-    dbTest('requires a session', async () => {
+  describe('Leer un giro: GET /giro/:id', () => {
+    dbTest('exige una sesión', async () => {
       const w = await world()
       assert.equal((await app.request('GET', `/giro/${w.giro.id}`)).status, 401)
     })
 
-    dbTest('the minorista who created it, its transferencista and an admin can read it', async () => {
+    dbTest('el minorista que lo creó, su transferencista y un admin pueden leerlo', async () => {
       const w = await world()
       for (const user of [w.a.user, w.t1.user, w.admin]) {
         assert.equal((await app.request('GET', `/giro/${w.giro.id}`, { as: user })).status, OK, user.role)
       }
     })
 
-    dbTest('another minorista and another transferencista cannot read it', async () => {
+    dbTest('otro minorista y otro transferencista no pueden leerlo', async () => {
       const w = await world()
       assert.equal((await app.request('GET', `/giro/${w.giro.id}`, { as: w.b.user })).status, FORBIDDEN)
       assert.equal((await app.request('GET', `/giro/${w.giro.id}`, { as: w.t2.user })).status, FORBIDDEN)
     })
   })
 
-  describe('editing a giro: PATCH /giro/:id', () => {
-    dbTest('the minorista who created it can edit the beneficiary', async () => {
+  describe('Editar un giro: PATCH /giro/:id', () => {
+    dbTest('el minorista que lo creó puede editar el beneficiario', async () => {
       const w = await world()
       const res = await app.request('PATCH', `/giro/${w.giro.id}`, {
         as: w.a.user,
@@ -107,34 +107,34 @@ describe('giro permissions (HTTP)', () => {
       assert.equal((await readFresh(Giro, w.giro.id)).beneficiaryName, 'Nuevo nombre')
     })
 
-    dbTest('a transferencista cannot edit it', async () => {
+    dbTest('un transferencista no puede editarlo', async () => {
       const w = await world()
       const res = await app.request('PATCH', `/giro/${w.giro.id}`, { as: w.t1.user, body: { beneficiaryName: 'x' } })
       assert.equal(res.status, FORBIDDEN)
     })
 
-    dbTest('another minorista cannot edit it', async () => {
+    dbTest('otro minorista no puede editarlo', async () => {
       const w = await world()
       const res = await app.request('PATCH', `/giro/${w.giro.id}`, {
         as: w.b.user,
         body: { accountNumber: '99990000' },
       })
       assert.equal(res.status, FORBIDDEN)
-      assert.notEqual((await readFresh(Giro, w.giro.id)).accountNumber, '99990000', 'the account was not changed')
+      assert.notEqual((await readFresh(Giro, w.giro.id)).accountNumber, '99990000', 'la cuenta no cambió')
     })
 
-    dbTest('another minorista cannot resend a returned giro and charge its owner', async () => {
+    dbTest('otro minorista no puede reenviar un giro devuelto ni cobrárselo a su dueño', async () => {
       const w = await world()
       await giroService.returnGiro(w.giro.id, 'Devuelto', w.admin)
       assert.equal(await available(w.a.minorista.id), 100_000)
 
       await app.request('PATCH', `/giro/${w.giro.id}`, { as: w.b.user, body: { beneficiaryName: 'x' } })
 
-      assert.equal(await status(w.giro.id), GiroStatus.DEVUELTO, 'the giro stays returned')
-      assert.equal(await available(w.a.minorista.id), 100_000, "A's credit was not charged")
+      assert.equal(await status(w.giro.id), GiroStatus.DEVUELTO, 'el giro sigue devuelto')
+      assert.equal(await available(w.a.minorista.id), 100_000, 'el crédito de A no se cobró')
     })
 
-    dbTest('a completed giro cannot be edited', async () => {
+    dbTest('un giro completado no se puede editar', async () => {
       const w = await world()
       await giroService.executeGiro(w.giro.id, w.account1.id, ExecutionType.TRANSFERENCIA, 10, w.t1.user)
       assert.equal(await status(w.giro.id), GiroStatus.COMPLETADO)
@@ -145,16 +145,12 @@ describe('giro permissions (HTTP)', () => {
       })
 
       assert.notEqual(res.status, OK)
-      assert.notEqual(
-        (await readFresh(Giro, w.giro.id)).accountNumber,
-        '99990000',
-        'the destination account was not changed'
-      )
+      assert.notEqual((await readFresh(Giro, w.giro.id)).accountNumber, '99990000', 'la cuenta destino no cambió')
     })
   })
 
-  describe('editing a giro: who and when', () => {
-    dbTest('an admin can edit an assigned giro', async () => {
+  describe('Editar un giro: quién y cuándo', () => {
+    dbTest('un admin puede editar un giro asignado', async () => {
       const w = await world()
       const res = await app.request('PATCH', `/giro/${w.giro.id}`, {
         as: w.admin,
@@ -164,7 +160,7 @@ describe('giro permissions (HTTP)', () => {
       assert.equal((await readFresh(Giro, w.giro.id)).beneficiaryName, 'Corregido por admin')
     })
 
-    dbTest('a giro being processed cannot be edited', async () => {
+    dbTest('un giro en procesamiento no se puede editar', async () => {
       const w = await world()
       await giroService.markAsProcessing(w.giro.id, w.t1.user)
 
@@ -177,7 +173,7 @@ describe('giro permissions (HTTP)', () => {
       assert.notEqual((await readFresh(Giro, w.giro.id)).accountNumber, '99990000')
     })
 
-    dbTest('a cancelled giro cannot be edited', async () => {
+    dbTest('un giro cancelado no se puede editar', async () => {
       const w = await world()
       await giroService.deleteGiro(w.giro.id, w.a.user)
 
@@ -190,7 +186,7 @@ describe('giro permissions (HTTP)', () => {
       assert.equal(await status(w.giro.id), GiroStatus.CANCELADO)
     })
 
-    dbTest('the owner can correct and resend a returned giro, which is charged again', async () => {
+    dbTest('el dueño puede corregir y reenviar un giro devuelto, y se le cobra de nuevo', async () => {
       const w = await world()
       await giroService.returnGiro(w.giro.id, 'Cuenta inválida', w.admin)
       assert.equal(await available(w.a.minorista.id), 100_000)
@@ -206,10 +202,10 @@ describe('giro permissions (HTTP)', () => {
     })
   })
 
-  describe('executing a giro: POST /giro/:id/execute', () => {
+  describe('Ejecutar un giro: POST /giro/:id/execute', () => {
     const body = (accountId: string) => ({ bankAccountId: accountId, executionType: 'TRANSFERENCIA', fee: 10 })
 
-    dbTest('a minorista and an admin cannot execute giros', async () => {
+    dbTest('un minorista y un admin no pueden ejecutar giros', async () => {
       const w = await world()
       for (const user of [w.a.user, w.admin]) {
         const res = await app.request('POST', `/giro/${w.giro.id}/execute`, { as: user, body: body(w.account1.id) })
@@ -218,43 +214,40 @@ describe('giro permissions (HTTP)', () => {
       assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
     })
 
-    dbTest('the assigned transferencista can execute it with their own account', async () => {
+    dbTest('el transferencista asignado puede ejecutarlo con su propia cuenta', async () => {
       const w = await world()
       const res = await app.request('POST', `/giro/${w.giro.id}/execute`, { as: w.t1.user, body: body(w.account1.id) })
       assert.equal(res.status, OK)
       assert.equal(await status(w.giro.id), GiroStatus.COMPLETADO)
     })
 
-    dbTest('a transferencista cannot execute it with an account that is not theirs', async () => {
+    dbTest('un transferencista no puede ejecutarlo con una cuenta que no es suya', async () => {
       const w = await world()
       const res = await app.request('POST', `/giro/${w.giro.id}/execute`, { as: w.t1.user, body: body(w.account2.id) })
       assert.equal(res.status, FORBIDDEN)
       assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
     })
 
-    dbTest(
-      'a transferencista cannot execute a giro assigned to another transferencista',
-      async () => {
-        const w = await world()
-        const res = await app.request('POST', `/giro/${w.giro.id}/execute`, {
-          as: w.t2.user,
-          body: body(w.account2.id),
-        })
-        assert.equal(res.status, FORBIDDEN)
-        assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
-      }
-    )
+    dbTest('un transferencista no puede ejecutar un giro asignado a otro transferencista', async () => {
+      const w = await world()
+      const res = await app.request('POST', `/giro/${w.giro.id}/execute`, {
+        as: w.t2.user,
+        body: body(w.account2.id),
+      })
+      assert.equal(res.status, FORBIDDEN)
+      assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
+    })
   })
 
-  describe('returning and processing: POST /giro/:id/return and /mark-processing', () => {
-    dbTest('a minorista cannot return a giro', async () => {
+  describe('Devolver y tomar un giro: POST /giro/:id/return y /mark-processing', () => {
+    dbTest('un minorista no puede devolver un giro', async () => {
       const w = await world()
       const res = await app.request('POST', `/giro/${w.giro.id}/return`, { as: w.a.user, body: { reason: 'x' } })
       assert.equal(res.status, FORBIDDEN)
       assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
     })
 
-    dbTest('the assigned transferencista and an admin can return it', async () => {
+    dbTest('el transferencista asignado puede devolverlo', async () => {
       const w = await world()
       const res = await app.request('POST', `/giro/${w.giro.id}/return`, {
         as: w.t1.user,
@@ -264,49 +257,43 @@ describe('giro permissions (HTTP)', () => {
       assert.equal(await status(w.giro.id), GiroStatus.DEVUELTO)
     })
 
-    dbTest('an admin can return it', async () => {
+    dbTest('un admin puede devolverlo', async () => {
       const w = await world()
       const res = await app.request('POST', `/giro/${w.giro.id}/return`, { as: w.admin, body: { reason: 'Revisión' } })
       assert.equal(res.status, OK)
     })
 
-    dbTest(
-      'a transferencista cannot return a giro assigned to another transferencista',
-      async () => {
-        const w = await world()
-        const res = await app.request('POST', `/giro/${w.giro.id}/return`, { as: w.t2.user, body: { reason: 'x' } })
-        assert.equal(res.status, FORBIDDEN)
-        assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
-      }
-    )
+    dbTest('un transferencista no puede devolver un giro asignado a otro transferencista', async () => {
+      const w = await world()
+      const res = await app.request('POST', `/giro/${w.giro.id}/return`, { as: w.t2.user, body: { reason: 'x' } })
+      assert.equal(res.status, FORBIDDEN)
+      assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
+    })
 
-    dbTest(
-      'a transferencista cannot take over a giro assigned to another transferencista',
-      async () => {
-        const w = await world()
-        const res = await app.request('POST', `/giro/${w.giro.id}/mark-processing`, { as: w.t2.user })
-        assert.equal(res.status, FORBIDDEN)
-        assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
-      }
-    )
+    dbTest('un transferencista no puede tomar un giro asignado a otro transferencista', async () => {
+      const w = await world()
+      const res = await app.request('POST', `/giro/${w.giro.id}/mark-processing`, { as: w.t2.user })
+      assert.equal(res.status, FORBIDDEN)
+      assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
+    })
   })
 
-  describe('cancelling a giro: DELETE /giro/:id', () => {
-    dbTest('another minorista cannot cancel it', async () => {
+  describe('Cancelar un giro: DELETE /giro/:id', () => {
+    dbTest('otro minorista no puede cancelarlo', async () => {
       const w = await world()
       assert.equal((await app.request('DELETE', `/giro/${w.giro.id}`, { as: w.b.user })).status, FORBIDDEN)
       assert.equal(await status(w.giro.id), GiroStatus.ASIGNADO)
     })
 
-    dbTest('the minorista who created it can cancel it', async () => {
+    dbTest('el minorista que lo creó puede cancelarlo', async () => {
       const w = await world()
       assert.equal((await app.request('DELETE', `/giro/${w.giro.id}`, { as: w.a.user })).status, OK)
       assert.equal(await status(w.giro.id), GiroStatus.CANCELADO)
     })
   })
 
-  describe("reading another minorista's data", () => {
-    dbTest('a minorista can read their own account and transactions', async () => {
+  describe('Leer los datos de otro minorista', () => {
+    dbTest('un minorista puede leer su propia cuenta y sus movimientos', async () => {
       const w = await world()
       assert.equal((await app.request('GET', `/minorista/${w.a.minorista.id}`, { as: w.a.user })).status, OK)
       assert.equal(
@@ -315,33 +302,27 @@ describe('giro permissions (HTTP)', () => {
       )
     })
 
-    dbTest(
-      "a minorista cannot read another minorista's balance",
-      async () => {
-        const w = await world()
-        assert.equal((await app.request('GET', `/minorista/${w.a.minorista.id}`, { as: w.b.user })).status, FORBIDDEN)
-      }
-    )
+    dbTest('un minorista no puede leer el saldo de otro minorista', async () => {
+      const w = await world()
+      assert.equal((await app.request('GET', `/minorista/${w.a.minorista.id}`, { as: w.b.user })).status, FORBIDDEN)
+    })
 
-    dbTest(
-      "a minorista cannot read another minorista's transactions",
-      async () => {
-        const w = await world()
-        const res = await app.request('GET', `/minorista-transaction/by-minorista/${w.a.minorista.id}`, {
-          as: w.b.user,
-        })
-        assert.equal(res.status, FORBIDDEN)
-      }
-    )
+    dbTest('un minorista no puede leer los movimientos de otro minorista', async () => {
+      const w = await world()
+      const res = await app.request('GET', `/minorista-transaction/by-minorista/${w.a.minorista.id}`, {
+        as: w.b.user,
+      })
+      assert.equal(res.status, FORBIDDEN)
+    })
   })
 
-  describe('reassigning a giro changes who may act on it', () => {
+  describe('Reasignar un giro cambia quién puede actuar sobre él', () => {
     const executeBody = (accountId: string) => ({ bankAccountId: accountId, executionType: 'TRANSFERENCIA', fee: 10 })
 
-    dbTest('after an admin reassigns it, the new transferencista can execute it and the previous one cannot', async () => {
+    dbTest('tras reasignarlo un admin, el nuevo transferencista puede ejecutarlo y el anterior no', async () => {
       const w = await world()
       const reassigned = await giroService.reassignGiro(w.giro.id, w.t2.transferencista.id, w.admin)
-      assert.ok(!('error' in reassigned), `unexpected error: ${JSON.stringify(reassigned)}`)
+      assert.ok(!('error' in reassigned), `error inesperado: ${JSON.stringify(reassigned)}`)
 
       const previous = await app.request('POST', `/giro/${w.giro.id}/execute`, {
         as: w.t1.user,
@@ -358,14 +339,18 @@ describe('giro permissions (HTTP)', () => {
       assert.equal(await status(w.giro.id), GiroStatus.COMPLETADO)
     })
 
-    dbTest('when a transferencista is disabled their giros move to another one, who can then act on them', async () => {
+    dbTest('al deshabilitar un transferencista sus giros pasan a otro, que ya puede actuar sobre ellos', async () => {
       const w = await world()
 
       const disabled = await transferencistaService.setAvailability(w.t1.transferencista.id, false)
-      assert.ok('success' in disabled, `unexpected result: ${JSON.stringify(disabled)}`)
+      assert.ok('success' in disabled, `resultado inesperado: ${JSON.stringify(disabled)}`)
 
       const moved = await DI.orm.em.fork().findOneOrFail(Giro, { id: w.giro.id }, { populate: ['transferencista'] })
-      assert.equal(moved.transferencista?.id, w.t2.transferencista.id, 'the giro was reassigned to the available one')
+      assert.equal(
+        moved.transferencista?.id,
+        w.t2.transferencista.id,
+        'el giro se reasignó al transferencista disponible'
+      )
 
       const previous = await app.request('POST', `/giro/${w.giro.id}/return`, { as: w.t1.user, body: { reason: 'x' } })
       assert.equal(previous.status, FORBIDDEN)
@@ -373,14 +358,14 @@ describe('giro permissions (HTTP)', () => {
       assert.equal(current.status, OK)
     })
 
-    dbTest('the super admin can take a giro that is assigned to anyone', async () => {
+    dbTest('el super admin puede tomar un giro asignado a cualquiera', async () => {
       const w = await world()
       const res = await app.request('POST', `/giro/${w.giro.id}/mark-processing`, { as: w.superAdmin })
       assert.equal(res.status, OK)
       assert.equal(await status(w.giro.id), GiroStatus.PROCESANDO)
     })
 
-    dbTest('the assigned transferencista can take their own giro', async () => {
+    dbTest('el transferencista asignado puede tomar su propio giro', async () => {
       const w = await world()
       const res = await app.request('POST', `/giro/${w.giro.id}/mark-processing`, { as: w.t1.user })
       assert.equal(res.status, OK)
@@ -388,8 +373,8 @@ describe('giro permissions (HTTP)', () => {
     })
   })
 
-  describe('minorista data: who can read it', () => {
-    dbTest('an admin can read any minorista, their movements and the minorista list', async () => {
+  describe('Datos de minorista: quién puede leerlos', () => {
+    dbTest('un admin puede leer cualquier minorista, sus movimientos y la lista de minoristas', async () => {
       const w = await world()
       const transaction = await DI.orm.em.fork().findOneOrFail(MinoristaTransaction, { giro: w.giro.id })
 
@@ -402,7 +387,7 @@ describe('giro permissions (HTTP)', () => {
       assert.equal((await app.request('GET', '/minorista/list', { as: w.admin })).status, OK)
     })
 
-    dbTest('a transferencista cannot read minorista balances or movements', async () => {
+    dbTest('un transferencista no puede leer saldos ni movimientos de minoristas', async () => {
       const w = await world()
       assert.equal((await app.request('GET', `/minorista/${w.a.minorista.id}`, { as: w.t1.user })).status, FORBIDDEN)
       assert.equal(
@@ -411,24 +396,27 @@ describe('giro permissions (HTTP)', () => {
       )
     })
 
-    dbTest('a minorista can read their own transaction but not another minorista one', async () => {
+    dbTest('un minorista puede leer su propia transacción pero no la de otro minorista', async () => {
       const w = await world()
       const transaction = await DI.orm.em.fork().findOneOrFail(MinoristaTransaction, { giro: w.giro.id })
 
       assert.equal((await app.request('GET', `/minorista-transaction/${transaction.id}`, { as: w.a.user })).status, OK)
-      assert.equal((await app.request('GET', `/minorista-transaction/${transaction.id}`, { as: w.b.user })).status, FORBIDDEN)
+      assert.equal(
+        (await app.request('GET', `/minorista-transaction/${transaction.id}`, { as: w.b.user })).status,
+        FORBIDDEN
+      )
     })
 
-    dbTest('only admins can list all the minoristas', async () => {
+    dbTest('solo los admins pueden listar a todos los minoristas', async () => {
       const w = await world()
       assert.equal((await app.request('GET', '/minorista/list', { as: w.a.user })).status, FORBIDDEN)
       assert.equal((await app.request('GET', '/minorista/list', { as: w.t1.user })).status, FORBIDDEN)
     })
   })
 
-  describe('other routes', () => {
+  describe('Otras rutas', () => {
     dbTest(
-      'saving a push token requires a session',
+      'guardar un token push exige una sesión',
       async () => {
         const w = await world()
         const res = await app.request('POST', '/notifications/save-token', {
@@ -437,11 +425,11 @@ describe('giro permissions (HTTP)', () => {
         assert.equal(res.status, 401)
       },
       {
-        todo: 'Known hole (report): POST /notifications/save-token has no requireAuth and trusts the userId in the body',
+        todo: 'Hueco conocido (informe): POST /notifications/save-token no tiene requireAuth y confía en el userId del cuerpo',
       }
     )
 
-    dbTest('the beneficiary audit log is only for the SUPER_ADMIN', async () => {
+    dbTest('el registro de auditoría de beneficiarios es solo del SUPER_ADMIN', async () => {
       const w = await world()
       assert.equal((await app.request('GET', '/beneficiary-suggestion/audit')).status, 401)
       assert.equal((await app.request('GET', '/beneficiary-suggestion/audit', { as: w.a.user })).status, FORBIDDEN)
@@ -450,7 +438,7 @@ describe('giro permissions (HTTP)', () => {
     })
   })
 
-  dbTest('sanity: the giro used by these tests is held by minorista A and costs 80,000', async () => {
+  dbTest('verificación: el giro de estas pruebas es del minorista A y cuesta 80,000', async () => {
     const w = await world()
     assert.equal(await DI.orm.em.fork().count(Giro), 1)
     // 100,000 - 80,000 + 4,000

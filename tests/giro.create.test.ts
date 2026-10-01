@@ -38,17 +38,17 @@ const minoristaState = async (id: string) => {
 }
 
 const asGiro = (result: Awaited<ReturnType<typeof giroService.createGiro>>): Giro => {
-  assert.ok(!('error' in result), `unexpected error: ${JSON.stringify(result)}`)
+  assert.ok(!('error' in result), `error inesperado: ${JSON.stringify(result)}`)
   return result as Giro
 }
 
-describe('giroService.createGiro', () => {
+describe('Crear giro', () => {
   before(setupTestDb)
   beforeEach(resetTestDb)
   after(closeTestDb)
 
-  describe('giroService.createGiro: minorista balance', () => {
-    dbTest('discounts the amount and gives back the 5% immediate profit', async () => {
+  describe('Crear giro: saldo del minorista', () => {
+    dbTest('descuenta el monto y devuelve al instante la ganancia del 5%', async () => {
       const w = await world()
       const giro = asGiro(
         await giroService.createGiro(giroInput(w.bank, w.rate, { minoristaId: w.minorista.id }), w.user)
@@ -64,12 +64,12 @@ describe('giroService.createGiro', () => {
       assert.equal(
         transactions[0].status,
         MinoristaTransactionStatus.PENDING,
-        'the discount stays on hold until the giro is executed'
+        'el descuento queda en espera hasta que se ejecute el giro'
       )
       assert.equal(Number(transactions[0].profitEarned), 5_000)
     })
 
-    dbTest('spends the balance in favor before the credit', async () => {
+    dbTest('gasta primero el saldo a favor y después el crédito', async () => {
       const w = await world({ creditBalance: 50_000 })
       asGiro(
         await giroService.createGiro(
@@ -82,7 +82,7 @@ describe('giroService.createGiro', () => {
       assert.deepEqual(await minoristaState(w.minorista.id), { available: 974_000, inFavor: 0 })
     })
 
-    dbTest('rejects the giro when the credit is not enough and leaves everything untouched', async () => {
+    dbTest('rechaza el giro cuando el crédito no alcanza y no toca nada', async () => {
       const w = await world({ availableCredit: 50_000 })
       const result = await giroService.createGiro(
         giroInput(w.bank, w.rate, { minoristaId: w.minorista.id, amountInput: 80_000, amountBs: 800 }),
@@ -96,7 +96,7 @@ describe('giroService.createGiro', () => {
     })
 
     dbTest(
-      'counts the balance in favor when checking that the minorista can afford the giro',
+      'cuenta el saldo a favor al validar que el minorista puede pagar el giro',
       async () => {
         // 50,000 of credit + 100,000 in favor can cover 80,000, but the pre-check only looks at the credit
         const w = await world({ availableCredit: 50_000, creditBalance: 100_000 })
@@ -104,12 +104,12 @@ describe('giroService.createGiro', () => {
           giroInput(w.bank, w.rate, { minoristaId: w.minorista.id, amountInput: 80_000, amountBs: 800 }),
           w.user
         )
-        assert.ok(!('error' in result), `unexpected error: ${JSON.stringify(result)}`)
+        assert.ok(!('error' in result), `error inesperado: ${JSON.stringify(result)}`)
       },
-      { todo: 'Known bug (report): availableCredit is checked without creditBalance in GiroService.createGiro' }
+      { todo: 'Bug conocido (informe): createGiro revisa availableCredit sin contar creditBalance' }
     )
 
-    dbTest('two simultaneous giros cannot spend the same credit twice', async () => {
+    dbTest('dos giros simultáneos no pueden gastar el mismo crédito dos veces', async () => {
       const w = await world()
       await createAssignmentTracker()
       const request = () =>
@@ -124,7 +124,7 @@ describe('giroService.createGiro', () => {
       const created = results.filter((r) => !('error' in r))
       const rejected = results.filter((r) => 'error' in r)
 
-      assert.equal(created.length, 1, 'exactly one giro should be created')
+      assert.equal(created.length, 1, 'debe crearse exactamente un giro')
       assert.equal(rejected.length, 1)
       assert.deepEqual(rejected[0], { error: 'INSUFFICIENT_BALANCE' })
       // 1,000,000 - 600,000 + 30,000 (5% profit)
@@ -132,7 +132,7 @@ describe('giroService.createGiro', () => {
     })
 
     dbTest(
-      'two simultaneous giros do not fail when the assignment tracker row does not exist yet',
+      'dos giros simultáneos no fallan cuando la fila de turnos todavía no existe',
       async () => {
         // Only the very first giro of a fresh system hits this: both requests try to create the tracker row
         const admin = await createAdmin()
@@ -148,11 +148,11 @@ describe('giroService.createGiro', () => {
         )
       },
       {
-        todo: 'Known fragility: findNextAvailableTransferencista catches the duplicate insert, but PostgreSQL has already aborted the transaction',
+        todo: 'Fragilidad conocida: findNextAvailableTransferencista captura el insert duplicado, pero PostgreSQL ya abortó la transacción',
       }
     )
 
-    dbTest('rejects an inactive minorista', async () => {
+    dbTest('rechaza a un minorista inactivo', async () => {
       const w = await world({ isActive: false })
       await assert.rejects(
         giroService.createGiro(giroInput(w.bank, w.rate, { minoristaId: w.minorista.id }), w.user),
@@ -161,7 +161,7 @@ describe('giroService.createGiro', () => {
       assert.equal(await DI.orm.em.fork().count(Giro), 0)
     })
 
-    dbTest('a minorista request without minoristaId is rejected', async () => {
+    dbTest('se rechaza la solicitud de un minorista sin minoristaId', async () => {
       const w = await world()
       assert.deepEqual(await giroService.createGiro(giroInput(w.bank, w.rate), w.user), {
         error: 'MINORISTA_NOT_FOUND',
@@ -169,8 +169,8 @@ describe('giroService.createGiro', () => {
     })
   })
 
-  describe('giroService.createGiro: profit and assignment', () => {
-    dbTest('splits the profit with the default 5% for the minorista', async () => {
+  describe('Crear giro: ganancia y asignación', () => {
+    dbTest('reparte la ganancia con el 5% por defecto para el minorista', async () => {
       const w = await world()
       const giro = asGiro(
         await giroService.createGiro(giroInput(w.bank, w.rate, { minoristaId: w.minorista.id }), w.user)
@@ -182,7 +182,7 @@ describe('giroService.createGiro', () => {
       assert.equal(Number(saved.systemProfit), 5_000)
     })
 
-    dbTest('uses the profit percentage configured for the minorista', async () => {
+    dbTest('usa el porcentaje de ganancia configurado para el minorista', async () => {
       const w = await world({ profitPercentage: 0.1 })
       const giro = asGiro(
         await giroService.createGiro(giroInput(w.bank, w.rate, { minoristaId: w.minorista.id }), w.user)
@@ -194,17 +194,19 @@ describe('giroService.createGiro', () => {
     })
 
     dbTest(
-      'credits the minorista balance with their own profit percentage, not a fixed 5%',
+      'acredita el saldo del minorista con su propio porcentaje de ganancia, no con un 5% fijo',
       async () => {
         const w = await world({ profitPercentage: 0.1, creditLimit: 2_000_000, availableCredit: 1_000_000 })
         asGiro(await giroService.createGiro(giroInput(w.bank, w.rate, { minoristaId: w.minorista.id }), w.user))
         // 1,000,000 - 100,000 + 10% of 100,000 = 910,000 (the giro records a 10,000 profit)
         assert.equal((await minoristaState(w.minorista.id)).available, 910_000)
       },
-      { todo: 'Known bug (report): MinoristaTransactionService hardcodes 0.05 while GiroService uses profitPercentage' }
+      {
+        todo: 'Bug conocido (informe): MinoristaTransactionService usa 0.05 fijo mientras GiroService usa profitPercentage',
+      }
     )
 
-    dbTest('an admin giro gives all the profit to the system and touches no minorista balance', async () => {
+    dbTest('un giro de admin deja toda la ganancia al sistema y no toca ningún saldo de minorista', async () => {
       const w = await world()
       const giro = asGiro(await giroService.createGiro(giroInput(w.bank, w.rate), w.admin))
       const saved = await readFresh(Giro, giro.id)
@@ -215,7 +217,7 @@ describe('giroService.createGiro', () => {
       assert.deepEqual(await minoristaState(w.minorista.id), { available: 1_000_000, inFavor: 0 })
     })
 
-    dbTest('rejects an unknown destination bank', async () => {
+    dbTest('rechaza un banco destino desconocido', async () => {
       const w = await world()
       const result = await giroService.createGiro(
         giroInput(w.bank, w.rate, { bankId: '00000000-0000-4000-8000-000000000000', minoristaId: w.minorista.id }),
@@ -225,7 +227,7 @@ describe('giroService.createGiro', () => {
       assert.equal(await DI.orm.em.fork().count(Giro), 0)
     })
 
-    dbTest('fails without charging the minorista when no transferencista is available', async () => {
+    dbTest('falla sin cobrar al minorista cuando no hay transferencista disponible', async () => {
       const admin = await createAdmin()
       const bank = await createBank()
       const rate = await createRate(admin)
@@ -239,7 +241,7 @@ describe('giroService.createGiro', () => {
       assert.deepEqual(await minoristaState(minorista.id), { available: 1_000_000, inFavor: 0 })
     })
 
-    dbTest('spreads giros across the available transferencistas in turns', async () => {
+    dbTest('reparte los giros por turnos entre los transferencistas disponibles', async () => {
       const admin = await createAdmin()
       const bank = await createBank()
       const rate = await createRate(admin)
@@ -255,9 +257,9 @@ describe('giroService.createGiro', () => {
       assert.equal(
         new Set(assigned.slice(0, 3)).size,
         3,
-        'the first three giros go to three different transferencistas'
+        'los tres primeros giros van a tres transferencistas distintos'
       )
-      assert.equal(assigned[3], assigned[0], 'the fourth giro starts the turn again')
+      assert.equal(assigned[3], assigned[0], 'el cuarto giro reinicia el turno')
     })
   })
 })

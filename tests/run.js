@@ -3,6 +3,7 @@
 const { spawnSync } = require('node:child_process')
 const fs = require('node:fs')
 const path = require('node:path')
+const { pathToFileURL } = require('node:url')
 
 const root = path.resolve(__dirname, '..')
 
@@ -32,6 +33,8 @@ const result = spawnSync(
     path.join(__dirname, 'helpers', 'env.ts'),
     // The tests share one database, so test files must not run in parallel
     '--test-concurrency=1',
+    '--test-reporter',
+    pathToFileURL(path.join(__dirname, 'helpers', 'reporter-es.js')).href,
     '--test',
     ...files,
   ],
