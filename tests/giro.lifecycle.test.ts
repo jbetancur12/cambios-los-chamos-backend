@@ -217,6 +217,23 @@ describe('giroService lifecycle', () => {
       assert.ok(refund, 'a refund transaction exists')
     })
 
+    dbTest('returning a giro paid partly with balance in favor restores every peso the minorista had', async () => {
+      const w = await world()
+      const m = await createMinorista({ creditBalance: 50_000 })
+      const created = await giroService.createGiro(
+        giroInput(w.bank, w.rate, { amountBs: AMOUNT_BS, amountInput: 80_000, minoristaId: m.minorista.id }),
+        m.user
+      )
+      assert.ok(!('error' in created), `unexpected error: ${JSON.stringify(created)}`)
+      // 50,000 came from the balance in favor and 30,000 from the credit: 1,000,000 - 30,000 + 4,000
+      assert.deepEqual(await minoristaState(m.minorista.id), { available: 974_000, inFavor: 0 })
+
+      await giroService.returnGiro((created as Giro).id, 'Devuelto', m.user)
+
+      // Back to what they had before the giro: full credit and the 50,000 in favor
+      assert.deepEqual(await minoristaState(m.minorista.id), { available: 1_000_000, inFavor: 50_000 })
+    })
+
     dbTest('a returned admin giro touches no minorista and no account', async () => {
       const w = await world()
       const giro = await adminGiro(w)
