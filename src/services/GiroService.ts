@@ -820,8 +820,8 @@ export class GiroService {
   }
 
   /**
-   * Redistribuye todos los giros pendientes de un transferencista a otros disponibles
-   * Se llama cuando un transferencista se marca como no disponible
+   * Redistribuye los giros asignados y en procesamiento de un transferencista a otros disponibles
+   * Se llama cuando un transferencista sale del reparto (deshabilitado o archivado)
    */
   async redistributePendingGiros(transferencistaId: string): Promise<{
     redistributed: number
@@ -829,11 +829,12 @@ export class GiroService {
     reassignedGiros: Giro[]
   }> {
     return await DI.em.transactional(async (em) => {
-      // Encontrar solo los giros asignados del transferencista
-      // Los giros que ya están en proceso (PROCESANDO) se quedan con el transferencista actual
+      // Encontrar los giros asignados Y los que está procesando: un transferencista que sale del reparto
+      // (deshabilitado o archivado) no los va a terminar, así que pasan a otro. Los completados, devueltos
+      // y cancelados no se mueven.
       const pendingGiros = await em.find(Giro, {
         transferencista: transferencistaId,
-        status: GiroStatus.ASIGNADO,
+        status: { $in: [GiroStatus.ASIGNADO, GiroStatus.PROCESANDO] },
       }, {
         populate: ['transferencista.user', 'minorista', 'rateApplied', 'createdBy']
       })
@@ -853,7 +854,7 @@ export class GiroService {
             continue
           }
 
-          // Reasignar el giro
+          // Reasignar el giro. Vuelve a ASIGNADO: el nuevo transferencista todavía no lo ha empezado a procesar
           giro.transferencista = newTransferencista
           giro.status = GiroStatus.ASIGNADO
           giro.updatedAt = new Date()
