@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
+import * as Sentry from '@sentry/node'
 import { DI } from '@/di' // Dependency Injector que contiene entityManager y repos
 import { verifyAccessToken } from '@/lib/tokenUtils'
 import { RequestUser } from '@/middleware/requestUser'
@@ -64,6 +65,8 @@ export const userMiddleware = () => {
 
       // 4️⃣ Construir objeto requestUser
       req.context.requestUser = new RequestUser(user, 'authenticatedUser', null)
+      // Only the id is attached to Sentry events (a no-op when Sentry is disabled)
+      Sentry.getIsolationScope().setUser({ id: user.id })
 
       // Ejemplo: puedes inyectar directamente el rol o ID del minorista
       req.context.role = user.role
