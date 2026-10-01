@@ -8,10 +8,16 @@ import { generateAccessToken } from '@/lib/tokenUtils'
 export interface TestResponse {
   status: number
   body: unknown
+  headers: Headers
 }
 
 export interface TestApp {
-  request: (method: string, path: string, options?: { as?: User; body?: unknown }) => Promise<TestResponse>
+  request: (
+    method: string,
+    path: string,
+    // `as` signs a token for that user; `token` sends exactly that Bearer token; `cookie` sends a raw Cookie header
+    options?: { as?: User; token?: string; cookie?: string; body?: unknown }
+  ) => Promise<TestResponse>
   close: () => Promise<void>
 }
 
@@ -25,6 +31,8 @@ export const startTestApp = async (): Promise<TestApp> => {
   return {
     request: async (method, path, options = {}) => {
       const headers: Record<string, string> = { 'content-type': 'application/json' }
+      if (options.token) headers.authorization = `Bearer ${options.token}`
+      if (options.cookie) headers.cookie = options.cookie
       if (options.as) {
         // The same token the login route issues
         const token = generateAccessToken({ email: options.as.email, id: options.as.id, role: options.as.role })
@@ -42,7 +50,7 @@ export const startTestApp = async (): Promise<TestApp> => {
       } catch {
         // not JSON: keep the raw text
       }
-      return { status: response.status, body }
+      return { status: response.status, body, headers: response.headers }
     },
     close: () => new Promise<void>((resolve, reject) => server.close((err) => (err ? reject(err) : resolve()))),
   }
