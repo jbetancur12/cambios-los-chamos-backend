@@ -42,7 +42,8 @@ beneficiarySuggestionRouter.post('/save', requireAuth(), async (req: Request, re
       phone,
       senderPhone,
       bankId,
-      accountNumber,
+      // A mobile payment has no account number, but the column is NOT NULL
+      accountNumber: accountNumber ?? '',
       executionType: type,
       suggestionId,
     })
