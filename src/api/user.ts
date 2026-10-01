@@ -269,6 +269,9 @@ userRouter.put(
       if (!user) {
         return res.status(404).json(ApiResponse.notFound('Usuario no encontrado'))
       }
+      if ('error' in user) {
+        return res.status(409).json(ApiResponse.conflict('Debe haber al menos un transferencista disponible'))
+      }
 
       res.json(
         ApiResponse.success({
@@ -300,6 +303,9 @@ userRouter.put(
       const user = await userService.archiveUser(userId)
       if (!user) {
         return res.status(404).json(ApiResponse.notFound('Usuario no encontrado o ya archivado'))
+      }
+      if ('error' in user) {
+        return res.status(409).json(ApiResponse.conflict('Debe haber al menos un transferencista disponible'))
       }
 
       res.json(

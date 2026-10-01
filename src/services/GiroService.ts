@@ -23,6 +23,7 @@ import { notificationService } from '@/services/NotificationService'
 import { logger } from '@/lib/logger'
 import { whatsAppNotificationService } from '@/services/WhatsAppNotificationService'
 import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionService'
+import { AVAILABLE_TRANSFERENCISTA, isInTransferencistaPool } from '@/lib/transferencistaPool'
 
 export class GiroService {
   /**
@@ -59,7 +60,7 @@ export class GiroService {
   private async findNextAvailableTransferencista(em: EntityManager): Promise<Transferencista | null> {
     // Obtener todos los transferencistas disponibles, ordenados por ID para consistencia
     const availableTransferencistas = await DI.transferencistas.find(
-      { available: true },
+      AVAILABLE_TRANSFERENCISTA,
       {
         populate: ['user'],
         orderBy: { id: 'ASC' },
@@ -1841,7 +1842,9 @@ export class GiroService {
     giroId: string,
     newTransferencistaId: string,
     user: User
-  ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'TRANSFERENCISTA_NOT_FOUND' | 'FORBIDDEN' }> {
+  ): Promise<
+    Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'TRANSFERENCISTA_NOT_FOUND' | 'TRANSFERENCISTA_NOT_AVAILABLE' | 'FORBIDDEN' }
+  > {
     // Validar permisos si el usuario no es ADMIN/SUPER_ADMIN (aunque el controller ya lo hace, doble check)
     // El controller permite TRANSFERENCISTA, así que aquí validamos lógica de negocio si fuera necesario.
 
@@ -1867,6 +1870,12 @@ export class GiroService {
       return { error: 'GIRO_NOT_FOUND' }
     }
 
+    // An admin can reassign any giro; a transferencista only the one assigned to them
+    if (!this.canActOnAssignedGiro(giro, user)) {
+      logger.warn(`[GIRO] Reassign denied: FORBIDDEN (giroId: ${giroId}, user: ${user.id}, role: ${user.role})`)
+      return { error: 'FORBIDDEN' }
+    }
+
     // Validar estado
     if (giro.status !== GiroStatus.ASIGNADO && giro.status !== GiroStatus.PROCESANDO) {
       return { error: 'INVALID_STATUS' }
@@ -1880,6 +1889,11 @@ export class GiroService {
 
     if (!newTransferencista) {
       return { error: 'TRANSFERENCISTA_NOT_FOUND' }
+    }
+
+    // Only to a transferencista who can receive giros: available, with an active user that is not archived
+    if (!isInTransferencistaPool(newTransferencista)) {
+      return { error: 'TRANSFERENCISTA_NOT_AVAILABLE' }
     }
 
     // Evitar reasignar al mismo
