@@ -296,6 +296,190 @@ describe('Transferencistas: siempre al menos uno disponible, y reasignación de 
     })
   })
 
+  describe('volver a habilitar a un transferencista', () => {
+    const estadoDe = async (giroId: string) => (await readFresh(Giro, giroId)).status
+
+    dbTest('al habilitarlo vuelve a recibir giros nuevos', async () => {
+      const b = await base()
+      const t1 = await createTransferencista()
+      const t2 = await createTransferencista()
+      await transferencistaService.setAvailability(t1.transferencista.id, false)
+
+      // Deshabilitado: todo va a T2
+      for (let i = 0; i < 2; i++) assert.equal(await transferencistaDe((await crearGiro(b)).id), t2.transferencista.id)
+
+      const habilitado = await transferencistaService.setAvailability(t1.transferencista.id, true)
+      assert.ok('success' in habilitado)
+      assert.deepEqual(await disponibles(), [t1.transferencista.id, t2.transferencista.id].sort())
+
+      const asignados = new Set<string | undefined>()
+      for (let i = 0; i < 4; i++) asignados.add(await transferencistaDe((await crearGiro(b)).id))
+      assert.ok(asignados.has(t1.transferencista.id), 'T1 vuelve a entrar en el reparto')
+      assert.ok(asignados.has(t2.transferencista.id), 'T2 sigue recibiendo giros')
+    })
+
+    dbTest('al habilitarlo no le quita los giros que ya se repartieron a otro', async () => {
+      const b = await base()
+      const t1 = await createTransferencista()
+      const giro = await crearGiro(b) // el único disponible es T1
+      const t2 = await createTransferencista()
+      await transferencistaService.setAvailability(t1.transferencista.id, false)
+      assert.equal(await transferencistaDe(giro.id), t2.transferencista.id)
+
+      await transferencistaService.setAvailability(t1.transferencista.id, true)
+
+      assert.equal(await transferencistaDe(giro.id), t2.transferencista.id, 'el giro se queda con T2')
+    })
+
+    dbTest('por la ruta HTTP, habilitar responde 200 y lo deja disponible', async () => {
+      const b = await base()
+      await createTransferencista()
+      const t2 = await createTransferencista({ available: false })
+
+      const res = await app.request('PUT', `/transferencista/${t2.transferencista.id}/toggle-availability`, {
+        as: b.admin,
+        body: { isAvailable: true },
+      })
+
+      assert.equal(res.status, 200)
+      assert.equal((await readFresh(Transferencista, t2.transferencista.id)).available, true)
+    })
+
+    dbTest('habilitar a uno cuyo usuario está archivado no lo mete en el reparto', async () => {
+      const b = await base()
+      const archivado = await createTransferencista({ available: false })
+      const activo = await createTransferencista()
+      await archivar(archivado.user)
+
+      await transferencistaService.setAvailability(archivado.transferencista.id, true)
+
+      for (let i = 0; i < 3; i++) {
+        assert.equal(await transferencistaDe((await crearGiro(b)).id), activo.transferencista.id)
+      }
+    })
+
+    dbTest('deshabilitar y volver a habilitar deja el mismo estado final', async () => {
+      await base()
+      const t1 = await createTransferencista()
+      const t2 = await createTransferencista()
+
+      await transferencistaService.setAvailability(t1.transferencista.id, false)
+      await transferencistaService.setAvailability(t1.transferencista.id, true)
+
+      assert.deepEqual(await disponibles(), [t1.transferencista.id, t2.transferencista.id].sort())
+      assert.equal(await estadoDe((await crearGiro(await base())).id), GiroStatus.ASIGNADO)
+    })
+  })
+
+  describe('giros en procesamiento cuando un transferencista sale del reparto', () => {
+    /** T1 tiene un giro que ya empezó a procesar; T2 está disponible. */
+    const conGiroProcesando = async () => {
+      const b = await base()
+      const t1 = await createTransferencista()
+      const cuenta1 = await createBankAccount(t1.transferencista, b.bank)
+      const giro = await crearGiro(b) // el único disponible es T1
+      const procesando = await giroService.markAsProcessing(giro.id, t1.user)
+      assert.ok(!('error' in procesando), `error inesperado: ${JSON.stringify(procesando)}`)
+      const t2 = await createTransferencista()
+      const cuenta2 = await createBankAccount(t2.transferencista, b.bank)
+      return { ...b, t1, t2, cuenta1, cuenta2, giro }
+    }
+
+    const estadoDe = async (giroId: string) => (await readFresh(Giro, giroId)).status
+
+    dbTest('al deshabilitar, el giro en procesamiento pasa a otro transferencista y vuelve a asignado', async () => {
+      const w = await conGiroProcesando()
+      assert.equal(await estadoDe(w.giro.id), GiroStatus.PROCESANDO)
+
+      const result = await transferencistaService.setAvailability(w.t1.transferencista.id, false)
+
+      assert.ok('success' in result)
+      assert.equal(await transferencistaDe(w.giro.id), w.t2.transferencista.id)
+      assert.equal(await estadoDe(w.giro.id), GiroStatus.ASIGNADO, 'el nuevo transferencista lo empieza de cero')
+    })
+
+    dbTest('al archivar, el giro en procesamiento también pasa a otro transferencista', async () => {
+      const w = await conGiroProcesando()
+
+      const res = await app.request('PUT', `/user/${w.t1.user.id}/archive`, { as: w.admin })
+
+      assert.equal(res.status, 200)
+      assert.equal(await transferencistaDe(w.giro.id), w.t2.transferencista.id)
+      assert.equal(await estadoDe(w.giro.id), GiroStatus.ASIGNADO)
+    })
+
+    dbTest('al desactivar al usuario, el giro en procesamiento también pasa a otro', async () => {
+      const w = await conGiroProcesando()
+
+      const res = await app.request('PUT', `/user/${w.t1.user.id}/toggle-active`, { as: w.admin })
+
+      assert.equal(res.status, 200)
+      assert.equal(await transferencistaDe(w.giro.id), w.t2.transferencista.id)
+    })
+
+    dbTest('el transferencista que salió ya no puede ejecutar ese giro y el nuevo sí', async () => {
+      const w = await conGiroProcesando()
+      await transferencistaService.setAvailability(w.t1.transferencista.id, false)
+      const cuerpo = (cuentaId: string) => ({ bankAccountId: cuentaId, executionType: 'TRANSFERENCIA', fee: 10 })
+
+      const anterior = await app.request('POST', `/giro/${w.giro.id}/execute`, {
+        as: w.t1.user,
+        body: cuerpo(w.cuenta1.id),
+      })
+      assert.equal(anterior.status, 403)
+      assert.equal(await estadoDe(w.giro.id), GiroStatus.ASIGNADO)
+
+      const nuevo = await app.request('POST', `/giro/${w.giro.id}/execute`, {
+        as: w.t2.user,
+        body: cuerpo(w.cuenta2.id),
+      })
+      assert.equal(nuevo.status, 200)
+      assert.equal(await estadoDe(w.giro.id), GiroStatus.COMPLETADO)
+    })
+
+    dbTest('los giros completados, devueltos y cancelados no se mueven', async () => {
+      const b = await base()
+      const t1 = await createTransferencista()
+      const cuenta1 = await createBankAccount(t1.transferencista, b.bank)
+      const completado = await crearGiro(b)
+      const devuelto = await crearGiro(b)
+      const cancelado = await crearGiro(b)
+      await giroService.executeGiro(completado.id, cuenta1.id, ExecutionType.TRANSFERENCIA, 10, t1.user)
+      await giroService.returnGiro(devuelto.id, 'Cuenta inválida', b.admin)
+      await giroService.deleteGiro(cancelado.id, b.admin)
+      await createTransferencista()
+
+      const result = await transferencistaService.setAvailability(t1.transferencista.id, false)
+
+      assert.ok('success' in result)
+      for (const giro of [completado, devuelto, cancelado]) {
+        assert.equal(await transferencistaDe(giro.id), t1.transferencista.id, 'se queda con quien lo tenía')
+      }
+      assert.equal(await estadoDe(completado.id), GiroStatus.COMPLETADO)
+      assert.equal(await estadoDe(devuelto.id), GiroStatus.DEVUELTO)
+      assert.equal(await estadoDe(cancelado.id), GiroStatus.CANCELADO)
+    })
+
+    dbTest(
+      'se reparten por turnos entre los demás disponibles, incluidos los que estaban en procesamiento',
+      async () => {
+        const b = await base()
+        const t1 = await createTransferencista()
+        const asignado = await crearGiro(b)
+        const procesando = await crearGiro(b)
+        await giroService.markAsProcessing(procesando.id, t1.user)
+        const t2 = await createTransferencista()
+        const t3 = await createTransferencista()
+
+        await transferencistaService.setAvailability(t1.transferencista.id, false)
+
+        const nuevos = [await transferencistaDe(asignado.id), await transferencistaDe(procesando.id)]
+        assert.ok(nuevos.every((id) => id === t2.transferencista.id || id === t3.transferencista.id))
+        assert.equal(new Set(nuevos).size, 2, 'cada giro va a un transferencista distinto')
+      }
+    )
+  })
+
   // Evita un aviso de variable sin uso para el rol, que sirve de documentación de quién actúa en los tests
   dbTest('verificación: el rol de los usuarios de transferencista es TRANSFERENCISTA', async () => {
     await base()
