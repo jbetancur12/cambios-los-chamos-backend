@@ -1487,8 +1487,10 @@ export class GiroService {
 
         // Fallback for beneficiaryName if kontaktEnvia is missing
         // Since 'beneficiaryName' is NOT NULL, we must provide a value.
-        // If contactEnvia is removed, we use 'Pago Movil' or similar placeholder.
-        const beneficiaryNameFallback = data.contactoEnvia?.trim() || `Pago Móvil - ${data.phone}`
+        // If contactEnvia is empty, we use 'Pago Móvil' as the placeholder.
+        const contactName = data.contactoEnvia?.trim()
+        const beneficiaryNameFallback =
+          contactName && contactName !== 'NA' && contactName !== 'Sistema' ? contactName : 'Pago Móvil'
 
         // Crear giro
         const giro = giroRepo.create({
@@ -1576,7 +1578,7 @@ export class GiroService {
         }
         const contact = data.contactoEnvia?.trim()
         await this.saveBeneficiarySuggestionSafe(createdBy.id, {
-          beneficiaryName: contact && contact !== 'NA' ? contact : data.phone,
+          beneficiaryName: contact && contact !== 'NA' && contact !== 'Sistema' ? contact : 'Pago Móvil',
           beneficiaryId: data.cedula,
           phone: data.phone,
           senderPhone: data.senderPhone,
