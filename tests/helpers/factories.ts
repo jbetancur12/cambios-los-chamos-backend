@@ -8,6 +8,9 @@ import { BankAccount, BankAccountOwnerType, AccountType } from '@/entities/BankA
 import { ExchangeRate } from '@/entities/ExchangeRate'
 import { ExecutionType } from '@/entities/Giro'
 import { TransferencistaAssignmentTracker } from '@/entities/TransferencistaAssignmentTracker'
+import { RechargeOperator } from '@/entities/RechargeOperator'
+import { RechargeAmount } from '@/entities/RechargeAmount'
+import { OperatorAmount } from '@/entities/OperatorAmount'
 import type { CreateGiroInput } from '@/types/giro'
 
 let sequence = 0
@@ -122,3 +125,18 @@ export const giroInput = (
 /** The round-robin tracker is a single row created on first use; pre-create it to avoid that race in tests. */
 export const createAssignmentTracker = () =>
   save(make(TransferencistaAssignmentTracker, { id: 1, lastAssignedIndex: 0 }))
+
+/** A recharge operator (Movistar, Digitel...) with the amounts it offers. */
+export const createRechargeOperator = (overrides: Partial<RechargeOperator> = {}) => {
+  const n = next()
+  return save(
+    make(RechargeOperator, { name: `Operador ${n}`, code: 400 + n, type: 'TELEFONIA', isActive: true, ...overrides })
+  )
+}
+
+export const createRechargeAmount = (createdBy: User, amountBs: number, overrides: Partial<RechargeAmount> = {}) =>
+  save(make(RechargeAmount, { amountBs, createdBy, isActive: true, ...overrides }))
+
+/** Links an operator with an amount, which is what makes that amount available for that operator. */
+export const createOperatorAmount = (operator: RechargeOperator, amount: RechargeAmount, isActive = true) =>
+  save(make(OperatorAmount, { operator, amount, isActive }))
