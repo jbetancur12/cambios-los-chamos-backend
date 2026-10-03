@@ -177,21 +177,17 @@ describe('Ciclo de vida del giro', () => {
       )
     })
 
-    dbTest(
-      'dos ejecuciones simultáneas descuentan la cuenta una sola vez',
-      async () => {
-        const w = await world()
-        const giro = await adminGiro(w)
+    dbTest('dos ejecuciones simultáneas descuentan la cuenta una sola vez', async () => {
+      const w = await world()
+      const giro = await adminGiro(w)
 
-        await Promise.allSettled([inContext(() => execute(w, giro)), inContext(() => execute(w, giro))])
+      await Promise.allSettled([inContext(() => execute(w, giro)), inContext(() => execute(w, giro))])
 
-        // With the race both runs record a withdrawal (and overwrite each other's balance), so count the movements
-        const withdrawals = await DI.orm.em.fork().count(BankAccountTransaction, { bankAccount: w.account.id })
-        assert.equal(withdrawals, 1, 'debe registrarse un solo retiro')
-        assert.equal(await accountBalance(w.account.id), ACCOUNT_BALANCE - AMOUNT_BS - FEE)
-      },
-      { todo: 'Bug conocido (informe): executeGiro revisa el estado sin bloqueo, así que las dos ejecuciones retiran' }
-    )
+      // With the race both runs record a withdrawal (and overwrite each other's balance), so count the movements
+      const withdrawals = await DI.orm.em.fork().count(BankAccountTransaction, { bankAccount: w.account.id })
+      assert.equal(withdrawals, 1, 'debe registrarse un solo retiro')
+      assert.equal(await accountBalance(w.account.id), ACCOUNT_BALANCE - AMOUNT_BS - FEE)
+    })
   })
 
   describe('Devolver giro', () => {
@@ -264,24 +260,18 @@ describe('Ciclo de vida del giro', () => {
       })
     })
 
-    dbTest(
-      'dos devoluciones simultáneas reembolsan al minorista una sola vez',
-      async () => {
-        const w = await world()
-        const { giro, minorista, user } = await minoristaGiro(w)
+    dbTest('dos devoluciones simultáneas reembolsan al minorista una sola vez', async () => {
+      const w = await world()
+      const { giro, minorista, user } = await minoristaGiro(w)
 
-        await Promise.allSettled([
-          inContext(() => giroService.returnGiro(giro.id, 'a', w.admin)),
-          inContext(() => giroService.returnGiro(giro.id, 'b', w.admin)),
-        ])
+      await Promise.allSettled([
+        inContext(() => giroService.returnGiro(giro.id, 'a', w.admin)),
+        inContext(() => giroService.returnGiro(giro.id, 'b', w.admin)),
+      ])
 
-        // One refund brings the credit back to the 1,000,000 limit; a second one would overflow into the balance in favor
-        assert.deepEqual(await minoristaState(minorista.id), { available: 1_000_000, inFavor: 0 })
-      },
-      {
-        todo: 'Bug conocido (informe): returnGiro valida el estado antes de abrir la transacción, así que las dos reembolsan',
-      }
-    )
+      // One refund brings the credit back to the 1,000,000 limit; a second one would overflow into the balance in favor
+      assert.deepEqual(await minoristaState(minorista.id), { available: 1_000_000, inFavor: 0 })
+    })
   })
 
   describe('Editar giro: reenviar un giro devuelto', () => {
@@ -358,6 +348,129 @@ describe('Ciclo de vida del giro', () => {
         todo: 'Inconsistencia: createGiro rechaza availableCredit menor al monto, pero reenviar tolera un faltante de hasta el 5% de ganancia',
       }
     )
+  })
+
+  describe('acciones simultáneas', () => {
+    dbTest(
+      'de dos ejecuciones simultáneas del mismo giro, la que llega segunda se rechaza con estado inválido',
+      async () => {
+        const w = await world()
+        const giro = await adminGiro(w)
+
+        const resultados = await Promise.all([inContext(() => execute(w, giro)), inContext(() => execute(w, giro))])
+
+        assert.equal(resultados.filter((r) => !('error' in r)).length, 1, 'solo una se completa')
+        assert.deepEqual(
+          resultados.find((r) => 'error' in r),
+          { error: 'INVALID_STATUS' }
+        )
+      }
+    )
+
+    dbTest('de dos devoluciones simultáneas, la segunda se rechaza con estado inválido', async () => {
+      const w = await world()
+      const { giro } = await minoristaGiro(w)
+
+      const resultados = await Promise.all([
+        inContext(() => giroService.returnGiro(giro.id, 'a', w.admin)),
+        inContext(() => giroService.returnGiro(giro.id, 'b', w.admin)),
+      ])
+
+      assert.equal(resultados.filter((r) => !('error' in r)).length, 1)
+      assert.deepEqual(
+        resultados.find((r) => 'error' in r),
+        { error: 'INVALID_STATUS' }
+      )
+    })
+
+    dbTest('dos cancelaciones simultáneas reembolsan al minorista una sola vez', async () => {
+      const w = await world()
+      const { giro, minorista, user } = await minoristaGiro(w)
+
+      await Promise.allSettled([
+        inContext(() => giroService.deleteGiro(giro.id, user)),
+        inContext(() => giroService.deleteGiro(giro.id, user)),
+      ])
+
+      assert.deepEqual(await minoristaState(minorista.id), { available: 1_000_000, inFavor: 0 })
+      assert.equal((await readFresh(Giro, giro.id)).status, GiroStatus.CANCELADO)
+    })
+
+    dbTest('ejecutar y devolver el mismo giro a la vez: gana una sola y el dinero queda coherente', async () => {
+      const w = await world()
+      const { giro, minorista } = await minoristaGiro(w)
+
+      const [ejecucion, devolucion] = await Promise.all([
+        inContext(() => execute(w, giro)),
+        inContext(() => giroService.returnGiro(giro.id, 'Cuenta inválida', w.admin)),
+      ])
+
+      const ganoEjecutar = !('error' in ejecucion)
+      const ganoDevolver = !('error' in devolucion)
+      assert.notEqual(ganoEjecutar, ganoDevolver, 'exactamente una de las dos gana')
+
+      const retiros = await DI.orm.em.fork().count(BankAccountTransaction, { bankAccount: w.account.id })
+      const estado = (await readFresh(Giro, giro.id)).status
+      if (ganoEjecutar) {
+        assert.equal(estado, GiroStatus.COMPLETADO)
+        assert.equal(retiros, 1)
+        assert.equal(await accountBalance(w.account.id), ACCOUNT_BALANCE - AMOUNT_BS - FEE)
+        assert.equal((await minoristaState(minorista.id)).available, 905_000, 'el minorista no recibe reembolso')
+      } else {
+        assert.equal(estado, GiroStatus.DEVUELTO)
+        assert.equal(retiros, 0, 'no se retiró nada de la cuenta')
+        assert.equal(await accountBalance(w.account.id), ACCOUNT_BALANCE)
+        assert.equal((await minoristaState(minorista.id)).available, 1_000_000, 'el minorista recupera su dinero')
+      }
+    })
+
+    dbTest(
+      'dos giros distintos ejecutados a la vez con la misma cuenta no pierden ninguno de los dos retiros',
+      async () => {
+        const w = await world()
+        const primero = await adminGiro(w)
+        const segundo = await adminGiro(w)
+
+        const resultados = await Promise.all([
+          inContext(() => execute(w, primero)),
+          inContext(() => execute(w, segundo)),
+        ])
+
+        assert.ok(
+          resultados.every((r) => !('error' in r)),
+          'las dos se completan'
+        )
+        assert.equal(await DI.orm.em.fork().count(BankAccountTransaction, { bankAccount: w.account.id }), 2)
+        assert.equal(
+          await accountBalance(w.account.id),
+          ACCOUNT_BALANCE - 2 * (AMOUNT_BS + FEE),
+          'el saldo refleja los dos retiros'
+        )
+      }
+    )
+
+    dbTest('el saldo de la cuenta cuadra con sus movimientos después de ejecutar varios giros a la vez', async () => {
+      const w = await world()
+      const giros = [await adminGiro(w), await adminGiro(w), await adminGiro(w), await adminGiro(w)]
+
+      await Promise.all(giros.map((g) => inContext(() => execute(w, g))))
+
+      const movimientos = await DI.orm.em.fork().find(BankAccountTransaction, { bankAccount: w.account.id })
+      assert.equal(movimientos.length, 4)
+      const retirado = movimientos.reduce((suma, m) => suma + Number(m.amount) + Number(m.fee), 0)
+      assert.equal(await accountBalance(w.account.id), ACCOUNT_BALANCE - retirado)
+    })
+
+    dbTest('ejecutar giros distintos en paralelo no se bloquea entre sí', async () => {
+      const w = await world()
+      const giros = [await adminGiro(w), await adminGiro(w), await adminGiro(w)]
+
+      const inicio = Date.now()
+      const resultados = await Promise.all(giros.map((g) => inContext(() => execute(w, g))))
+
+      assert.ok(resultados.every((r) => !('error' in r)))
+      assert.ok(Date.now() - inicio < 20_000, 'terminan sin esperar indefinidamente')
+    })
   })
 
   describe('Cancelar giro', () => {

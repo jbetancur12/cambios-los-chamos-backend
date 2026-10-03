@@ -25,6 +25,21 @@ import { whatsAppNotificationService } from '@/services/WhatsAppNotificationServ
 import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionService'
 import { AVAILABLE_TRANSFERENCISTA, isInTransferencistaPool } from '@/lib/transferencistaPool'
 
+type ExecuteGiroResult =
+  | Giro
+  | {
+      error:
+        | 'GIRO_NOT_FOUND'
+        | 'INVALID_STATUS'
+        | 'BANK_ACCOUNT_NOT_FOUND'
+        | 'INSUFFICIENT_BALANCE'
+        | 'UNAUTHORIZED_ACCOUNT'
+        | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+        | 'FORBIDDEN'
+    }
+type ReturnGiroResult = Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'FORBIDDEN' }
+type DeleteGiroResult = Giro | { error: 'GIRO_NOT_FOUND' | 'FORBIDDEN' | 'INVALID_STATUS' }
+
 export class GiroService {
   /**
    * Admins act on any giro; a transferencista only on the giro currently assigned to them.
@@ -352,7 +367,51 @@ export class GiroService {
    * Ejecuta un giro. El transferencista selecciona cuenta y tipo de ejecución.
    * Valida balance y descuenta de la cuenta del transferencista.
    */
+  /**
+   * Runs `work` while holding a lock on the giro. Two executions, returns or cancellations of the same giro
+   * (two people, two tabs, a retried request) then run one after the other: the second one finds the giro already
+   * processed and is rejected, instead of both passing the status check and paying or refunding twice.
+   * All the work joins one transaction, so a failure halfway leaves nothing half done.
+   */
+  private async withGiroLock<T>(giroId: string, work: () => Promise<T>): Promise<T> {
+    return DI.em.transactional(async (em) => {
+      await em
+        .getConnection()
+        .execute('select pg_advisory_xact_lock(hashtext(?))', [`giro:${giroId}`], 'run', em.getTransactionContext())
+      return work()
+    })
+  }
+
   async executeGiro(
+    giroId: string,
+    bankAccountId: string,
+    executionType: ExecutionType,
+    fee: number,
+    executingUser?: User
+  ): Promise<ExecuteGiroResult> {
+    const result = await this.withGiroLock(giroId, () =>
+      this.executeGiroLocked(giroId, bankAccountId, executionType, fee, executingUser)
+    )
+
+    if (!('error' in result)) {
+      // Enviar notificación WhatsApp al cliente (fire-and-forget), ya con el giro guardado
+      whatsAppNotificationService.notifyGiroCompleted(result).catch((err) =>
+        logger.error({ err }, '[WHATSAPP] Error notificando giro completado')
+      )
+    }
+
+    return result
+  }
+
+  async returnGiro(giroId: string, reason: string, createdBy: User): Promise<ReturnGiroResult> {
+    return this.withGiroLock(giroId, () => this.returnGiroLocked(giroId, reason, createdBy))
+  }
+
+  async deleteGiro(giroId: string, user: User): Promise<DeleteGiroResult> {
+    return this.withGiroLock(giroId, () => this.deleteGiroLocked(giroId, user))
+  }
+
+  private async executeGiroLocked(
     giroId: string,
     bankAccountId: string,
     executionType: ExecutionType,
@@ -374,6 +433,8 @@ export class GiroService {
     const giro = await DI.giros.findOne(
       { id: giroId },
       {
+        // refresh: another request may have changed the giro while this one waited for the lock
+        refresh: true,
         populate: [
           'transferencista',
           'transferencista.user',
@@ -524,15 +585,10 @@ export class GiroService {
     }
     */
 
-    // Enviar notificación WhatsApp al cliente (fire-and-forget)
-    whatsAppNotificationService.notifyGiroCompleted(giro).catch(err =>
-      logger.error({ err }, '[WHATSAPP] Error notificando giro completado')
-    )
-
     return giro
   }
 
-  async returnGiro(
+  private async returnGiroLocked(
     giroId: string,
     reason: string,
     createdBy: User
@@ -543,6 +599,7 @@ export class GiroService {
       const giro = await giroRepo.findOne(
         { id: giroId },
         {
+          refresh: true, // see executeGiroLocked
           populate: [
             'minorista',
             'minorista.user',
@@ -676,12 +733,12 @@ export class GiroService {
    * Solo en estados PENDIENTE, ASIGNADO o DEVUELTO.
    * Reembolsa el monto al minorista antes de eliminar.
    */
-  async deleteGiro(
+  private async deleteGiroLocked(
     giroId: string,
     user: User
   ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'FORBIDDEN' | 'INVALID_STATUS' }> {
     try {
-      const giro = await DI.em.getRepository(Giro).findOne({ id: giroId }, { populate: ['minorista', 'createdBy'] })
+      const giro = await DI.em.getRepository(Giro).findOne({ id: giroId }, { refresh: true, populate: ['minorista', 'createdBy'] })
 
       if (!giro) {
         logger.warn(`[GIRO] Delete failed: GIRO_NOT_FOUND (giroId: ${giroId}, user: ${user.id})`)
