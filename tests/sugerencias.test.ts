@@ -215,25 +215,19 @@ describe('Sugerencias de beneficiarios y su auditoría', () => {
       )
     })
 
-    dbTest(
-      'la lista llega con la más reciente primero',
-      async () => {
-        const m = await minorista()
-        await guardar(m.user.id, { beneficiaryName: 'Primera', beneficiaryId: '1' })
-        await guardar(m.user.id, { beneficiaryName: 'Segunda', beneficiaryId: '2' })
-        await guardar(m.user.id, { beneficiaryName: 'Tercera', beneficiaryId: '3' })
+    dbTest('la lista llega con la más reciente primero', async () => {
+      const m = await minorista()
+      await guardar(m.user.id, { beneficiaryName: 'Primera', beneficiaryId: '1' })
+      await guardar(m.user.id, { beneficiaryName: 'Segunda', beneficiaryId: '2' })
+      await guardar(m.user.id, { beneficiaryName: 'Tercera', beneficiaryId: '3' })
 
-        const resultado = await lista(m.user, 'list')
+      const resultado = await lista(m.user, 'list')
 
-        assert.deepEqual(
-          resultado.map((s) => s.beneficiaryName),
-          ['Tercera', 'Segunda', 'Primera']
-        )
-      },
-      {
-        todo: 'Bug conocido: createdAt y updatedAt de la sugerencia son de tipo fecha (sin hora), así que dentro del mismo día el orden es arbitrario',
-      }
-    )
+      assert.deepEqual(
+        resultado.map((s) => s.beneficiaryName),
+        ['Tercera', 'Segunda', 'Primera']
+      )
+    })
 
     dbTest('la búsqueda por nombre ignora tildes y mayúsculas', async () => {
       const m = await minorista()

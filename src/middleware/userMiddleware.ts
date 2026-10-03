@@ -6,6 +6,7 @@ import { RequestUser } from '@/middleware/requestUser'
 import { User } from '@/entities/User'
 import { ApiResponse } from '@/lib/apiResponse'
 import { logger } from '@/lib/logger'
+import { isTokenRevoked } from '@/lib/revokedTokens'
 
 export const userMiddleware = () => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -36,6 +37,11 @@ export const userMiddleware = () => {
       // 2️⃣ Verificar token y decodificar información
       const decoded = verifyAccessToken(token)
       if (!decoded) {
+        return next()
+      }
+
+      // Un token cerrado con logout ya no sirve, aunque el JWT siga vigente
+      if (await isTokenRevoked(token)) {
         return next()
       }
 
@@ -71,6 +77,7 @@ export const userMiddleware = () => {
       // Ejemplo: puedes inyectar directamente el rol o ID del minorista
       req.context.role = user.role
       req.context.userId = user.id
+      req.context.token = token
 
       return next()
     } catch (err) {

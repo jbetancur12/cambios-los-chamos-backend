@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken'
 import { DI } from '@/di'
 import { User, UserRole } from '@/entities/User'
 import { TokenType, UserToken } from '@/entities/UserToken'
+import { RevokedToken } from '@/entities/RevokedToken'
 import { SECRET_KEY } from '@/settings'
 import { checkPassword, makePassword } from '@/lib/passwordUtils'
 import { createUserToken } from '@/lib/userTokenUtils'
@@ -150,24 +151,34 @@ describe('Autenticación: login, sesión, contraseñas y registro de usuarios', 
       assert.equal(comoTransferencista.transferencistaId, t.transferencista.id)
     })
 
-    dbTest(
-      'un guion bajo en el correo no se toma como comodín y no confunde cuentas parecidas',
-      async () => {
-        // "_" significa "cualquier carácter" en la búsqueda con ILIKE: ana_1@ también coincide con anaX1@
-        await usuario(UserRole.MINORISTA, {
-          email: 'anaX1@test.local',
-          password: makePassword('clave-de-otra-persona'),
-        })
-        const ana = await usuario(UserRole.MINORISTA, { email: 'ana_1@test.local' })
+    dbTest('un guion bajo en el correo no se toma como comodín y no confunde cuentas parecidas', async () => {
+      // "_" significa "cualquier carácter" en la búsqueda con ILIKE: ana_1@ también coincide con anaX1@
+      await usuario(UserRole.MINORISTA, {
+        email: 'anaX1@test.local',
+        password: makePassword('clave-de-otra-persona'),
+      })
+      const ana = await usuario(UserRole.MINORISTA, { email: 'ana_1@test.local' })
 
-        const res = await entrar(ana.email)
+      const res = await entrar(ana.email)
 
-        assert.equal(res.status, 200)
-      },
-      {
-        todo: 'Bug: login busca el correo con ILIKE, así que "_" y "%" funcionan como comodines y pueden elegir otra cuenta',
-      }
-    )
+      assert.equal(res.status, 200)
+      assert.equal((cuerpo(res).data?.user as { email: string }).email, 'ana_1@test.local')
+    })
+
+    dbTest('un porcentaje en el correo tampoco funciona como comodín', async () => {
+      const u = await usuario(UserRole.MINORISTA, { email: 'maria@test.local' })
+
+      assert.notEqual((await entrar('%@test.local', CLAVE)).status, 200)
+      assert.notEqual((await entrar('mar%@test.local', CLAVE)).status, 200)
+      assert.equal((await entrar(u.email)).status, 200)
+    })
+
+    dbTest('el correo sigue entrando sin distinguir mayúsculas', async () => {
+      const u = await usuario(UserRole.MINORISTA, { email: 'carlos@test.local' })
+
+      assert.equal((await entrar('CARLOS@Test.Local')).status, 200)
+      assert.equal(u.email, 'carlos@test.local')
+    })
 
     dbTest(
       'tras muchos intentos fallidos el login se bloquea',
@@ -280,18 +291,47 @@ describe('Autenticación: login, sesión, contraseñas y registro de usuarios', 
       assert.equal((await app.request('POST', '/user/logout')).status, 401)
     })
 
-    dbTest(
-      'después de cerrar sesión el token ya no sirve',
-      async () => {
-        const u = await usuario(UserRole.ADMIN)
-        const token = await tokenDe(await entrar(u.email))
+    dbTest('después de cerrar sesión el token ya no sirve, ni como Bearer ni como cookie', async () => {
+      const u = await usuario(UserRole.ADMIN)
+      const token = await tokenDe(await entrar(u.email))
+      assert.equal((await app.request('GET', '/user/me', { token })).status, 200)
 
-        await app.request('POST', '/user/logout', { token })
+      await app.request('POST', '/user/logout', { token })
 
-        assert.equal((await app.request('GET', '/user/me', { token })).status, 401)
-      },
-      { todo: 'Bug conocido (informe): el token no se revoca; sigue valiendo hasta 30 días aunque se cierre sesión' }
-    )
+      assert.equal((await app.request('GET', '/user/me', { token })).status, 401)
+      assert.equal((await app.request('GET', '/user/me', { cookie: `accessToken=${token}` })).status, 401)
+      assert.equal((await app.request('POST', '/user/logout', { token })).status, 401)
+    })
+
+    dbTest('cerrar una sesión no cierra las otras sesiones del mismo usuario', async () => {
+      const u = await usuario(UserRole.ADMIN)
+      const celular = await tokenDe(await entrar(u.email))
+      const computador = await tokenDe(await entrar(u.email))
+
+      await app.request('POST', '/user/logout', { token: celular })
+
+      assert.equal((await app.request('GET', '/user/me', { token: celular })).status, 401)
+      assert.equal((await app.request('GET', '/user/me', { token: computador })).status, 200)
+    })
+
+    dbTest('del token cerrado solo se guarda el hash y se limpian los ya vencidos', async () => {
+      const u = await usuario(UserRole.ADMIN)
+      const token = await tokenDe(await entrar(u.email))
+      const em = DI.orm.em.fork()
+      await em.insert(RevokedToken, {
+        tokenHash: 'viejo',
+        expiresAt: new Date(Date.now() - 1000),
+        revokedAt: new Date(),
+      })
+
+      await app.request('POST', '/user/logout', { token })
+
+      const guardados = await DI.orm.em.fork().find(RevokedToken, {})
+      assert.equal(guardados.length, 1, 'el vencido se borró')
+      assert.notEqual(guardados[0].tokenHash, token)
+      assert.match(guardados[0].tokenHash, /^[0-9a-f]{64}$/)
+      assert.ok(guardados[0].expiresAt.getTime() > Date.now())
+    })
 
     dbTest(
       'cambiar la contraseña invalida los tokens anteriores',
@@ -497,19 +537,22 @@ describe('Autenticación: login, sesión, contraseñas y registro de usuarios', 
       assert.equal(await DI.orm.em.fork().count(User, { email: 'nuevo@test.local' }), 0)
     })
 
-    dbTest(
-      'un admin no puede crear un super admin',
-      async () => {
-        const admin = await createAdmin()
+    dbTest('un admin no puede crear un super admin', async () => {
+      const admin = await createAdmin()
 
-        const res = await registrar({ as: admin }, { role: 'SUPER_ADMIN' })
+      const res = await registrar({ as: admin }, { role: 'SUPER_ADMIN' })
 
-        assert.equal(res.status, 403)
-        assert.equal(await DI.orm.em.fork().count(User, { role: UserRole.SUPER_ADMIN }), 0)
-      },
-      {
-        todo: 'Hueco de seguridad: un ADMIN puede crear usuarios con rol SUPER_ADMIN y escalar sus propios privilegios',
-      }
-    )
+      assert.equal(res.status, 403)
+      assert.equal(await DI.orm.em.fork().count(User, { role: UserRole.SUPER_ADMIN }), 0)
+    })
+
+    dbTest('un super admin sí puede crear otro super admin', async () => {
+      const superAdmin = await usuario(UserRole.SUPER_ADMIN)
+
+      const res = await registrar({ as: superAdmin }, { role: 'SUPER_ADMIN' })
+
+      assert.equal(res.status, 201)
+      assert.equal(await DI.orm.em.fork().count(User, { email: 'nuevo@test.local', role: UserRole.SUPER_ADMIN }), 1)
+    })
   })
 })
