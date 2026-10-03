@@ -3,21 +3,32 @@ import { Request, Response, Router } from 'express'
 import { notificationService } from '../services/NotificationService'
 import { ApiResponse } from '@/lib/apiResponse'
 import { logger } from '@/lib/logger'
+import { requireAuth } from '@/middleware/authMiddleware'
 
 export const notificationRouter = Router()
 
 // Endpoint para guardar o actualizar el token FCM del usuario.
-notificationRouter.post('/save-token', async (req: Request, res: Response) => {
-  // Los datos vienen del body de la solicitud del frontend
+// Requiere sesión y registra el token siempre bajo el usuario de la sesión: el userId del cuerpo
+// se ignora, para que nadie pueda registrar su dispositivo bajo otra persona y recibir sus avisos.
+notificationRouter.post('/save-token', requireAuth(), async (req: Request, res: Response) => {
+  const user = req.context?.requestUser?.user
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
+  }
+
   const { userId, token } = req.body
 
-  if (!userId || typeof userId !== 'string' || !token || typeof token !== 'string') {
-    return res.status(400).json(ApiResponse.error('Datos incompletos o inválidos: userId y token son requeridos.'))
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json(ApiResponse.error('Datos incompletos o inválidos: token es requerido.'))
+  }
+
+  if (userId && userId !== user.id) {
+    logger.warn({ sessionUserId: user.id, bodyUserId: userId }, '[FCM] save-token: el userId del cuerpo no coincide con la sesión, se ignora')
   }
 
   // El servicio se usa directamente ya que es un singleton y maneja DI internamente
   try {
-    await notificationService.saveOrUpdateFcmToken(userId, token)
+    await notificationService.saveOrUpdateFcmToken(user.id, token)
 
     // Respuesta de éxito (status 200 OK)
     return res.status(200).json(ApiResponse.success({ message: 'Token de FCM guardado/actualizado correctamente.' }))

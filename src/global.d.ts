@@ -7,6 +7,7 @@ declare global {
         requestUser?: RequestUser
         role?: string
         userId?: string
+        token?: string
       }
     }
     interface Response {

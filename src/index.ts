@@ -1,4 +1,5 @@
-import '@/settings'
+import '@/settings' // loads .env
+import '@/sentry' // must be initialized before the modules it instruments (express, http...)
 import { startExpressServer } from '@/expressServer'
 import { logger } from '@/lib/logger'
 

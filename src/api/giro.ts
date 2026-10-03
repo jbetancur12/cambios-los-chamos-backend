@@ -45,7 +45,7 @@ giroRouter.post(
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
-    const { beneficiaryName, beneficiaryId, bankId, accountNumber, phone, senderPhone, amountInput, currencyInput, customRate } =
+    const { beneficiaryName, beneficiaryId, bankId, accountNumber, phone, senderPhone, amountInput, currencyInput, customRate, suggestionId } =
       req.body
 
     // VALIDACIÓN 1: Solo SUPER_ADMIN puede usar USD
@@ -122,6 +122,7 @@ giroRouter.post(
         amountBs,
         rateApplied,
         executionType: ExecutionType.TRANSFERENCIA,
+        suggestionId,
       },
       user
     )
@@ -390,6 +391,14 @@ giroRouter.patch(
       if (error instanceof Error && error.message === 'GIRO_NOT_FOUND') {
         return res.status(404).json(ApiResponse.notFound('Giro', giroId))
       }
+      if (error instanceof Error && error.message === 'FORBIDDEN') {
+        return res.status(403).json(ApiResponse.forbidden('No puedes editar este giro'))
+      }
+      if (error instanceof Error && error.message === 'INVALID_STATUS') {
+        return res
+          .status(400)
+          .json(ApiResponse.badRequest('Solo se pueden editar giros en estado PENDIENTE, ASIGNADO o DEVUELTO'))
+      }
       if (error instanceof Error && error.message === 'INSUFFICIENT_BALANCE') {
         return res.status(400).json(ApiResponse.badRequest('Balance insuficiente para reactivar el giro'))
       }
@@ -406,13 +415,20 @@ giroRouter.post(
   requireRole(UserRole.TRANSFERENCISTA, UserRole.SUPER_ADMIN),
   async (req: Request, res: Response) => {
     const { giroId } = req.params
+    const user = req.context?.requestUser?.user
 
-    const result = await giroService.markAsProcessing(giroId)
+    if (!user) {
+      return res.status(401).json(ApiResponse.unauthorized())
+    }
+
+    const result = await giroService.markAsProcessing(giroId, user)
 
     if ('error' in result) {
       switch (result.error) {
         case 'GIRO_NOT_FOUND':
           return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+        case 'FORBIDDEN':
+          return res.status(403).json(ApiResponse.forbidden('Este giro no está asignado a ti'))
         case 'INVALID_STATUS':
           return res.status(400).json(ApiResponse.badRequest('El giro no está en estado válido para ser procesado'))
       }
@@ -497,6 +513,8 @@ giroRouter.post(
       switch (result.error) {
         case 'GIRO_NOT_FOUND':
           return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+        case 'FORBIDDEN':
+          return res.status(403).json(ApiResponse.forbidden('Este giro no está asignado a ti'))
         case 'INVALID_STATUS':
           return res.status(400).json(ApiResponse.badRequest('El giro no está en estado válido para ser ejecutado'))
         case 'BANK_ACCOUNT_NOT_FOUND':
@@ -545,6 +563,8 @@ giroRouter.post(
       switch (result.error) {
         case 'GIRO_NOT_FOUND':
           return res.status(404).json(ApiResponse.notFound('Giro', giroId))
+        case 'FORBIDDEN':
+          return res.status(403).json(ApiResponse.forbidden('Este giro no está asignado a ti'))
         case 'INVALID_STATUS':
           return res.status(400).json(ApiResponse.badRequest('El giro no está en estado válido para ser devuelto'))
       }
@@ -618,6 +638,8 @@ giroRouter.post(
           return res.status(400).json(ApiResponse.badRequest('El giro no está en un estado válido para reasignar'))
         case 'TRANSFERENCISTA_NOT_FOUND':
           return res.status(404).json(ApiResponse.notFound('Transferencista', newTransferencistaId))
+        case 'TRANSFERENCISTA_NOT_AVAILABLE':
+          return res.status(400).json(ApiResponse.badRequest('El transferencista elegido no está disponible'))
         case 'FORBIDDEN':
           return res.status(403).json(ApiResponse.forbidden('No tienes permiso para reasignar este giro'))
       }
@@ -626,47 +648,6 @@ giroRouter.post(
     // Emitir evento de WebSocket para actualizar listas
     if (giroSocketManager) {
       giroSocketManager.broadcastGiroAssigned(result)
-    }
-
-    res.json(ApiResponse.success({ giro: result, message: 'Giro reasignado exitosamente' }))
-  }
-)
-
-// ------------------ REASIGNAR GIRO ------------------
-giroRouter.post(
-  '/:giroId/reassign',
-  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TRANSFERENCISTA),
-  async (req: Request, res: Response) => {
-    const { giroId } = req.params
-    const { newTransferencistaId } = req.body
-    const user = req.context?.requestUser?.user
-
-    if (!user) {
-      return res.status(401).json(ApiResponse.unauthorized())
-    }
-
-    if (!newTransferencistaId) {
-      return res.status(400).json(ApiResponse.validationError([{ field: 'newTransferencistaId', message: 'El ID del nuevo transferencista es requerido' }]))
-    }
-
-    const result = await giroService.reassignGiro(giroId, newTransferencistaId, user)
-
-    if ('error' in result) {
-      switch (result.error) {
-        case 'GIRO_NOT_FOUND':
-          return res.status(404).json(ApiResponse.notFound('Giro', giroId))
-        case 'INVALID_STATUS':
-          return res.status(400).json(ApiResponse.badRequest('El giro no está en un estado válido para reasignar'))
-        case 'TRANSFERENCISTA_NOT_FOUND':
-          return res.status(404).json(ApiResponse.notFound('Transferencista', newTransferencistaId))
-        case 'FORBIDDEN':
-          return res.status(403).json(ApiResponse.forbidden('No tienes permiso para reasignar este giro'))
-      }
-    }
-
-    // Emitir evento de WebSocket para actualizar listas
-    if (giroSocketManager) {
-      giroSocketManager.broadcastGiroAssigned(result) // Reutilizamos "Assigned" o creamos uno nuevo "Reassigned" si fuera necesario, Assigned fuerza recarga usualmente
     }
 
     res.json(ApiResponse.success({ giro: result, message: 'Giro reasignado exitosamente' }))
@@ -765,7 +746,7 @@ giroRouter.post(
       return res.status(401).json(ApiResponse.unauthorized())
     }
 
-    const { cedula, bankId, phone, senderPhone, contactoEnvia = 'NA', amountCop, customRate } = req.body
+    const { cedula, bankId, phone, senderPhone, contactoEnvia = 'Pago Móvil', amountCop, customRate, suggestionId } = req.body
 
     // Validar customRate
     if (customRate && user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.ADMIN) {
@@ -815,6 +796,7 @@ giroRouter.post(
         senderPhone,
         contactoEnvia,
         amountCop: Number(amountCop),
+        suggestionId,
       },
       user,
       rateApplied
@@ -841,44 +823,6 @@ giroRouter.post(
     res.status(201).json(ApiResponse.success({ giro: result, message: 'Pago móvil creado exitosamente' }))
   }
 )
-
-// ------------------ ELIMINAR GIRO ------------------
-giroRouter.delete('/:giroId', requireRole(UserRole.MINORISTA), async (req: Request, res: Response) => {
-  const user = req.context?.requestUser?.user
-  if (!user) {
-    return res.status(401).json(ApiResponse.unauthorized())
-  }
-
-  const { giroId } = req.params
-
-  try {
-    // Eliminar el giro
-    const result = await giroService.deleteGiro(giroId, user)
-
-    if ('error' in result) {
-      switch (result.error) {
-        case 'GIRO_NOT_FOUND':
-          return res.status(404).json(ApiResponse.notFound('Giro'))
-        case 'FORBIDDEN':
-          return res.status(403).json(ApiResponse.forbidden('No puedes eliminar este giro'))
-        case 'INVALID_STATUS':
-          return res
-            .status(400)
-            .json(ApiResponse.badRequest('Solo se pueden eliminar giros en estado PENDIENTE, ASIGNADO o DEVUELTO'))
-      }
-    }
-
-    // Emitir evento de WebSocket
-    if (giroSocketManager) {
-      giroSocketManager.broadcastGiroDeleted(giroId)
-    }
-
-    res.json(ApiResponse.success({ message: 'Giro eliminado exitosamente' }))
-  } catch (error) {
-    logger.error({ error }, 'Error eliminando giro')
-    res.status(500).json(ApiResponse.serverError())
-  }
-})
 
 // ------------------ UPLOAD PAYMENT PROOF ------------------
 giroRouter.post(

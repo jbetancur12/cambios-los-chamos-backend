@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express'
+import * as Sentry from '@sentry/node'
 import { DI } from '@/di' // Dependency Injector que contiene entityManager y repos
 import { verifyAccessToken } from '@/lib/tokenUtils'
 import { RequestUser } from '@/middleware/requestUser'
 import { User } from '@/entities/User'
 import { ApiResponse } from '@/lib/apiResponse'
 import { logger } from '@/lib/logger'
+import { isTokenRevoked } from '@/lib/revokedTokens'
 
 export const userMiddleware = () => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -38,6 +40,11 @@ export const userMiddleware = () => {
         return next()
       }
 
+      // Un token cerrado con logout ya no sirve, aunque el JWT siga vigente
+      if (await isTokenRevoked(token)) {
+        return next()
+      }
+
       // 3️⃣ Buscar el usuario en BD
       const userRepo = DI.em.getRepository(User)
       const user = await userRepo.findOne(
@@ -64,10 +71,13 @@ export const userMiddleware = () => {
 
       // 4️⃣ Construir objeto requestUser
       req.context.requestUser = new RequestUser(user, 'authenticatedUser', null)
+      // Only the id is attached to Sentry events (a no-op when Sentry is disabled)
+      Sentry.getIsolationScope().setUser({ id: user.id })
 
       // Ejemplo: puedes inyectar directamente el rol o ID del minorista
       req.context.role = user.role
       req.context.userId = user.id
+      req.context.token = token
 
       return next()
     } catch (err) {

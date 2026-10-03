@@ -17,6 +17,7 @@ import { validateParams } from '@/lib/validateParams'
 import { IS_DEVELOPMENT } from '@/settings'
 import { posthogCapture } from '@/lib/posthogUtils'
 import { logger } from '@/lib/logger'
+import { revokeToken } from '@/lib/revokedTokens'
 
 export const userRouter = express.Router({ mergeParams: true })
 
@@ -98,6 +99,9 @@ userRouter.post('/logout', requireAuth(), async (req: Request, res: Response) =>
     posthogCapture('user_logged_out', user.id, { email: user.email, role: user.role })
   }
 
+  // Solo se revoca el token de esta sesión; las demás sesiones del usuario siguen vigentes
+  if (req.context?.token) await revokeToken(req.context.token)
+
   // Clear cookie with same settings as when it was created
   res.clearCookie('accessToken', {
     httpOnly: true,
@@ -115,6 +119,11 @@ userRouter.post(
   validateBody(registerSchema),
   async (req: Request, res: Response) => {
     const { email, password, fullName, role } = req.body
+
+    // Only a SUPER_ADMIN can create another SUPER_ADMIN; otherwise an ADMIN could raise their own privileges
+    if (role === UserRole.SUPER_ADMIN && req.context?.requestUser?.user?.role !== UserRole.SUPER_ADMIN) {
+      return res.status(403).json(ApiResponse.forbidden('Solo un SUPER_ADMIN puede crear otro SUPER_ADMIN'))
+    }
 
     const result = await userService.register({ email, password, fullName, role })
 
@@ -269,6 +278,9 @@ userRouter.put(
       if (!user) {
         return res.status(404).json(ApiResponse.notFound('Usuario no encontrado'))
       }
+      if ('error' in user) {
+        return res.status(409).json(ApiResponse.conflict('Debe haber al menos un transferencista disponible'))
+      }
 
       res.json(
         ApiResponse.success({
@@ -300,6 +312,9 @@ userRouter.put(
       const user = await userService.archiveUser(userId)
       if (!user) {
         return res.status(404).json(ApiResponse.notFound('Usuario no encontrado o ya archivado'))
+      }
+      if ('error' in user) {
+        return res.status(409).json(ApiResponse.conflict('Debe haber al menos un transferencista disponible'))
       }
 
       res.json(

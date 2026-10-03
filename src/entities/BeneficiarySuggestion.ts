@@ -33,10 +33,12 @@ export class BeneficiarySuggestion {
   @Enum(() => ExecutionType)
   executionType!: ExecutionType
 
-  @Property({ type: 'date', onCreate: () => new Date() })
+  // 'Date' keeps the time of day (timestamptz). With 'date' the column had no time, so the list could not be
+  // ordered from newest to oldest within the same day.
+  @Property({ type: 'Date', onCreate: () => new Date() })
   createdAt: Date = new Date()
 
-  @Property({ type: 'date', onUpdate: () => new Date() })
+  @Property({ type: 'Date', onUpdate: () => new Date() })
   updatedAt: Date = new Date()
 
   constructor(partial?: Partial<BeneficiarySuggestion>) {

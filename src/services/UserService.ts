@@ -9,6 +9,8 @@ import { sendVerificationEmail } from '@/api/emailVerification'
 import { Transferencista } from '@/entities/Transferencista'
 import { Minorista } from '@/entities/Minorista'
 import { logger } from '@/lib/logger'
+import { escapeLike } from '@/lib/likeUtils'
+import { transferencistaService } from '@/services/TransferencistaService'
 
 export class UserService {
   /**
@@ -16,7 +18,10 @@ export class UserService {
    */
   async login(email: string, password: string): Promise<{ user: User; token: string } | null> {
     const userRepo = DI.em.getRepository(User)
-    const user = await userRepo.findOne({ email: { $ilike: email } }, { populate: ['minorista', 'transferencista'] })
+    const user = await userRepo.findOne(
+      { email: { $ilike: escapeLike(email.trim()) } },
+      { populate: ['minorista', 'transferencista'] }
+    )
 
     // Check if user exists and password matches
     if (!user || !checkPassword(password, user.password || '')) {
@@ -53,7 +58,7 @@ export class UserService {
   }): Promise<{ user: User; token: string } | { error: 'USER_EXISTS' }> {
     const userRepo = DI.em.getRepository(User)
     const normalizedEmail = data.email.toLowerCase()
-    const existing = await userRepo.findOne({ email: { $ilike: normalizedEmail } })
+    const existing = await userRepo.findOne({ email: { $ilike: escapeLike(normalizedEmail) } })
 
     if (existing) {
       return { error: 'USER_EXISTS' }
@@ -148,7 +153,7 @@ export class UserService {
    */
   async sendResetPasswordEmail(email: string): Promise<boolean> {
     const userRepo = DI.em.getRepository(User)
-    const user = await userRepo.findOne({ email: { $ilike: email.trim() } })
+    const user = await userRepo.findOne({ email: { $ilike: escapeLike(email.trim()) } })
 
     if (!user) {
       // Retornar true para no revelar si el email existe
@@ -210,7 +215,7 @@ export class UserService {
    */
   async findByEmail(email: string): Promise<User | null> {
     const userRepo = DI.em.getRepository(User)
-    return userRepo.findOne({ email: { $ilike: email.trim() } })
+    return userRepo.findOne({ email: { $ilike: escapeLike(email.trim()) } })
   }
 
   /**
@@ -231,7 +236,22 @@ export class UserService {
     return users
   }
 
-  async toggleUserActiveStatus(userId: string): Promise<User | false> {
+  /**
+   * A transferencista who leaves the pool (archived or deactivated) must not leave the system without one:
+   * if they are the last available the change is refused; otherwise they are marked unavailable and their
+   * assigned giros move to the others.
+   */
+  private async leaveTransferencistaPool(user: User): Promise<{ error: 'LAST_AVAILABLE' } | null> {
+    if (user.role !== UserRole.TRANSFERENCISTA) return null
+
+    const transferencista = await DI.transferencistas.findOne({ user: user.id })
+    if (!transferencista || !transferencista.available) return null
+
+    const result = await transferencistaService.setAvailability(transferencista.id, false)
+    return 'error' in result && result.error === 'LAST_AVAILABLE' ? { error: 'LAST_AVAILABLE' } : null
+  }
+
+  async toggleUserActiveStatus(userId: string): Promise<User | false | { error: 'LAST_AVAILABLE' }> {
     const userRepo = DI.em.getRepository(User)
     const user = await userRepo.findOne({ id: userId })
     logger.debug({ user }, 'UserService toggleUserActiveStatus')
@@ -240,12 +260,18 @@ export class UserService {
       return false
     }
 
+    // Deactivating a transferencista takes them out of the pool
+    if (user.isActive) {
+      const blocked = await this.leaveTransferencistaPool(user)
+      if (blocked) return blocked
+    }
+
     user.isActive = !user.isActive
     await DI.em.persistAndFlush(user)
     return user
   }
 
-  async archiveUser(userId: string): Promise<User | false> {
+  async archiveUser(userId: string): Promise<User | false | { error: 'LAST_AVAILABLE' }> {
     const userRepo = DI.em.getRepository(User)
     const user = await userRepo.findOne({ id: userId })
 
@@ -256,6 +282,10 @@ export class UserService {
     if (user.deletedAt) {
       return false
     }
+
+    // Archiving a transferencista takes them out of the pool
+    const blocked = await this.leaveTransferencistaPool(user)
+    if (blocked) return blocked
 
     user.deletedAt = new Date()
     user.isActive = false

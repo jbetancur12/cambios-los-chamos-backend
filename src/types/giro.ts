@@ -11,6 +11,7 @@ export interface CreateGiroInput {
   accountNumber: string
   phone: string
   senderPhone?: string // Teléfono del remitente para notificaciones WhatsApp
+  suggestionId?: string // Sugerencia a actualizar; sin ella se crea o reutiliza por destino
   amountInput: number
   currencyInput: Currency
   amountBs: number

@@ -5,6 +5,7 @@ import { validateBody } from '@/lib/zodUtils'
 import { createTransactionSchema } from '@/schemas/minoristaTransactionSchema'
 import { UserRole } from '@/entities/User'
 import { minoristaTransactionService } from '@/services/MinoristaTransactionService'
+import { canAccessMinorista } from '@/lib/minoristaAccess'
 
 export const minoristaTransactionRouter = express.Router()
 
@@ -49,6 +50,16 @@ minoristaTransactionRouter.post(
 // ------------------ LISTAR TRANSACCIONES POR MINORISTA ------------------
 minoristaTransactionRouter.get('/by-minorista/:minoristaId', requireAuth(), async (req: Request, res: Response) => {
   const { minoristaId } = req.params
+  const user = req.context?.requestUser?.user
+
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
+  }
+
+  // A minorista only sees their own movements; admins see any
+  if (!(await canAccessMinorista(user, minoristaId))) {
+    return res.status(403).json(ApiResponse.forbidden('No tienes permiso para ver las transacciones de este minorista'))
+  }
   const page = parseInt(req.query.page as string) || 1
   const limit = parseInt(req.query.limit as string) || 50
 
@@ -67,11 +78,21 @@ minoristaTransactionRouter.get('/by-minorista/:minoristaId', requireAuth(), asyn
 // ------------------ OBTENER TRANSACCIÓN POR ID ------------------
 minoristaTransactionRouter.get('/:transactionId', requireAuth(), async (req: Request, res: Response) => {
   const { transactionId } = req.params
+  const user = req.context?.requestUser?.user
+
+  if (!user) {
+    return res.status(401).json(ApiResponse.unauthorized())
+  }
 
   const result = await minoristaTransactionService.getTransactionById(transactionId)
 
   if ('error' in result) {
     return res.status(404).json(ApiResponse.notFound('Transacción', transactionId))
+  }
+
+  // A minorista only sees their own transactions; admins see any
+  if (!(await canAccessMinorista(user, result.minorista.id))) {
+    return res.status(403).json(ApiResponse.forbidden('No tienes permiso para ver esta transacción'))
   }
 
   res.json(ApiResponse.success({ transaction: result }))

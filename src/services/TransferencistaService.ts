@@ -2,6 +2,9 @@
 import { DI } from '@/di'
 import { User, UserRole } from '@/entities/User'
 import { Transferencista } from '@/entities/Transferencista'
+import { TransferencistaAssignmentTracker } from '@/entities/TransferencistaAssignmentTracker'
+import { LockMode } from '@mikro-orm/core'
+import { AVAILABLE_TRANSFERENCISTA } from '@/lib/transferencistaPool'
 import { makePassword } from '@/lib/passwordUtils'
 import { giroService } from '@/services/GiroService'
 import { giroSocketManager } from '@/websocket'
@@ -114,24 +117,38 @@ class TransferencistaService {
     | { error: 'TRANSFERENCISTA_NOT_FOUND' }
     | { error: 'LAST_AVAILABLE' }
   > {
-    const transferencistaRepo = DI.em.getRepository(Transferencista)
+    const outcome = await DI.em.transactional(async (em) => {
+      // The assignment tracker row works as the lock that serializes changes to the pool: two requests that
+      // disable the last two available transferencistas at the same time can no longer both succeed.
+      await em.findOne(TransferencistaAssignmentTracker, { id: 1 }, { lockMode: LockMode.PESSIMISTIC_WRITE })
 
-    const transferencista = await transferencistaRepo.findOne({ id: transferencistaId })
-    if (!transferencista) {
-      return { error: 'TRANSFERENCISTA_NOT_FOUND' }
-    }
-
-    // Evitar que todos queden no disponibles
-    if (!available && transferencista.available) {
-      const availableCount = await transferencistaRepo.count({ available: true })
-      if (availableCount <= 1) {
-        return { error: 'LAST_AVAILABLE' }
+      const transferencista = await em.findOne(Transferencista, { id: transferencistaId })
+      if (!transferencista) {
+        return { error: 'TRANSFERENCISTA_NOT_FOUND' as const }
       }
+
+      const wasAvailable = transferencista.available
+
+      // Evitar que todos queden no disponibles. Only a transferencista that is really in the pool counts:
+      // available, with an active user that is not archived.
+      if (!available && wasAvailable) {
+        const pool = await em.find(Transferencista, AVAILABLE_TRANSFERENCISTA)
+        const isInPool = pool.some((t) => t.id === transferencista.id)
+        if (isInPool && pool.length <= 1) {
+          return { error: 'LAST_AVAILABLE' as const }
+        }
+      }
+
+      transferencista.available = available
+      await em.flush()
+      return { wasAvailable }
+    })
+
+    if (outcome.error) {
+      return { error: outcome.error }
     }
 
-    const previousAvailability = transferencista.available
-    transferencista.available = available
-    await DI.em.persistAndFlush(transferencista)
+    const previousAvailability = outcome.wasAvailable
 
     // Si se marcó como NO disponible, redistribuir sus giros pendientes
     if (!available && previousAvailability) {

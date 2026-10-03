@@ -14,7 +14,6 @@ import { bankAccountTransactionService } from '@/services/BankAccountTransaction
 import { BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 import { sendGiroAssignedNotification } from '@/lib/notification_sender'
 import { exchangeRateService } from '@/services/ExchangeRateService'
-import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionService'
 import { ExchangeRate } from '@/entities/ExchangeRate'
 import { Currency, Bank } from '@/entities/Bank'
 import { EntityManager, LockMode, FilterQuery } from '@mikro-orm/core'
@@ -23,8 +22,51 @@ import { sendEmail } from '@/lib/emailUtils'
 import { notificationService } from '@/services/NotificationService'
 import { logger } from '@/lib/logger'
 import { whatsAppNotificationService } from '@/services/WhatsAppNotificationService'
+import { beneficiarySuggestionService } from '@/services/BeneficiarySuggestionService'
+import { AVAILABLE_TRANSFERENCISTA, isInTransferencistaPool } from '@/lib/transferencistaPool'
+
+type ExecuteGiroResult =
+  | Giro
+  | {
+      error:
+        | 'GIRO_NOT_FOUND'
+        | 'INVALID_STATUS'
+        | 'BANK_ACCOUNT_NOT_FOUND'
+        | 'INSUFFICIENT_BALANCE'
+        | 'UNAUTHORIZED_ACCOUNT'
+        | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+        | 'FORBIDDEN'
+    }
+type ReturnGiroResult = Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'FORBIDDEN' }
+type DeleteGiroResult = Giro | { error: 'GIRO_NOT_FOUND' | 'FORBIDDEN' | 'INVALID_STATUS' }
 
 export class GiroService {
+  /**
+   * Admins act on any giro; a transferencista only on the giro currently assigned to them.
+   * Reassigning a giro (manually or when a transferencista is disabled) changes giro.transferencista,
+   * so the new transferencista gains the right and the previous one loses it.
+   * Requires giro.transferencista.user to be populated.
+   */
+  private canActOnAssignedGiro(giro: Giro, user: User): boolean {
+    if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) return true
+    if (user.role === UserRole.TRANSFERENCISTA) return giro.transferencista?.user?.id === user.id
+    return false
+  }
+
+  /**
+   * Guarda la sugerencia de beneficiario; un fallo aquí nunca debe afectar al giro ya creado.
+   */
+  private async saveBeneficiarySuggestionSafe(
+    userId: string,
+    data: Parameters<typeof beneficiarySuggestionService.saveBeneficiarySuggestion>[1]
+  ): Promise<void> {
+    try {
+      await beneficiarySuggestionService.saveBeneficiarySuggestion(userId, data)
+    } catch (error) {
+      logger.warn({ error }, 'Error al guardar sugerencia de beneficiario')
+    }
+  }
+
   /**
    * Encuentra el siguiente transferencista disponible usando distribución round-robin
    * Distribuye los giros equitativamente entre TODOS los transferencistas disponibles
@@ -33,7 +75,7 @@ export class GiroService {
   private async findNextAvailableTransferencista(em: EntityManager): Promise<Transferencista | null> {
     // Obtener todos los transferencistas disponibles, ordenados por ID para consistencia
     const availableTransferencistas = await DI.transferencistas.find(
-      { available: true },
+      AVAILABLE_TRANSFERENCISTA,
       {
         populate: ['user'],
         orderBy: { id: 'ASC' },
@@ -292,26 +334,21 @@ export class GiroService {
         return giro
       })
       .then(async (giro) => {
-        // Guardar sugerencia de beneficiario DESPUÉS de la transacción exitosa
+        // Único punto de guardado de la sugerencia: después del commit y sin romper el giro si falla
         if ('error' in giro) {
           return giro
         }
-
-        try {
-          await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
-            beneficiaryName: data.beneficiaryName,
-            beneficiaryId: data.beneficiaryId,
-            phone: data.phone || '',
-            senderPhone: data.senderPhone, // Recordar teléfono del remitente para próximos giros
-            bankId: data.bankId,
-            accountNumber: data.accountNumber,
-            executionType: data.executionType || ExecutionType.TRANSFERENCIA,
-          })
-        } catch (error) {
-          // No fallar si no se puede guardar la sugerencia
-          logger.warn({ error }, 'Error al guardar sugerencia de beneficiario')
-        }
-
+        await this.saveBeneficiarySuggestionSafe(createdBy.id, {
+          beneficiaryName: data.beneficiaryName,
+          beneficiaryId: data.beneficiaryId,
+          phone: data.phone || '',
+          senderPhone: data.senderPhone,
+          bankId: data.bankId,
+          accountNumber: data.accountNumber,
+          executionType: data.executionType || ExecutionType.TRANSFERENCIA,
+          suggestionId: data.suggestionId,
+          giroId: giro.id,
+        })
         return giro
       })
       .catch((error) => {
@@ -330,7 +367,51 @@ export class GiroService {
    * Ejecuta un giro. El transferencista selecciona cuenta y tipo de ejecución.
    * Valida balance y descuenta de la cuenta del transferencista.
    */
+  /**
+   * Runs `work` while holding a lock on the giro. Two executions, returns or cancellations of the same giro
+   * (two people, two tabs, a retried request) then run one after the other: the second one finds the giro already
+   * processed and is rejected, instead of both passing the status check and paying or refunding twice.
+   * All the work joins one transaction, so a failure halfway leaves nothing half done.
+   */
+  private async withGiroLock<T>(giroId: string, work: () => Promise<T>): Promise<T> {
+    return DI.em.transactional(async (em) => {
+      await em
+        .getConnection()
+        .execute('select pg_advisory_xact_lock(hashtext(?))', [`giro:${giroId}`], 'run', em.getTransactionContext())
+      return work()
+    })
+  }
+
   async executeGiro(
+    giroId: string,
+    bankAccountId: string,
+    executionType: ExecutionType,
+    fee: number,
+    executingUser?: User
+  ): Promise<ExecuteGiroResult> {
+    const result = await this.withGiroLock(giroId, () =>
+      this.executeGiroLocked(giroId, bankAccountId, executionType, fee, executingUser)
+    )
+
+    if (!('error' in result)) {
+      // Enviar notificación WhatsApp al cliente (fire-and-forget), ya con el giro guardado
+      whatsAppNotificationService.notifyGiroCompleted(result).catch((err) =>
+        logger.error({ err }, '[WHATSAPP] Error notificando giro completado')
+      )
+    }
+
+    return result
+  }
+
+  async returnGiro(giroId: string, reason: string, createdBy: User): Promise<ReturnGiroResult> {
+    return this.withGiroLock(giroId, () => this.returnGiroLocked(giroId, reason, createdBy))
+  }
+
+  async deleteGiro(giroId: string, user: User): Promise<DeleteGiroResult> {
+    return this.withGiroLock(giroId, () => this.deleteGiroLocked(giroId, user))
+  }
+
+  private async executeGiroLocked(
     giroId: string,
     bankAccountId: string,
     executionType: ExecutionType,
@@ -346,11 +427,14 @@ export class GiroService {
       | 'INSUFFICIENT_BALANCE'
       | 'UNAUTHORIZED_ACCOUNT'
       | 'BANK_NOT_ASSIGNED_TO_TRANSFERENCISTA'
+      | 'FORBIDDEN'
     }
   > {
     const giro = await DI.giros.findOne(
       { id: giroId },
       {
+        // refresh: another request may have changed the giro while this one waited for the lock
+        refresh: true,
         populate: [
           'transferencista',
           'transferencista.user',
@@ -366,6 +450,11 @@ export class GiroService {
 
     if (!giro) {
       return { error: 'GIRO_NOT_FOUND' }
+    }
+
+    // A transferencista can only execute the giro assigned to them
+    if (executingUser && !this.canActOnAssignedGiro(giro, executingUser)) {
+      return { error: 'FORBIDDEN' }
     }
 
     // Solo giros ASIGNADOS o PROCESANDO pueden ejecutarse
@@ -496,25 +585,21 @@ export class GiroService {
     }
     */
 
-    // Enviar notificación WhatsApp al cliente (fire-and-forget)
-    whatsAppNotificationService.notifyGiroCompleted(giro).catch(err =>
-      logger.error({ err }, '[WHATSAPP] Error notificando giro completado')
-    )
-
     return giro
   }
 
-  async returnGiro(
+  private async returnGiroLocked(
     giroId: string,
     reason: string,
     createdBy: User
-  ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' }> {
+  ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'FORBIDDEN' }> {
     try {
       const giroRepo = DI.em.getRepository(Giro)
 
       const giro = await giroRepo.findOne(
         { id: giroId },
         {
+          refresh: true, // see executeGiroLocked
           populate: [
             'minorista',
             'minorista.user',
@@ -531,6 +616,12 @@ export class GiroService {
       if (!giro) {
         logger.warn(`[GIRO] Return failed: GIRO_NOT_FOUND (giroId: ${giroId}, user: ${createdBy.id})`)
         return { error: 'GIRO_NOT_FOUND' }
+      }
+
+      // A transferencista can only return the giro assigned to them
+      if (!this.canActOnAssignedGiro(giro, createdBy)) {
+        logger.warn(`[GIRO] Return denied: FORBIDDEN (giroId: ${giroId}, user: ${createdBy.id}, role: ${createdBy.role})`)
+        return { error: 'FORBIDDEN' }
       }
 
       // Solo giros ASIGNADOS o PROCESANDO pueden ser devueltos
@@ -642,12 +733,12 @@ export class GiroService {
    * Solo en estados PENDIENTE, ASIGNADO o DEVUELTO.
    * Reembolsa el monto al minorista antes de eliminar.
    */
-  async deleteGiro(
+  private async deleteGiroLocked(
     giroId: string,
     user: User
   ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'FORBIDDEN' | 'INVALID_STATUS' }> {
     try {
-      const giro = await DI.em.getRepository(Giro).findOne({ id: giroId }, { populate: ['minorista', 'createdBy'] })
+      const giro = await DI.em.getRepository(Giro).findOne({ id: giroId }, { refresh: true, populate: ['minorista', 'createdBy'] })
 
       if (!giro) {
         logger.warn(`[GIRO] Delete failed: GIRO_NOT_FOUND (giroId: ${giroId}, user: ${user.id})`)
@@ -742,7 +833,10 @@ export class GiroService {
   /**
    * Permite al transferencista marcar un giro como en proceso
    */
-  async markAsProcessing(giroId: string): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' }> {
+  async markAsProcessing(
+    giroId: string,
+    user: User
+  ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'FORBIDDEN' }> {
     const giroRepo = DI.em.getRepository(Giro)
 
     const giro = await giroRepo.findOne(
@@ -765,6 +859,11 @@ export class GiroService {
       return { error: 'GIRO_NOT_FOUND' }
     }
 
+    // A transferencista can only take the giro assigned to them
+    if (!this.canActOnAssignedGiro(giro, user)) {
+      return { error: 'FORBIDDEN' }
+    }
+
     if (giro.status !== GiroStatus.ASIGNADO) {
       return { error: 'INVALID_STATUS' }
     }
@@ -778,8 +877,8 @@ export class GiroService {
   }
 
   /**
-   * Redistribuye todos los giros pendientes de un transferencista a otros disponibles
-   * Se llama cuando un transferencista se marca como no disponible
+   * Redistribuye los giros asignados y en procesamiento de un transferencista a otros disponibles
+   * Se llama cuando un transferencista sale del reparto (deshabilitado o archivado)
    */
   async redistributePendingGiros(transferencistaId: string): Promise<{
     redistributed: number
@@ -787,11 +886,12 @@ export class GiroService {
     reassignedGiros: Giro[]
   }> {
     return await DI.em.transactional(async (em) => {
-      // Encontrar solo los giros asignados del transferencista
-      // Los giros que ya están en proceso (PROCESANDO) se quedan con el transferencista actual
+      // Encontrar los giros asignados Y los que está procesando: un transferencista que sale del reparto
+      // (deshabilitado o archivado) no los va a terminar, así que pasan a otro. Los completados, devueltos
+      // y cancelados no se mueven.
       const pendingGiros = await em.find(Giro, {
         transferencista: transferencistaId,
-        status: GiroStatus.ASIGNADO,
+        status: { $in: [GiroStatus.ASIGNADO, GiroStatus.PROCESANDO] },
       }, {
         populate: ['transferencista.user', 'minorista', 'rateApplied', 'createdBy']
       })
@@ -811,7 +911,7 @@ export class GiroService {
             continue
           }
 
-          // Reasignar el giro
+          // Reasignar el giro. Vuelve a ASIGNADO: el nuevo transferencista todavía no lo ha empezado a procesar
           giro.transferencista = newTransferencista
           giro.status = GiroStatus.ASIGNADO
           giro.updatedAt = new Date()
@@ -1403,6 +1503,7 @@ export class GiroService {
       senderPhone?: string
       contactoEnvia?: string // Made optional
       amountCop: number
+      suggestionId?: string // Sugerencia a actualizar; sin ella se crea o reutiliza por destino
     },
     createdBy: User,
     exchangeRate: ExchangeRate
@@ -1477,8 +1578,10 @@ export class GiroService {
 
         // Fallback for beneficiaryName if kontaktEnvia is missing
         // Since 'beneficiaryName' is NOT NULL, we must provide a value.
-        // If contactEnvia is removed, we use 'Pago Movil' or similar placeholder.
-        const beneficiaryNameFallback = data.contactoEnvia?.trim() || `Pago Móvil - ${data.phone}`
+        // If contactEnvia is empty, we use 'Pago Móvil' as the placeholder.
+        const contactName = data.contactoEnvia?.trim()
+        const beneficiaryNameFallback =
+          contactName && contactName !== 'NA' && contactName !== 'Sistema' ? contactName : 'Pago Móvil'
 
         // Crear giro
         const giro = giroRepo.create({
@@ -1557,23 +1660,25 @@ export class GiroService {
         }
         */
 
-        // Guardar sugerencia de beneficiario después de la transacción exitosa
-        // Nota: Esto es un side-effect dentro de la transacción, pero es aceptable.
-        // Si falla, no aborta la transacción principal (try-catch interno).
-        try {
-          await beneficiarySuggestionService.saveBeneficiarySuggestion(createdBy.id, {
-            beneficiaryName: data.phone, // Para pago móvil, usar teléfono como nombre
-            beneficiaryId: data.cedula,
-            phone: data.phone,
-            bankId: data.bankId,
-            accountNumber: data.phone, // Para pago móvil, usar teléfono como account number
-            executionType: ExecutionType.PAGO_MOVIL,
-          })
-        } catch (error) {
-          // No fallar si no se puede guardar la sugerencia
-          logger.warn({ error }, 'Error al guardar sugerencia de beneficiario')
+        return giro
+      })
+      .then(async (giro) => {
+        // Único punto de guardado de la sugerencia: después del commit y sin romper el giro si falla
+        if ('error' in giro) {
+          return giro
         }
-
+        const contact = data.contactoEnvia?.trim()
+        await this.saveBeneficiarySuggestionSafe(createdBy.id, {
+          beneficiaryName: contact && contact !== 'NA' && contact !== 'Sistema' ? contact : 'Pago Móvil',
+          beneficiaryId: data.cedula,
+          phone: data.phone,
+          senderPhone: data.senderPhone,
+          bankId: data.bankId,
+          accountNumber: '',
+          executionType: ExecutionType.PAGO_MOVIL,
+          suggestionId: data.suggestionId,
+          giroId: giro.id,
+        })
         return giro
       })
       .catch((error) => {
@@ -1619,6 +1724,21 @@ export class GiroService {
     )
     if (!giro) {
       throw new Error('GIRO_NOT_FOUND')
+    }
+
+    // Only the minorista who owns the giro, or an admin, can edit it
+    const isAdmin = user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN
+    const isOwner = user.role === UserRole.MINORISTA && giro.minorista?.user.id === user.id
+    if (!isAdmin && !isOwner) {
+      logger.warn(`[GIRO] Update denied: FORBIDDEN (giroId: ${giroId}, user: ${user.id}, role: ${user.role})`)
+      throw new Error('FORBIDDEN')
+    }
+
+    // A giro being processed, paid, or cancelled can no longer be edited or redirected
+    const editableStatuses = [GiroStatus.PENDIENTE, GiroStatus.ASIGNADO, GiroStatus.DEVUELTO]
+    if (!editableStatuses.includes(giro.status)) {
+      logger.warn(`[GIRO] Update denied: INVALID_STATUS (giroId: ${giroId}, status: ${giro.status}, user: ${user.id})`)
+      throw new Error('INVALID_STATUS')
     }
 
     let bank: Bank | null = null
@@ -1780,7 +1900,9 @@ export class GiroService {
     giroId: string,
     newTransferencistaId: string,
     user: User
-  ): Promise<Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'TRANSFERENCISTA_NOT_FOUND' | 'FORBIDDEN' }> {
+  ): Promise<
+    Giro | { error: 'GIRO_NOT_FOUND' | 'INVALID_STATUS' | 'TRANSFERENCISTA_NOT_FOUND' | 'TRANSFERENCISTA_NOT_AVAILABLE' | 'FORBIDDEN' }
+  > {
     // Validar permisos si el usuario no es ADMIN/SUPER_ADMIN (aunque el controller ya lo hace, doble check)
     // El controller permite TRANSFERENCISTA, así que aquí validamos lógica de negocio si fuera necesario.
 
@@ -1806,6 +1928,12 @@ export class GiroService {
       return { error: 'GIRO_NOT_FOUND' }
     }
 
+    // An admin can reassign any giro; a transferencista only the one assigned to them
+    if (!this.canActOnAssignedGiro(giro, user)) {
+      logger.warn(`[GIRO] Reassign denied: FORBIDDEN (giroId: ${giroId}, user: ${user.id}, role: ${user.role})`)
+      return { error: 'FORBIDDEN' }
+    }
+
     // Validar estado
     if (giro.status !== GiroStatus.ASIGNADO && giro.status !== GiroStatus.PROCESANDO) {
       return { error: 'INVALID_STATUS' }
@@ -1819,6 +1947,11 @@ export class GiroService {
 
     if (!newTransferencista) {
       return { error: 'TRANSFERENCISTA_NOT_FOUND' }
+    }
+
+    // Only to a transferencista who can receive giros: available, with an active user that is not archived
+    if (!isInTransferencistaPool(newTransferencista)) {
+      return { error: 'TRANSFERENCISTA_NOT_AVAILABLE' }
     }
 
     // Evitar reasignar al mismo

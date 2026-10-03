@@ -1,5 +1,5 @@
 import { DI } from '@/di'
-import { FilterQuery } from '@mikro-orm/core'
+import { FilterQuery, LockMode } from '@mikro-orm/core'
 import { BankAccountTransaction, BankAccountTransactionType } from '@/entities/BankAccountTransaction'
 import { BankAccount } from '@/entities/BankAccount'
 import { User } from '@/entities/User'
@@ -26,11 +26,22 @@ export class BankAccountTransactionService {
   async createTransaction(
     data: CreateBankAccountTransactionInput
   ): Promise<BankAccountTransaction | { error: 'BANK_ACCOUNT_NOT_FOUND' | 'INSUFFICIENT_BALANCE' }> {
+    // The balance is read, changed and written back, so the whole thing runs in one transaction that locks the
+    // account row: two movements on the same account at once can no longer overwrite each other's balance.
+    return DI.em.transactional(() => this.createTransactionLocked(data))
+  }
+
+  private async createTransactionLocked(
+    data: CreateBankAccountTransactionInput
+  ): Promise<BankAccountTransaction | { error: 'BANK_ACCOUNT_NOT_FOUND' | 'INSUFFICIENT_BALANCE' }> {
     const bankAccountRepo = DI.em.getRepository(BankAccount)
     const transactionRepo = DI.em.getRepository(BankAccountTransaction)
 
     // Buscar cuenta bancaria
-    const bankAccount = await bankAccountRepo.findOne({ id: data.bankAccountId })
+    const bankAccount = await bankAccountRepo.findOne(
+      { id: data.bankAccountId },
+      { lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true }
+    )
     if (!bankAccount) {
       return { error: 'BANK_ACCOUNT_NOT_FOUND' }
     }

@@ -6,6 +6,9 @@ import { UserFcmToken } from '@/entities/UserFcmToken'
 import { DI } from '@/di'
 import { logger } from '@/lib/logger'
 
+// Códigos con los que Firebase indica que un token ya no sirve y puede borrarse
+const INVALID_TOKEN_CODES = new Set(['messaging/registration-token-not-registered', 'messaging/invalid-registration-token'])
+
 /**
  * Servicio encargado de gestionar el registro y actualización de tokens FCM
  * y el envío de notificaciones.
@@ -131,24 +134,23 @@ export class NotificationService {
       )
 
       if (response.failureCount > 0) {
-        const failedTokens: string[] = []
+        // Solo se borran los tokens que Firebase declara inválidos. Un fallo pasajero (servidor no
+        // disponible, cuota, error interno) no debe borrar un token que sigue funcionando: antes se
+        // borraba cualquier token que fallara y el usuario dejaba de recibir avisos hasta volver a iniciar sesión.
+        const invalidTokens: string[] = []
         response.responses.forEach((resp, idx) => {
-          if (!resp.success) {
-            failedTokens.push(registrationTokens[idx])
-            // Si el error es que el token no es válido, deberíamos eliminarlo
-            if (resp.error?.code === 'messaging/registration-token-not-registered') {
-              // Eliminar token inválido
-              // Necesitamos hacer esto en un fork o algo para no bloquear, pero aquí está bien.
-              // Como estamos a mitad de ejecución, tal vez mejor solo loguear por ahora
-              logger.info(`[FCM] Token inválido detectado para borrar: ${registrationTokens[idx]}`)
-            }
+          if (resp.success) return
+          const code = resp.error?.code ?? 'desconocido'
+          if (INVALID_TOKEN_CODES.has(code)) {
+            invalidTokens.push(registrationTokens[idx])
+          } else {
+            logger.warn({ code, userId }, '[FCM] Falló el envío a un token; se conserva (no es un token inválido)')
           }
         })
 
-        // Eliminar tokens inválidos de la DB
-        if (failedTokens.length > 0) {
-          await DI.em.nativeDelete(UserFcmToken, { fcmToken: { $in: failedTokens } })
-          logger.info(`[FCM] Eliminados ${failedTokens.length} tokens inválidos.`)
+        if (invalidTokens.length > 0) {
+          await DI.em.nativeDelete(UserFcmToken, { fcmToken: { $in: invalidTokens } })
+          logger.info(`[FCM] Eliminados ${invalidTokens.length} tokens inválidos.`)
         }
       }
     } catch (error) {
