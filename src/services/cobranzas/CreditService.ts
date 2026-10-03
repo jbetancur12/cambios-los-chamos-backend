@@ -48,7 +48,7 @@ export interface CreditView {
 }
 
 const DAY_MS = 86400000
-const PERIOD_DAYS: Record<CreditFrequency, number> = {
+export const PERIOD_DAYS: Record<CreditFrequency, number> = {
   [CreditFrequency.DAILY]: 1,
   [CreditFrequency.WEEKLY]: 7,
   [CreditFrequency.BIWEEKLY]: 15,
