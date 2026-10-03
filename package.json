@@ -13,6 +13,7 @@
     "migration:down": "mikro-orm migration:down",
     "migration:pending": "mikro-orm migration:pending",
     "seed": "mikro-orm seeder:run",
+    "seed:cobranzas": "mikro-orm seeder:run --class=CobranzasSeeder",
     "seed:create": "mikro-orm seeder:create",
     "db:drop": "mikro-orm schema:drop --run",
     "db:fresh": "npm run db:drop && mikro-orm schema:update --run && npm run create:superadmin && npm run seed",

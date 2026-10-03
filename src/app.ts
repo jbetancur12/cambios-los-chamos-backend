@@ -38,6 +38,7 @@ import { logsRouter } from '@/api/logs'
 import { invoiceClientesRouter } from '@/api/invoiceClientes'
 import { inventoryRouter } from '@/api/inventory'
 import { whatsappWebhookRouter } from '@/api/whatsappWebhook'
+import { cobranzasRouter } from '@/api/cobranzas'
 
 
 // Builds the Express app with all middleware and routes. Kept separate from startExpressServer
@@ -99,6 +100,7 @@ export const createApp = (DI: Awaited<ReturnType<typeof initDI>>) => {
   app.use('/logs', logsRouter)
   app.use('/inventory', inventoryRouter)
   app.use('/whatsapp', whatsappWebhookRouter)
+  app.use('/cobranzas', cobranzasRouter)
 
   app.use('/', privateRoutesRouter)
 

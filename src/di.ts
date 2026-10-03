@@ -22,6 +22,10 @@ import { BeneficiarySuggestion } from './entities/BeneficiarySuggestion'
 import { Product } from './entities/Product'
 import { ProductTransaction } from './entities/ProductTransaction'
 import { ProductPresentation } from './entities/ProductPresentation'
+import { CobranzaClient } from './entities/CobranzaClient'
+import { Credit } from './entities/Credit'
+import { Payment } from './entities/Payment'
+import { CreditFollowUp } from './entities/CreditFollowUp'
 
 export const DI = {} as {
   server: http.Server
@@ -48,6 +52,10 @@ export const DI = {} as {
   products: EntityRepository<Product>
   productTransactions: EntityRepository<ProductTransaction>
   productPresentations: EntityRepository<ProductPresentation>
+  cobranzaClients: EntityRepository<CobranzaClient>
+  credits: EntityRepository<Credit>
+  payments: EntityRepository<Payment>
+  creditFollowUps: EntityRepository<CreditFollowUp>
 }
 
 export const initDI = async (): Promise<typeof DI> => {
@@ -74,6 +82,10 @@ export const initDI = async (): Promise<typeof DI> => {
   DI.products = DI.orm.em.getRepository(Product)
   DI.productTransactions = DI.orm.em.getRepository(ProductTransaction)
   DI.productPresentations = DI.orm.em.getRepository(ProductPresentation)
+  DI.cobranzaClients = DI.orm.em.getRepository(CobranzaClient)
+  DI.credits = DI.orm.em.getRepository(Credit)
+  DI.payments = DI.orm.em.getRepository(Payment)
+  DI.creditFollowUps = DI.orm.em.getRepository(CreditFollowUp)
 
   return DI
 }
