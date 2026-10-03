@@ -2,7 +2,6 @@ import { Entity, PrimaryKey, Property, Enum, ManyToOne, OneToMany, Collection, I
 import { v4 as uuidv4 } from 'uuid'
 import { User } from './User'
 import { CobranzaClient } from './CobranzaClient'
-import { CashBalance } from './CashBalance'
 import { Payment } from './Payment'
 
 export enum CreditFrequency {
@@ -12,12 +11,10 @@ export enum CreditFrequency {
   MONTHLY = 'monthly',
 }
 
+// "En mora" no es un estado: se deriva del cronograma (cuotas vencidas sin pagar).
 export enum CreditStatus {
-  PENDING_APPROVAL = 'pending_approval',
-  WAITING_DELIVERY = 'waiting_delivery',
   ACTIVE = 'active',
   PAID_OFF = 'paid_off',
-  DEFAULTED = 'defaulted',
   CANCELLED = 'cancelled',
 }
 
@@ -29,41 +26,33 @@ export class Credit {
   @ManyToOne(() => CobranzaClient, { deleteRule: 'cascade', updateRule: 'cascade' })
   client!: CobranzaClient
 
-  @ManyToOne(() => User, { nullable: true, deleteRule: 'set null', updateRule: 'cascade' })
-  cobrador?: User
-
   @ManyToOne(() => User, { deleteRule: 'cascade', updateRule: 'cascade' })
   createdBy!: User
 
-  @ManyToOne(() => User, { nullable: true, deleteRule: 'set null', updateRule: 'cascade' })
-  approvedBy?: User
-
-  @ManyToOne(() => User, { nullable: true, deleteRule: 'set null', updateRule: 'cascade' })
-  deliveredBy?: User
-
-  @ManyToOne(() => CashBalance, { nullable: true, deleteRule: 'set null', updateRule: 'cascade' })
-  cashBalance?: CashBalance
-
+  // Capital prestado
   @Property({ type: 'decimal', precision: 15, scale: 2 })
   amount!: number
 
+  // Saldo pendiente (totalAmount - totalPaid)
   @Property({ type: 'decimal', precision: 15, scale: 2 })
   balance!: number
 
-  @Property()
+  @Property({ type: 'text' })
   @Index()
   frequency!: CreditFrequency
 
+  // Fecha de la primera cuota (fecha del préstamo + un periodo)
   @Property({ type: 'date' })
   @Index()
   startDate!: string
 
+  // Fecha de la última cuota
   @Property({ type: 'date', nullable: true })
   endDate?: string
 
   @Enum(() => CreditStatus)
   @Index()
-  status: CreditStatus = CreditStatus.PENDING_APPROVAL
+  status: CreditStatus = CreditStatus.ACTIVE
 
   @Property({ type: 'decimal', precision: 5, scale: 2, default: 0 })
   interestRate: number = 0
@@ -83,47 +72,8 @@ export class Credit {
   @Property({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   totalPaid: number = 0
 
-  @Property({ nullable: true })
-  scheduledDeliveryDate?: Date
-
-  @Property({ nullable: true })
-  approvedAt?: Date
-
-  @Property({ nullable: true })
-  deliveredAt?: Date
-
-  @Property({ type: 'text', nullable: true })
-  deliveryNotes?: string
-
-  @Property({ type: 'text', nullable: true })
-  rejectionReason?: string
-
-  @Property({ default: false })
-  immediateDeliveryRequested: boolean = false
-
-  @Property({ default: false })
-  isLegacyCredit: boolean = false
-
-  @Property({ default: false })
-  isCustomCredit: boolean = false
-
   @Property({ type: 'text', nullable: true })
   description?: string
-
-  @Property({ type: 'decimal', precision: 12, scale: 2, nullable: true })
-  downPayment?: number
-
-  @Property({ default: false })
-  calcOnRemainingAmount: boolean = false
-
-  @Property({ type: 'decimal', precision: 10, scale: 8, nullable: true })
-  latitude?: number
-
-  @Property({ type: 'decimal', precision: 11, scale: 8, nullable: true })
-  longitude?: number
-
-  @Property({ default: false })
-  firstPaymentToday: boolean = false
 
   @Property({ nullable: true })
   completedAt?: Date
